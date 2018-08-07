@@ -1,0 +1,5 @@
+Microsoft Corporation
+Copyright © 2017 Microsoft
+
+This product includes software developed by The Apache Software
+Foundation (http://www.apache.org/).

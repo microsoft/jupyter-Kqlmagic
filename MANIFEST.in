@@ -1,0 +1,9 @@
+include README.rst
+
+include NEWS.txt
+
+include LICENSE
+.txt
+
+include NOTICE
+.txt

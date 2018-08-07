@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{ef1fc82b-ec08-4841-9bfe-91ca2e3b2e87}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>src\kql\textmagic.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="buildout.cfg" />
+    <Content Include="csvfile" />
+    <Content Include="examples\wordcount.png" />
+    <Content Include="examples\writers.png" />
+    <Content Include="HACKING.txt" />
+    <Content Include="LICENSE.TXT" />
+    <Content Include="MANIFEST.in" />
+    <Content Include="NEWS.txt" />
+    <Content Include="README.rst" />
+    <Content Include="run_tests.sh" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="bootstrap.py" />
+    <Compile Include="setup.py" />
+    <Compile Include="src\kql\ai_client.py" />
+    <Compile Include="src\kql\ai_engine.py" />
+    <Compile Include="src\kql\column_guesser.py" />
+    <Compile Include="src\kql\connection.py" />
+    <Compile Include="src\kql\display.py" />
+    <Compile Include="src\kql\help_html.py" />
+    <Compile Include="src\kql\kql_engine.py" />
+    <Compile Include="src\kql\la_client.py" />
+    <Compile Include="src\kql\la_engine.py" />
+    <Compile Include="src\kql\log.py" />
+    <Compile Include="src\kql\kql_magic.py" />
+    <Compile Include="src\kql\my_aad_helper.py" />
+    <Compile Include="src\kql\parser.py" />
+    <Compile Include="src\kql\results.py" />
+    <Compile Include="src\kql\kql_proxy.py" />
+    <Compile Include="src\kql\kusto_engine.py" />
+    <Compile Include="src\kql\database_html.py" />
+    <Compile Include="src\kql\version.py" />
+    <Compile Include="src\kql\__init__.py" />
+    <Compile Include="src\tests\test_column_guesser.py" />
+    <Compile Include="src\tests\test_magic.py" />
+    <Compile Include="src\tests\test_parse.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="examples" />
+    <Folder Include="src\" />
+    <Folder Include="src\kql" />
+    <Folder Include="src\tests" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>

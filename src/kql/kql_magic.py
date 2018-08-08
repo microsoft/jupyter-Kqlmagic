@@ -221,7 +221,7 @@ class Kqlmagic(Magics, Configurable):
                         start = notebook_url.find('//') + 2
                         library, user = notebook_url[start:end].split('-')
                         azure_notebooks_host = azure_notebooks_host or 'https://notebooks.azure.com'
-                        Display.showfiles_base_url = azure_notebook_host + '/api/user/' +user+ '/library/' +library+ '/html'
+                        Display.showfiles_base_url = azure_notebooks_host + '/api/user/' +user+ '/library/' +library+ '/html'
                     # assume just a remote kernel, as local
                     else:
                         parts = notebook_url.split('/')

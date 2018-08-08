@@ -6,7 +6,11 @@ NAME                = "Kqlmagic"
 
 AUTHOR              = 'Michael Binshtock'
 
-AUTHOR_EMAIL        = 'mbnshtck@gmail.com'
+AUTHOR_EMAIL        = 'michabin@microsoft.com'
+
+MAINTAINER          = 'Michael Binshtock'
+
+MAINTAINER_EMAIL    = 'michabin@microsoft.com'
 
 URL                 = 'https://pypi.python.org/pypi/jupyter-kql-magic'
 
@@ -17,12 +21,19 @@ LICENSE             = 'MIT License'
 KEYWORDS            = 'database ipython jupyter notebook kql kusto loganalytics applicationinsights'
 
 INSTALL_REQUIRES    = [
+                        'ipython>=6.0',
+                        'traitlets>=4.2.1',
+                        'plotly>=2.0',
                         'prettytable>=0.7.2',
-                        'ipython>=1.0',
-                        'azure-kusto-data>=0.0.2',
+                        'matplotlib',
+                        'pandas',
+                        'azure-kusto-data>=0.0.7',
+                        'azure-kusto-ingest>=0.0.7',
+                        'adal>=1.0',
+                        'requests',
+                        'python-dateutil',
                         'six',
-                        'pgspecial',
-                        'ipython-genutils>=0.1.0',
+                        'setuptools',
 ]
 
 
@@ -58,18 +69,26 @@ setup(name=NAME,
     long_description=LONG_DESCRIPTION,
     classifiers=[
         'Development Status :: 1 - Alpha',
+        'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
         'Intended Audience :: Science/Research',
         'Environment :: Console',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Topic :: Database',
         'Topic :: Database :: Front-Ends',
-        'Programming Language :: Python :: 3',
+        'Programming Language :: Python',
         'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     keywords=KEYWORDS,
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
+    maintainer=MAINTAINER,
+    maintainer_email=MAINTAINER_EMAIL,
     url=URL,
     download_url=DOWNLOAD_URL,
     license=LICENSE,

@@ -40,9 +40,12 @@ class Display(object):
 
     @staticmethod
     def _html_to_url(html_str, file_name, **kwargs):
-        text_file = open(Display.showfiles_base_path +file_name+ ".html", "w")
+        fname = Display.showfiles_base_path +file_name+ ".html"
+        text_file = open(fname, "w")
         text_file.write(html_str)
         text_file.close()
+        get_ipython().tempfiles.append(fname)
+
         return Display.showfiles_base_url +file_name+ '.html' 
 
     @staticmethod

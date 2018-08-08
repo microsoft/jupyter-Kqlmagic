@@ -202,24 +202,37 @@ class Kqlmagic(Magics, Configurable):
     def execute_query(self, parsed, user_ns, result_set = None):
         if Display.showfiles_base_url is None:
             # display(Javascript("""IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'")"""))
-
             notebook_url = user_ns.get("NOTEBOOK_URL")
             if notebook_url is not None:
-                end = notebook_url.find('.notebooks.azure.com/')
-                # azure notebook environment
-                if (end > 0):
-                    start = notebook_url.find('//') + 2
-                    library, user = notebook_url[start:end].split('-')
-                    Display.showfiles_base_url = 'https://notebooks.azure.com/api/user/' +user+ '/library/' +library+ '/html'
-                else:
+                if notebook_url.startswith("http://localhost") or notebook_url.startswith("https://localhost"):
                     parts = notebook_url.split('/')
                     parts.pop()
                     Display.showfiles_base_url = '/'.join(parts) 
-                    # assumes it is at root
-                Display.showfiles_base_url += "/" + self.showfiles_folder_name + "/"
+                else:
+                    azure_notebooks_host = os.getenv('AZURE_NOTEBOOKS_HOST')
+                    if azure_notebooks_host:
+                        start = notebook_url.find('//') + 2
+                        suffix = '.' + azure_notebooks_host[start:]
+                    else:
+                        suffix = '.notebooks.azure.com'
+                    end = notebook_url.find(suffix)
+                    # azure notebook environment, assume template: https://library-user.libray.notebooks.azure.com
+                    if (end > 0):
+                        start = notebook_url.find('//') + 2
+                        library, user = notebook_url[start:end].split('-')
+                        azure_notebooks_host = azure_notebooks_host or 'https://notebooks.azure.com'
+                        Display.showfiles_base_url = azure_notebook_host + '/api/user/' +user+ '/library/' +library+ '/html'
+                    # assume just a remote kernel, as local
+                    else:
+                        parts = notebook_url.split('/')
+                        parts.pop()
+                        Display.showfiles_base_url = '/'.join(parts) 
+                        # assumes it is at root
             else:
-                print('missing NOTEBOOK_URL !!!')
-                raise ConnectionError('missing NOTEBOOK_URL') 
+                print('popup may not work !!!')
+                Display.showfiles_base_url = ''
+                # raise ConnectionError('missing NOTEBOOK_URL') 
+            Display.showfiles_base_url += "/" + self.showfiles_folder_name + "/"
 
             # print('NOTEBOOK_URL = {0} '.format(notebook_url))
 
@@ -446,21 +459,20 @@ def load_ipython_extension(ip):
     # add help link
     Help_html.add_menu_item('kql Reference', 'http://aka.ms/kdocs')
 
-    if not get_ipython().dir_stack:
-        root_path = os.getcwd()
-    else:
-        root_path = get_ipython().dir_stack[0]
+    root_path = get_ipython().starting_dir
 
     folder_name = ip.run_line_magic('config', 'Kqlmagic.showfiles_folder_name')
     # print('folder_name = ' + folder_name)
     showfiles_folder_Full_name = root_path + '/' + folder_name
     if not os.path.exists(showfiles_folder_Full_name):
         os.makedirs(showfiles_folder_Full_name)
+    ip.tempdirs.append(showfiles_folder_Full_name)
     Display.showfiles_base_path = showfiles_folder_Full_name + '/'
     # print(Display.showfiles_base_path)
 
     # get notebook location
     display(Javascript("""IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");"""))
+    folder_name = ip.run_line_magic('config', 'Kqlmagic.showfiles_folder_name')
     time.sleep(5)
     return result
 

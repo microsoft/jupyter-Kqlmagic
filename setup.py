@@ -34,7 +34,7 @@ INSTALL_REQUIRES    = [
                         'seaborn>=0.9.0',
                         'requests>=2.19.1',
                         'python-dateutil>=2.7.3',
-                        'psutil>=5.4.7'
+                        'psutil>=5.4.7',
                         'six>=1.11.0',
                         'setuptools>=40.3.0',
 ]

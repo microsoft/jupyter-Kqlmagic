@@ -1,57 +1,93 @@
 """ A module to acquire tokens from AAD.
 """
 
+from enum import Enum, unique
 from datetime import timedelta, datetime
+
 # import webbrowser
+from six.moves.urllib.parse import urlparse
+
 import dateutil.parser
 from adal import AuthenticationContext
-from kql.display  import Display
+from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
+from kql.display import Display
 
+
+@unique
+class AuthenticationMethod(Enum):
+    """Enum represnting all authentication methods available in Kusto with Python."""
+
+    aad_username_password = "aad_username_password"
+    aad_application_key = "aad_application_key"
+    aad_application_certificate = "aad_application_certificate"
+    aad_device_login = "aad_device_login"
 
 
 class _MyAadHelper(object):
-    def __init__(self, kusto_cluster, client_id=None, client_secret=None, username=None, password=None, authority=None):
-        self.adal_context = AuthenticationContext('https://login.windows.net/{0}'.format(authority or 'microsoft.com'))
-        self.kusto_cluster = kusto_cluster
-        self.client_id = client_id or "db662dc1-0cfe-4e1c-a843-19a68e65be58"
-        self.client_secret = client_secret
-        self.username = username
-        self.password = password
+    def __init__(self, kcsb):
+        authority = kcsb.authority_id or "common"
+        self._kusto_cluster = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
+        self._adal_context = AuthenticationContext("https://login.microsoftonline.com/{0}".format(authority))
+        self._username = None
+        if all([kcsb.aad_user_id, kcsb.password]):
+            self._authentication_method = AuthenticationMethod.aad_username_password
+            self._client_id = "db662dc1-0cfe-4e1c-a843-19a68e65be58"
+            self._username = kcsb.aad_user_id
+            self._password = kcsb.password
+        elif all([kcsb.application_client_id, kcsb.application_key]):
+            self._authentication_method = AuthenticationMethod.aad_application_key
+            self._client_id = kcsb.application_client_id
+            self._client_secret = kcsb.application_key
+        elif all([kcsb.application_client_id, kcsb.application_certificate, kcsb.application_certificate_thumbprint]):
+            self._authentication_method = AuthenticationMethod.aad_application_certificate
+            self._client_id = kcsb.application_client_id
+            self._certificate = kcsb.application_certificate
+            self._thumbprint = kcsb.application_certificate_thumbprint
+        else:
+            self._authentication_method = AuthenticationMethod.aad_device_login
+            self._client_id = "db662dc1-0cfe-4e1c-a843-19a68e65be58"
 
     def acquire_token(self):
-        """ A method to acquire tokens from AAD. """
-        # print("my_aad_helper_acquire_token")
-        token_response = self.adal_context.acquire_token(self.kusto_cluster, self.username, self.client_id)
+        """Acquire tokens from AAD."""
+        token = self._adal_context.acquire_token(self._kusto_cluster, self._username, self._client_id)
+        if token is not None:
+            expiration_date = dateutil.parser.parse(token[TokenResponseFields.EXPIRES_ON])
+            if expiration_date > datetime.now() + timedelta(minutes=1):
+                return self._get_header(token)
+            if TokenResponseFields.REFRESH_TOKEN in token:
+                token = self._adal_context.acquire_token_with_refresh_token(
+                    token[TokenResponseFields.REFRESH_TOKEN], self._client_id, self._kusto_cluster
+                )
+                if token is not None:
+                    return self._get_header(token)
 
-        if token_response is not None:
-            expiration_date = dateutil.parser.parse(token_response['expiresOn'])
-            if expiration_date > datetime.utcnow() + timedelta(minutes=5):
-                return token_response['accessToken']
+        if self._authentication_method is AuthenticationMethod.aad_username_password:
+            token = self._adal_context.acquire_token_with_username_password(self._kusto_cluster, self._username, self._password, self._client_id)
+        elif self._authentication_method is AuthenticationMethod.aad_application_key:
+            token = self._adal_context.acquire_token_with_client_credentials(self._kusto_cluster, self._client_id, self._client_secret)
+        elif self._authentication_method is AuthenticationMethod.aad_device_login:
+            # print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
+            # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+            # token = self._adal_context.acquire_token_with_device_code(
+            #     self._kusto_cluster, code, self._client_id
+            # )
+            code = self._adal_context.acquire_user_code(self._kusto_cluster, self._client_id)
+            url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
+            device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
 
-        if self.client_secret is not None and self.client_id is not None:
-            token_response = self.adal_context.acquire_token_with_client_credentials(
-                self.kusto_cluster,
-                self.client_id,
-                self.client_secret)
-        elif self.username is not None and self.password is not None:
-            token_response = self.adal_context.acquire_token_with_username_password(
-                self.kusto_cluster,
-                self.username,
-                self.password,
-                self.client_id)
-        else:
-            code = self.adal_context.acquire_user_code(self.kusto_cluster, self.client_id)
-
-
-            url = code['verification_url']
-            device_code = code["user_code"].strip()
-
-            html_str = """<!DOCTYPE html>
+            html_str = (
+                """<!DOCTYPE html>
                 <html><body>
 
-                <!-- h1 id="user_code_p"><b>""" +device_code+ """</b><br></h1-->
+                <!-- h1 id="user_code_p"><b>"""
+                + device_code
+                + """</b><br></h1-->
 
-                <input  id="kqlMagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size = '""" +str(len(device_code))+ """' value='""" +device_code+ """'>
+                <input  id="kqlMagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size = '"""
+                + str(len(device_code))
+                + """' value='"""
+                + device_code
+                + """'>
 
                 <button id='kqlMagicCodeAuth_button', onclick="this.style.visibility='hidden';kqlMagicCodeAuthFunction()">Copy code to clipboard and authenticate</button>
 
@@ -73,16 +109,21 @@ class _MyAadHelper(object):
                     var w = screen.width / 2;
                     var h = screen.height / 2;
                     params = 'width='+w+',height='+h
-                    kqlMagicUserCodeAuthWindow = window.open('""" +url+ """', 'kqlMagicUserCodeAuthWindow', params);
+                    kqlMagicUserCodeAuthWindow = window.open('"""
+                + url
+                + """', 'kqlMagicUserCodeAuthWindow', params);
+
+                    // TODO: save selected cell index, so that the clear will be done on the lince cell
                 }
                 </script>
 
                 </body></html>"""
+            )
 
-            Display.show(html_str)
+            Display.show_html(html_str)
             # webbrowser.open(code['verification_url'])
             try:
-                token_response = self.adal_context.acquire_token_with_device_code(self.kusto_cluster, code, self.client_id)
+                token = self._adal_context.acquire_token_with_device_code(self._kusto_cluster, code, self._client_id)
             finally:
                 html_str = """<!DOCTYPE html>
                     <html><body><script>
@@ -91,12 +132,24 @@ class _MyAadHelper(object):
                         if (kqlMagicUserCodeAuthWindow && kqlMagicUserCodeAuthWindow.opener != null && !kqlMagicUserCodeAuthWindow.closed) {
                             kqlMagicUserCodeAuthWindow.close()
                         }
-                        // clear output cell 
+                        // TODO: make sure, you clear the right cell. BTW, not sure it is a must to do any clearing
+
+                        // clear output cell
                         Jupyter.notebook.clear_output(Jupyter.notebook.get_selected_index())
+
+                        // TODO: if in run all mode, move to last cell, otherwise move to next cell
+                        // move to next cell
 
                     </script></body></html>"""
 
-                Display.show(html_str)
+                Display.show_html(html_str)
+        elif self._authentication_method is AuthenticationMethod.aad_application_certificate:
+            token = self._adal_context.acquire_token_with_client_certificate(
+                self._kusto_cluster, self._client_id, self._certificate, self._thumbprint
+            )
+        else:
+            raise KustoClientError("Please choose authentication method from azure.kusto.data.security.AuthenticationMethod")
+        return self._get_header(token)
 
-        return token_response['accessToken']
-
+    def _get_header(self, token):
+        return "{0} {1}".format(token[TokenResponseFields.TOKEN_TYPE], token[TokenResponseFields.ACCESS_TOKEN])

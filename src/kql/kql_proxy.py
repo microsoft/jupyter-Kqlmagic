@@ -1,155 +1,120 @@
+import six
 import json
+from kql.display import Display
 
-class KqlRow(object):
-    def __init__(self, row, col_num):
+
+class KqlRow(six.Iterator):
+    def __init__(self, row, col_num, **kwargs):
+        self.kwargs = kwargs
         self.row = row
-        self.next = 0
-        self.last = col_num
-
+        self.column_index = 0
+        self.columns_count = col_num
 
     def __iter__(self):
-        self.next = 0
+        self.column_index = 0
         return self
 
-
-    def next(self):
-        return self.__next__()
-
-
     def __next__(self):
-        if self.next >= self.last:
+        if self.column_index >= self.columns_count:
             raise StopIteration
-        else:
-            val = self.__getitem__(self.next)
-            self.next = self.next + 1
-            return val
-
+        val = self.__getitem__(self.column_index)
+        self.column_index = self.column_index + 1
+        return val
 
     def __getitem__(self, key):
-        return self.row[key]
-
+        if isinstance(key, slice):
+            s = self.row[key]
+            return KqlRow(s, len(s), **self.kwargs)
+        else:
+            return Display.to_styled_class(self.row[key], **self.kwargs)
 
     def __len__(self):
-        return self.last
-
+        return self.columns_count
 
     def __eq__(self, other):
-        if (len(other) != self.last):
+        if len(other) != self.columns_count:
             return False
-        for i in range(self.last):
+        for i in range(self.columns_count):
             s = self.__getitem__(i)
             o = other[i]
             if o != s:
                 return False
         return True
 
-
     def __str__(self):
-        return ", ".join(str(self.__getitem__(i)) for i in range(self.last))
+        return ", ".join(str(self.__getitem__(i)) for i in range(self.columns_count))
+
+    def __repr__(self):
+        return self.row.__repr__()
 
 
-class KqlRowsIter(object):
+class KqlRowsIter(six.Iterator):
     """ Iterator over returned rows, limited by size """
-    def __init__(self, response, row_num, col_num):
-        self.response = response
-        self.next = 0
-        self.last = row_num
+
+    def __init__(self, table, row_num, col_num, **kwargs):
+        self.kwargs = kwargs
+        self.table = table
+        self.row_index = 0
+        self.rows_count = row_num
         self.col_num = col_num
 
-
     def __iter__(self):
-        self.next = 0
-        self.iter_all_iter = self.response.iter_all()
+        self.row_index = 0
+        self.iter_all_iter = self.table.iter_all()
         return self
 
-
-    def next(self):
-        return self.__next__()
-
-
     def __next__(self):
-        if self.next >= self.last:
+        if self.row_index >= self.rows_count:
             raise StopIteration
-        else:
-            self.next = self.next + 1
-            return KqlRow(self.iter_all_iter.__next__(), self.col_num)
-
+        self.row_index = self.row_index + 1
+        return KqlRow(self.iter_all_iter.__next__(), self.col_num, **self.kwargs)
 
     def __len__(self):
-        return self.last
+        return self.rows_count
 
 
 class KqlResponse(object):
     # Object constructor
-    def __init__(self, response):
-        self.data_table = None
-        self.visualization_properties = None
-        self.row_count = 0
-        self.col_count = 0
-        self.response = response
-        self._get_data_table()
-        self._get_visualization_properties()
-        if self.data_table:
-            self.row_count = len(self.data_table['Rows'])
-            self.col_count = len(self.data_table['Columns'])
+    def __init__(self, response, **kwargs):
+        self.json_response = response.json_response
+        self.kwargs = kwargs
+        self.visualization_properties = response.visualization_results
+        self.completion_query_info = response.completion_query_info_results
+        self.completion_query_resource_consumption = response.completion_query_resource_consumption_results
+        self.tables = [KqlTableResponse(t, response.visualization_results) for t in response.primary_results]
 
 
-    def _get_data_table(self):
-        if not self.data_table:
-            if isinstance(self.response.get_raw_response(), list):
-                for t in self.response.get_raw_response():
-                    if t['FrameType'] == 'DataTable' and t['TableName'] == 'PrimaryResult':
-                        self.data_table = t
-                        break
-            else:
-                self.data_table = self.response.get_raw_response()['Tables'][0]
-        return self.data_table
+class KqlTableResponse(object):
+    def __init__(self, data_table, visualization_results, **kwargs):
+        self.kwargs = kwargs
+        self.visualization_properties = visualization_results
+        self.data_table = data_table
+        self.columns_count = self.data_table.columns_count
 
     def fetchall(self):
-        return KqlRowsIter(self.response, self.row_count, self.col_count)
-
+        return KqlRowsIter(self.data_table, self.data_table.rows_count, self.data_table.columns_count, **self.kwargs)
 
     def fetchmany(self, size):
-        return KqlRowsIter(self.response, min(size, self.row_count), self.col_count)
-
+        return KqlRowsIter(self.data_table, min(size, self.data_table.rows_count), self.data_table.columns_count, **self.kwargs)
 
     def rowcount(self):
-        return self.row_count
+        return self.data_table.rows_count
 
     def colcount(self):
-        return self.col_count
+        return self.data_table.columns_count
 
     def recordscount(self):
-        return self.row_count
-
+        return self.data_table.rows_count
 
     def keys(self):
-        result = []
-        if self.data_table:
-            for value in self.data_table['Columns']:
-                result.append(value['ColumnName'])
-        return result
+        return self.data_table.columns_name
 
+    def types(self):
+        return self.data_table.columns_type
 
-
-    def _get_visualization_properties(self):
-        " returns the table that contains the extended properties"
-        if not self.visualization_properties:
-            if isinstance(self.response.get_raw_response(), list):
-                for t in self.response.get_raw_response():
-                    if t['FrameType'] == 'DataTable' and t['TableName'] == '@ExtendedProperties':
-                        for r in t['Rows']:
-                            if r[1] == 'Visualization':
-                                # print('visualization_properties: {}'.format(r[2]))
-                                self.visualization_properties = json.loads(r[2])
-            else:
-                table_num = self.response.get_raw_response()['Tables'].__len__()
-                for r in self.response.get_raw_response()['Tables'][table_num - 1]['Rows']:
-                    if r[2] == "@ExtendedProperties":
-                        t = self.response.get_raw_response()['Tables'][r[0]]
-                        # print('visualization_properties: {}'.format(t['Rows'][0][0]))
-                        self.visualization_properties = json.loads(t['Rows'][0][0])
-        return self.visualization_properties
+    @property
+    def datafarme_types(self):
+        return [self.KQL_TO_DATAFRAME_DATA_TYPES.get(t) for t in self.data_table.columns_type]
 
     def visualization_property(self, name):
         " returns value of attribute: Visualization, Title, Accumulate, IsQuerySorted, Kind, Annotation, By"
@@ -161,14 +126,73 @@ class KqlResponse(object):
         except:
             return None
 
+    def _map_columns_to_index(self, columns: list):
+        map = {}
+        for idx, col in enumerate(columns):
+            map[col["ColumnName"]] = idx
+        return map
 
     def returns_rows(self):
-        return self.row_count > 0
+        return self.data_table.rows_count > 0
+
+    def to_dataframe(self, raise_errors=True):
+        """Returns Pandas data frame."""
+        import pandas
+
+        if self.data_table.columns_count == 0 or self.data_table.rows_count == 0:
+            # return pandas.DataFrame()
+            pass
+
+        frame = pandas.DataFrame(self.data_table.rows, columns=self.data_table.columns_name)
+
+        for (idx, col_name) in enumerate(self.data_table.columns_name):
+            col_type = self.data_table.columns_type[idx]
+            if col_type.lower() == "timespan":
+                frame[col_name] = pandas.to_timedelta(
+                    frame[col_name].apply(lambda t: t.replace(".", " days ") if t and "." in t.split(":")[0] else t)
+                )
+            elif col_type.lower() == "dynamic":
+                frame[col_name] = frame[col_name].apply(lambda x: json.loads(x) if x else None)
+            elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
+                pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
+                frame[col_name] = frame[col_name].astype(pandas_type, errors="raise" if raise_errors else "ignore")
+        return frame
+
+    KQL_TO_DATAFRAME_DATA_TYPES = {
+        "bool": "bool",
+        "uint8": "int64",
+        "int16": "int64",
+        "uint16": "int64",
+        "int": "int64",
+        "uint": "int64",
+        "long": "int64",
+        "ulong": "int64",
+        "float": "float64",
+        "real": "float64",
+        "decimal": "float64",
+        "string": "object",
+        "datetime": "datetime64[ns]",
+        "guid": "object",
+        "timespan": "timedelta64[ns]",
+        "dynamic": "object",
+        # Support V1
+        "DateTime": "datetime64[ns]",
+        "Int32": "int32",
+        "Int64": "int64",
+        "Double": "float64",
+        "String": "object",
+        "SByte": "object",
+        "Guid": "object",
+        "TimeSpan": "object",
+    }
+
+
 
 
 class FakeResultProxy(object):
     """A fake class that pretends to behave like the ResultProxy.
     """
+
     # Object constructor
     def __init__(self, cursor, headers):
         self.fetchall = cursor.fetchall

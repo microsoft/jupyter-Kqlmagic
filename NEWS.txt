@@ -84,3 +84,11 @@ UI
 
 Connection Management
 - if connection fails to connect either should be marked as such or shouldn't be in list
+
+08/25/2018 - Kusto Connection to a new database on a cluster that already have a database connected, will skip authentication, and all databases on same cluster will use same authenticated client to that cluster.
+             The new connection_str can be either kusto://... or database@cluster
+08/26/2018 - replaced show_conn_list option with show_conn_info that has 3 states: 'current', 'list' and 'None'
+08/26/2018 - added the following methods:
+  display_table - will display the result table in the cell
+  display_chart - will display the result chart in the cell
+  display - will display the result in the cell

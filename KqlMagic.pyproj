@@ -18,32 +18,37 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="buildout.cfg" />
     <Content Include="csvfile" />
-    <Content Include="examples\wordcount.png" />
-    <Content Include="examples\writers.png" />
+    <Content Include="dev_requirements.txt" />
     <Content Include="HACKING.txt" />
+    <Content Include="HISTORY.rst" />
     <Content Include="LICENSE.TXT" />
     <Content Include="MANIFEST.in" />
     <Content Include="NEWS.txt" />
+    <Content Include="NOTICE.TXT" />
     <Content Include="README.rst" />
+    <Content Include="run_black.sh" />
     <Content Include="run_tests.sh" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="bootstrap.py" />
+    <Compile Include="azure_bdist_wheel.py" />
     <Compile Include="setup.py" />
     <Compile Include="src\kql\ai_client.py" />
     <Compile Include="src\kql\ai_engine.py" />
     <Compile Include="src\kql\column_guesser.py" />
     <Compile Include="src\kql\connection.py" />
     <Compile Include="src\kql\display.py" />
+    <Compile Include="src\kql\file_client.py" />
+    <Compile Include="src\kql\file_engine.py" />
     <Compile Include="src\kql\help_html.py" />
     <Compile Include="src\kql\kql_engine.py" />
+    <Compile Include="src\kql\kusto_client.py" />
     <Compile Include="src\kql\la_client.py" />
     <Compile Include="src\kql\la_engine.py" />
     <Compile Include="src\kql\log.py" />
     <Compile Include="src\kql\kql_magic.py" />
     <Compile Include="src\kql\my_aad_helper.py" />
+    <Compile Include="src\kql\palette.py" />
     <Compile Include="src\kql\parser.py" />
     <Compile Include="src\kql\results.py" />
     <Compile Include="src\kql\kql_proxy.py" />
@@ -56,7 +61,6 @@
     <Compile Include="src\tests\test_parse.py" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="examples" />
     <Folder Include="src\" />
     <Folder Include="src\kql" />
     <Folder Include="src\tests" />

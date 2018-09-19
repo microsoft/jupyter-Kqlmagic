@@ -21,19 +21,22 @@ LICENSE             = 'MIT License'
 KEYWORDS            = 'database ipython jupyter notebook kql kusto loganalytics applicationinsights'
 
 INSTALL_REQUIRES    = [
-                        'ipython>=6.0',
-                        'traitlets>=4.2.1',
-                        'plotly>=2.0',
+                        'ipython>=6.5.0',
+                        'traitlets>=4.3.2',
+                        'plotly>=3.2.1',
                         'prettytable>=0.7.2',
-                        'matplotlib',
-                        'pandas',
-                        'azure-kusto-data>=0.0.7',
-                        'azure-kusto-ingest>=0.0.7',
-                        'adal>=1.0',
-                        'requests',
-                        'python-dateutil',
-                        'six',
-                        'setuptools',
+                        'matplotlib>=2.2.3',
+                        'pandas>=0.23.4',
+                        'azure-kusto-data>=0.0.12',
+                        'azure-kusto-ingest>=0.0.12',
+                        'adal>=1.1.0',
+                        'Pygments>=2.2.0',
+                        'seaborn>=0.9.0',
+                        'requests>=2.19.1',
+                        'python-dateutil>=2.7.3',
+                        'psutil>=5.4.7'
+                        'six>=1.11.0',
+                        'setuptools>=40.3.0',
 ]
 
 

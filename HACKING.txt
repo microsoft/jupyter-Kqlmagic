@@ -33,9 +33,9 @@ To make a release,
   Run test
   1. launch anaconda prompt (folder "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Anaconda3 (64-bit)")
   2. >cd c:\My Projects\KqlMagic\src
-  3. >set TEST_CONNECTION_STR=kusto://username('michabin@microsoft.com').password('j=Kk-h34J').cluster('Oiildc').database('OperationInsights_PFS_PROD')
-  4. >set KQL_CONNECTION_STR=kusto://username('michabin@microsoft.com').password('j=Kk-h34J').cluster('Oiildc').database('OperationInsights_PFS_PROD')
-  5. >set HELP_CONNECTION_STR=kusto://username('michabin@microsoft.com').password('j=Kk-h34J').cluster('help').database('Samples')
+  3. >set TEST_CONNECTION_STR=kusto://username('michabin@microsoft.com').password(<password>).cluster('Oiildc').database('OperationInsights_PFS_PROD')
+  4. >set KQLMAGIC_CONNECTION_STR=kusto://username('michabin@microsoft.com').password(<password>).cluster('Oiildc').database('OperationInsights_PFS_PROD')
+  5. >set HELP_CONNECTION_STR=kusto://username('michabin@microsoft.com').password(<password>).cluster('help').database('Samples')
   6. >
   3  >ipython -c "import nose; nose.run()"
 
@@ -55,6 +55,9 @@ To make a release,
 
   Notes for Jupyter Notebbok
       conda install -c conda-forge ipywidgets
+
+  Note: modified file C:\Users\michabin\AppData\Local\Continuum\Anaconda3\Lib\site-packages\jupyterlab\staging\webpack.prod.config.js
+    parallel: false, (was true) to overcome ['webpack' is not recognized as an internal or external command] error in jupyter lab build
 
 
   Notes for jupyter labs environment:
@@ -78,11 +81,11 @@ conda update jupyter
 run commandline
 activate environment
   C:\Users\michabin\AppData\Local\Continuum\Anaconda3\Scripts\activate
-  set TEST_CONNECTION_STR=kusto://username('michabin@microsoft.com').password('z=Xx-h34Z').cluster('Oiildc').database('OperationInsights_PFS_PROD')
+  set TEST_CONNECTION_STR=kusto://username('michabin@microsoft.com').password(<password>).cluster('Oiildc').database('OperationInsights_PFS_PROD')
   // env default connection string
-  set KQL_CONNECTION_STR=kusto://username('michabin@microsoft.com').password('z=Xx-h34Z').cluster('Oiildc').database('OperationInsights_PFS_PROD')
+  set KQLMAGIC_CONNECTION_STR=kusto://username('michabin@microsoft.com').password(<password>).cluster('Oiildc').database('OperationInsights_PFS_PROD')
 
-  set HELP_CONNECTION_STR=kusto://username('michabin@microsoft.com').password('z=Xx-h34Z').cluster('help').database('Samples')
+  set HELP_CONNECTION_STR=kusto://username('michabin@microsoft.com').password(<password>).cluster('help').database('Samples')
   set HELP_CONNECTION_STR=kusto://username('michabin@microsoft.com').cluster('help').database('Samples')
   set HELP_CONNECTION_STR=kusto://code().cluster('help').database('Samples')
 
@@ -108,7 +111,7 @@ Sharing notebook via gist
     - paste the content of the file
     - give it a name with extension .ipynb
     - add description
-    - publish by clicking the "Create Public Gist" botton 
+    - publish by clicking the "Create Public Gist" button 
         ** it will give it a url with anumber 
 
  - View the notebook with nbviewer
@@ -120,4 +123,54 @@ Sharing notebook via gist
 !pip install git+git://github.com/mbnshtck/jupyter-kql-magic.git
 pip uninstall -y Kqlmagic 
 
+to builf jupyter lab make sure npm registry is set to default:
+>> npm config set registry https://registry.npmjs.org/
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OLD:
+; cli configs
+metrics-registry = "https://1essharedassets.pkgs.visualstudio.com/_packaging/Kusto/npm/registry/"
+scope = ""
+user-agent = "npm/5.10.0 node/v8.11.3 win32 x64"
+
+; userconfig C:\Users\michabin\.npmrc
+registry = "https://1essharedassets.pkgs.visualstudio.com/_packaging/Kusto/npm/registry/"
+
+; builtin config undefined
+prefix = "C:\\Users\\michabin\\AppData\\Roaming\\npm"
+
+; node bin location = C:\Program Files\nodejs\node.exe
+; cwd = C:\Users\michabin
+; HOME = C:\Users\michabin
+; "npm config ls -l" to show all defaults.
+MyBinder:
+github location: https://github.com/mbnshtck/jupyter-kql-magic
+notebooks/ColorYourCharts.ipynb
+Kusto QuickStart
+https://mybinder.org/v2/gh/mbnshtck/jupyter-kql-magic/master?filepath=notebooks%2FQuickStart.ipynb
+ApplicationInsight
+https://mybinder.org/v2/gh/mbnshtck/jupyter-kql-magic/master?filepath=notebooks%2FQuickStartAI.ipynb
+ColorYourCharts.ipynb
+https://mybinder.org/v2/gh/mbnshtck/jupyter-kql-magic/master?filepath=notebooks%2FColorYourCharts.ipynb
+
+# run before checkin in
+black -l 150 KqlMagic\src\kql
+
+C:\Users\michabin\AppData\Local\Continuum\Anaconda3;
+C:\Users\michabin\AppData\Local\Continuum\Anaconda3\Library\mingw-w64\bin;
+C:\Users\michabin\AppData\Local\Continuum\Anaconda3\Library\usr\bin;
+C:\Users\michabin\AppData\Local\Continuum\Anaconda3\Library\bin;
+C:\Users\michabin\AppData\Local\Continuum\Anaconda3\Scripts

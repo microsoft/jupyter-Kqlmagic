@@ -1,9 +1,3 @@
-include README.rst
-
-include NEWS.txt
-
-include LICENSE
-.txt
-
-include NOTICE
-.txt
+include *.txt
+include *.rst
+include azure_bdist_wheel.py

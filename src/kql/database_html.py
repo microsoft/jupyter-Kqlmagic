@@ -1,4 +1,4 @@
-from kql.display  import Display
+from kql.display import Display
 from kql.kusto_engine import KustoEngine
 from kql.ai_engine import AppinsightsEngine
 from kql.help_html import Help_html
@@ -12,8 +12,19 @@ class Database_html(object):
     # union * | summarize any(*) by itemType | project itemType
     # %kql union * | project itemType | summarize any(*) by itemType
     # %kql union * | project itemType | distinct *
-    application_insights_tables = ['requests', 'exceptions', 'dependencies', 'traces', 'events', 'customEvents', 'metrics', 'customMetrics', 'pageViews', 'browserTimings', 
-                                   'availabilityResults']
+    application_insights_tables = [
+        "requests",
+        "exceptions",
+        "dependencies",
+        "traces",
+        "events",
+        "customEvents",
+        "metrics",
+        "customMetrics",
+        "pageViews",
+        "browserTimings",
+        "availabilityResults",
+    ]
     database_metadata_css = """.just-padding {
       height: 100%;
       width: 100%;
@@ -93,42 +104,51 @@ class Database_html(object):
 
     @staticmethod
     def convert_database_metadata_to_html(database_metadata_tree, connectionName, **kwargs):
-        item = ''
+        item = ""
         for table in database_metadata_tree.keys():
             table_metadata_tree = database_metadata_tree.get(table)
             item += Database_html._convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs)
         header = connectionName
-        title = connectionName.replace('@', '_at_') + ' schema'
-        result =  Database_html.database_metadata_html.format(title, Database_html.database_metadata_scripts, Database_html.database_metadata_css,
-                                                              header, item)
-        #print(result)
+        title = connectionName.replace("@", "_at_") + " schema"
+        result = Database_html.database_metadata_html.format(
+            title, Database_html.database_metadata_scripts, Database_html.database_metadata_css, header, item
+        )
+        # print(result)
         return result
 
     @staticmethod
     def _create_database_metadata_tree(rows, databaseName, **kwargs):
         database_metadata_tree = {}
         for row in rows:
-            database_name = row['DatabaseName']
-            table_name = row['TableName']
-            column_name = row['ColumnName']
-            column_type = row['ColumnType']
+            database_name = row["DatabaseName"]
+            table_name = row["TableName"]
+            column_name = row["ColumnName"]
+            column_type = row["ColumnType"]
             if database_name == databaseName:
                 if table_name and len(table_name) > 0:
-                   if not database_metadata_tree.get(table_name):
-                       database_metadata_tree[table_name] = {}
-                   if column_name and len(column_name) > 0 and column_type and len(column_type) > 0:
-                       database_metadata_tree.get(table_name)[column_name] = column_type
+                    if not database_metadata_tree.get(table_name):
+                        database_metadata_tree[table_name] = {}
+                    if column_name and len(column_name) > 0 and column_type and len(column_type) > 0:
+                        database_metadata_tree.get(table_name)[column_name] = column_type
         return database_metadata_tree
 
     @staticmethod
     def _convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs):
-        item = """<a href='#""" +table+ """' class="list-group-item" data-toggle="collapse">
-                     <i class="glyphicon glyphicon-chevron-right"></i><b>""" +table+ """</b>
+        item = (
+            """<a href='#"""
+            + table
+            + """' class="list-group-item" data-toggle="collapse">
+                     <i class="glyphicon glyphicon-chevron-right"></i><b>"""
+            + table
+            + """</b>
                   </a>
-                  <div class="list-group collapse" id='""" +table+ """'>"""
+                  <div class="list-group collapse" id='"""
+            + table
+            + """'>"""
+        )
         for column_name in table_metadata_tree.keys():
             column_type = table_metadata_tree.get(column_name)
-            if column_type.startswith('System.'):
+            if column_type.startswith("System."):
                 column_type = column_type[7:]
             item += Database_html._convert_column_metadata_to_item(column_name, column_type, **kwargs)
         item += """</div>"""
@@ -137,41 +157,47 @@ class Database_html(object):
     @staticmethod
     def _convert_column_metadata_to_item(column_name, column_type, **kwargs):
         col_metadata = {}
-        item = '<b>' +column_name+ '</b> : ' + column_type
-        return """<a href="#" class="list-group-item">""" +item+ """</a>"""
+        item = "<b>" + column_name + "</b> : " + column_type
+        return """<a href="#" class="list-group-item">""" + item + """</a>"""
 
     @staticmethod
-    def popup_schema(conn):
+    def get_schema_file_path(conn, **kwargs):
         if isinstance(conn, KustoEngine) or isinstance(conn, AppinsightsEngine):
             database_name = conn.get_database()
-            conn_name = conn.get_name()
+            conn_name = conn.get_conn_name()
 
             if isinstance(conn, KustoEngine):
-                query = '.show schema'
-                raw_table = conn.execute(query)
-                database_metadata_tree = Database_html._create_database_metadata_tree(raw_table.fetchall(), database_name)
+                query = ".show schema"
+                raw_query_result = conn.execute(query)
+                raw_schema_table = raw_query_result.tables[0]
+                database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
 
             elif isinstance(conn, AppinsightsEngine):
                 database_metadata_tree = {}
                 for table_name in Database_html.application_insights_tables:
                     query = table_name + " | getschema"
                     try:
-                        raw_table = conn.execute(query)
-                        rows = raw_table.fetchall()
-                        if (raw_table.returns_rows()):
+                        raw_query_result = conn.execute(query)
+                        raw_schema_table = raw_query_result.tables[0]
+                        rows = raw_schema_table.fetchall()
+                        if raw_schema_table.returns_rows():
                             database_metadata_tree[table_name] = {}
                             for row in rows:
-                                column_name = row['ColumnName']
-                                column_type = row['ColumnType']
+                                column_name = row["ColumnName"]
+                                column_type = row["ColumnType"]
                                 if column_name and len(column_name) > 0 and column_type and len(column_type) > 0:
                                     database_metadata_tree.get(table_name)[column_name] = column_type
                     except:
                         pass
             html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)
-            window_name = conn_name.replace('@','_at_') + '_schema'
-            url = Display._html_to_url(html_str, window_name)
-            botton_text = 'popup schema ' + conn_name
-            Help_html.add_menu_item(conn_name, url)
-            Display.show_window(window_name, url, botton_text)
+            window_name = conn_name.replace("@", "_at_") + "_schema"
+            return Display._html_to_file_path(html_str, window_name, **kwargs)
         else:
             return None
+
+    @staticmethod
+    def popup_schema(file_path, conn_name):
+        if file_path:
+            button_text = "popup schema " + conn_name
+            window_name = conn_name.replace("@", "_at_") + "_schema"
+            Display.show_window(window_name, file_path, button_text=button_text, onclick_visibility="visible")

@@ -191,13 +191,13 @@ class Kqlmagic(Magics, Configurable):
                         <p>   &bull; kql language reference: Click on 'Help' tab > and Select 'kql referece'<br>
                           &bull; Kqlmagic configuarion: Run in cell '%config kqlmagic'<br>
                           &bull; Kqlmagic syntax: Run in cell '%kql?'<br>
-                          &bull; Kqlmagic upgrate syntax: Run 'pip install git+git://github.com/mbnshtck/jupyter-kql-magic.git --upgrade'<br>
+                          &bull; Kqlmagic upgrate syntax: Run 'pip install git+git://github.com/Microsoft/jupyter-Kqlmagic.git --upgrade'<br>
                     </div>
                 </div>
             </body>
             </html>"""
             Display.show_html(html_str)
-            Display.showInfoMessage("""Kqlmagic package is updated frequently. Run pip install Kqlmagic --upgrade to use the latest version.<br>Kqlmagic version: """ + VERSION + """, source: https://github.com/mbnshtck/jupyter-kql-magic""")
+            Display.showInfoMessage("""Kqlmagic package is updated frequently. Run pip install Kqlmagic --upgrade to use the latest version.<br>Kqlmagic version: """ + VERSION + """, source: https://github.com/Microsoft/jupyter-Kqlmagic""")
             # <div><img src='https://az818438.vo.msecnd.net/icons/kusto.png'></div>
         _override_default_configuration(ip, kql_magic_load_mode)
 

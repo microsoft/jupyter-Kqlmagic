@@ -1,3 +1,9 @@
+#-------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See License.txt in the project root for
+# license information.
+#--------------------------------------------------------------------------
+
 import re
 from kql.kql_engine import KqlEngine, KqlEngineError
 from kql.la_client import LoganalyticsClient

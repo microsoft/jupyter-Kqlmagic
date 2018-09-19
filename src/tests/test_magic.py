@@ -1,3 +1,9 @@
+#-------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See License.txt in the project root for
+# license information.
+#--------------------------------------------------------------------------
+
 from nose import with_setup
 from nose.tools import raises
 from kql.kql_magic import Kqlmagic

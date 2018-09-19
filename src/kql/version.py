@@ -1,2 +1,8 @@
+#-------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See License.txt in the project root for
+# license information.
+#--------------------------------------------------------------------------
+
 """ Version file. """
-VERSION = "0.1.33"
+VERSION = "0.1.34"

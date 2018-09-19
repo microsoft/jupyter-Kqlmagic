@@ -1,3 +1,9 @@
+#-------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See License.txt in the project root for
+# license information.
+#--------------------------------------------------------------------------
+
 from kql.display import Display
 from kql.kusto_engine import KustoEngine
 from kql.ai_engine import AppinsightsEngine

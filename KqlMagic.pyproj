@@ -18,7 +18,8 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="csvfile" />
+    <Content Include="CODE_OF_CONDUCT.md" />
+    <Content Include="CONTRIBUTING.md" />
     <Content Include="dev_requirements.txt" />
     <Content Include="HACKING.txt" />
     <Content Include="HISTORY.rst" />
@@ -32,6 +33,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="azure_bdist_wheel.py" />
+    <Compile Include="build_packages.py" />
     <Compile Include="setup.py" />
     <Compile Include="src\kql\ai_client.py" />
     <Compile Include="src\kql\ai_engine.py" />

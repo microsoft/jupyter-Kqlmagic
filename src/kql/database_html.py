@@ -7,6 +7,8 @@
 from kql.display import Display
 from kql.kusto_engine import KustoEngine
 from kql.ai_engine import AppinsightsEngine
+from kql.cache_engine import CacheEngine
+from kql.cache_client import CacheClient
 from kql.help_html import Help_html
 
 
@@ -168,17 +170,28 @@ class Database_html(object):
 
     @staticmethod
     def get_schema_file_path(conn, **kwargs):
-        if isinstance(conn, KustoEngine) or isinstance(conn, AppinsightsEngine):
-            database_name = conn.get_database()
-            conn_name = conn.get_conn_name()
+        engine_type = (KustoEngine if isinstance(conn, KustoEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, KustoEngine))
+                       else AppinsightsEngine if isinstance(conn, AppinsightsEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, AppinsightsEngine))
+                       else None)
 
-            if isinstance(conn, KustoEngine):
+        if engine_type is not None:
+            if isinstance(conn, CacheEngine):
+                database_name = conn.kql_engine.get_database()
+                conn_name = conn.kql_engine.get_conn_name()
+            else:
+                database_name = conn.get_database()
+                conn_name = conn.get_conn_name()
+
+
+            if engine_type == KustoEngine:
                 query = ".show schema"
                 raw_query_result = conn.execute(query)
                 raw_schema_table = raw_query_result.tables[0]
                 database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
+                if kwargs.get('cache') and not kwargs.get('use_cache') and not isinstance(conn, CacheEngine):
+                    CacheClient().save(conn.get_database(), conn.get_cluster(), query, raw_query_result, **kwargs)
 
-            elif isinstance(conn, AppinsightsEngine):
+            elif engine_type == AppinsightsEngine:
                 database_metadata_tree = {}
                 for table_name in Database_html.application_insights_tables:
                     query = table_name + " | getschema"
@@ -193,8 +206,11 @@ class Database_html(object):
                                 column_type = row["ColumnType"]
                                 if column_name and len(column_name) > 0 and column_type and len(column_type) > 0:
                                     database_metadata_tree.get(table_name)[column_name] = column_type
+                        if kwargs.get('cache') and not kwargs.get('use_cache') and not isinstance(conn, CacheEngine):
+                            CacheClient().save(conn.get_database(), conn.get_cluster(), query, raw_query_result, **kwargs)
                     except:
                         pass
+
             html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)
             window_name = conn_name.replace("@", "_at_") + "_schema"
             return Display._html_to_file_path(html_str, window_name, **kwargs)
@@ -202,8 +218,9 @@ class Database_html(object):
             return None
 
     @staticmethod
-    def popup_schema(file_path, conn_name):
+    def popup_schema(file_path, conn):
         if file_path:
+            conn_name = conn.kql_engine.get_conn_name() if isinstance(conn, CacheEngine) else conn.get_conn_name()
             button_text = "popup schema " + conn_name
             window_name = conn_name.replace("@", "_at_") + "_schema"
             Display.show_window(window_name, file_path, button_text=button_text, onclick_visibility="visible")

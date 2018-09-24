@@ -24,8 +24,6 @@ from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate
 from kql.version import VERSION
 from kql.connection import Connection
 from azure.kusto.data.exceptions import KustoError
-from kql.ai_client import AppinsightsError
-from kql.la_client import LoganalyticsError
 
 from kql.results import ResultSet
 from kql.parser import Parser
@@ -37,8 +35,8 @@ from kql.help_html import Help_html
 from kql.kusto_engine import KustoEngine
 from kql.kql_engine import KqlEngineError
 from kql.palette import Palettes, Palette
-from kql.file_engine import FileEngine
-from kql.file_client import FileClient
+from kql.cache_engine import CacheEngine
+from kql.cache_client import CacheClient
 
 
 @magics_class
@@ -106,7 +104,7 @@ class Kqlmagic(Magics, Configurable):
 
     temp_folder_name = Unicode("Kqlmagic_temp_files", config=True, help="Set the folder name for temporary files")
     export_folder_name = Unicode("Kqlmagic_exported_files", config=True, help="Set the folder name  for exported files")
-    file_schema_folder_name = Unicode("Kqlmagic_file_schema_files", config=True, help="Set the folder name for file schema files")
+    cache_folder_name = Unicode("Kqlmagic_cache_files", config=True, help="Set the folder name for cache files")
 
     # valid values: jupyterlab or jupyternotebook
     notebook_app = Enum(["jupyterlab", "jupyternotebook"], "jupyternotebook", config=True, help="Set notebook application used.")
@@ -477,7 +475,7 @@ class Kqlmagic(Magics, Configurable):
                 not conn.options.get("auto_popup_schema_done") and options.get("auto_popup_schema", self.auto_popup_schema)
             ):
                 schema_file_path = Database_html.get_schema_file_path(conn, **options)
-                Database_html.popup_schema(schema_file_path, conn.get_conn_name())
+                Database_html.popup_schema(schema_file_path, conn)
 
             conn.options["auto_popup_schema_done"] = True
             if not conn.options.get("add_schema_to_help_done") and options.get("add_schema_to_help"):
@@ -552,8 +550,8 @@ class Kqlmagic(Magics, Configurable):
                 self.shell.user_ns.update({result_var: result if result is not None else saved_result})
                 result = None
 
-            if options.get('cache') and not options.get('use_cache') and not isinstance(conn, FileEngine):
-                file_path = FileClient().save(conn.get_database(), conn.get_cluster(), query, raw_query_result, **options)
+            if options.get('cache') and not options.get('use_cache') and not isinstance(conn, CacheEngine):
+                file_path = CacheClient().save(conn.get_database(), conn.get_cluster(), query, raw_query_result, **options)
                 if options.get("feedback", self.feedback):
                     saved_result.feedback_info.append("query results cached")
 

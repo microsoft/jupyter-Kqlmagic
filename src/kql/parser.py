@@ -77,7 +77,7 @@ class Parser(object):
         #
         elif not (
             parts[0].startswith("kusto://") or parts[0].startswith("appinsights://") or 
-            parts[0].startswith("loganalytics://") or parts[0].startswith("file://") or "@" in parts[0]
+            parts[0].startswith("loganalytics://") or parts[0].startswith("cache://") or "@" in parts[0]
         ):
             connection = ""
             code = cell
@@ -171,7 +171,7 @@ class Parser(object):
             "pn": {"abbreviation": "palette_name"},
             "palette_name": {"flag": "palette_name", "type": "str", "config": "config.palette_name"},
             "temp_folder_name": {"flag": "temp_folder_name", "readonly": "True", "config": "config.temp_folder_name"},
-            "file_schema_folder_name": {"flag": "file_schema_folder_name", "readonly": "True", "config": "config.file_schema_folder_name"},
+            "cache_folder_name": {"flag": "cache_folder_name", "readonly": "True", "config": "config.cache_folder_name"},
             "export_folder_name": {"flag": "export_folder_name", "readonly": "True", "config": "config.export_folder_name"},
             "notebook_app": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
             "add_kql_ref_to_help": {"flag": "add_kql_ref_to_help", "readonly": "True", "config": "config.add_kql_ref_to_help"},

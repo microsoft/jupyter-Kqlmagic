@@ -9,7 +9,7 @@ from kql.kql_engine import KqlEngineError
 from kql.kusto_engine import KustoEngine
 from kql.ai_engine import AppinsightsEngine
 from kql.la_engine import LoganalyticsEngine
-from kql.file_engine import FileEngine
+from kql.cache_engine import CacheEngine
 from kql.display import Display
 
 
@@ -43,15 +43,15 @@ class Connection(object):
             return Connection._tell_format([AppinsightsEngine])
         elif connect_str.startswith("loganalytics://"):
             return Connection._tell_format([LoganalyticsEngine])
-        elif connect_str.startswith("file://"):
-            return Connection._tell_format([FileEngine])
+        elif connect_str.startswith("cache://"):
+            return Connection._tell_format([CacheEngine])
         else:
-            return Connection._tell_format([KustoEngine, AppinsightsEngine, LoganalyticsEngine, FileEngine])
+            return Connection._tell_format([KustoEngine, AppinsightsEngine, LoganalyticsEngine, CacheEngine])
 
     # Object constructor
     def __init__(self, connect_str=None, **kwargs):
-        if connect_str.startswith("file://"):
-            engine = FileEngine
+        if connect_str.startswith("cache://"):
+            engine = CacheEngine
         elif connect_str.startswith("appinsights://"):
             engine = AppinsightsEngine
         elif connect_str.startswith("loganalytics://"):
@@ -62,11 +62,11 @@ class Connection(object):
         elif "@" in connect_str:
             engine = KustoEngine
         else:
-            raise KqlEngineError('invalid connection_str, unknown schema. valid schemas are: "kusto://", "appinsights://", "loganalytics://" and "file://"')
+            raise KqlEngineError('invalid connection_str, unknown schema. valid schemas are: "kusto://", "appinsights://", "loganalytics://" and "cache://"')
 
         last_current = self.last_current_by_engine.get(engine.__name__)
 
-        if engine in (AppinsightsEngine, LoganalyticsEngine, FileEngine):
+        if engine in (AppinsightsEngine, LoganalyticsEngine, CacheEngine):
             conn_engine = engine(connect_str, last_current)
         else:
             if connect_str.startswith("kusto://"):
@@ -80,8 +80,8 @@ class Connection(object):
             else:
                 conn_name = connect_str
             conn_engine = Connection._get_kusto_database_engine(conn_name)
-        if kwargs.get('use_cache') and engine != FileEngine:
-            conn_engine = FileEngine(conn_engine, last_current)
+        if kwargs.get('use_cache') and engine != CacheEngine:
+            conn_engine = CacheEngine(conn_engine, last_current)
         Connection._set_current(conn_engine)
 
     @classmethod
@@ -89,11 +89,11 @@ class Connection(object):
         parts = conn_name.split("@")
         if len(parts) != 2:
             raise KqlEngineError(
-                'invalid connection_str, valid connection_str patternes are: "kusto://...", "appinsights://...", "loganalytics://...", "file://..." and "database@cluster"'
+                'invalid connection_str, valid connection_str patternes are: "kusto://...", "appinsights://...", "loganalytics://...", "cache://..." and "database@cluster"'
             )
-        if parts[1] in ["appinsights", "loganalytics", "file"]:
+        if parts[1] in ["appinsights", "loganalytics", "cache"]:
             raise KqlEngineError(
-                'invalid connection_str, connection_str pattern "database@cluster" cannot be used for "appinsights", "loganalytics" and "file"'
+                'invalid connection_str, connection_str pattern "database@cluster" cannot be used for "appinsights", "loganalytics" and "cache"'
             )
         cluster_conn_name = "@" + parts[1]
         cluster_conn = cls.connections.get(cluster_conn_name)

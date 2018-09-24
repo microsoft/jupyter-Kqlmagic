@@ -4,13 +4,13 @@
 # license information.
 #--------------------------------------------------------------------------
 
-from kql.kusto_client import KustoResponse
+from kql.kql_client import KqlResponse
 import hashlib
 import json
 import os
 
 
-class FileClient(object):
+class CacheClient(object):
     """
     """
 
@@ -27,7 +27,7 @@ class FileClient(object):
         """
         ip = get_ipython()
         root_path = ip.starting_dir.replace("\\", "/")
-        self.files_folder = root_path + "/" + ip.run_line_magic("config", "Kqlmagic.file_schema_folder_name")
+        self.files_folder = root_path + "/" + ip.run_line_magic("config", "Kqlmagic.cache_folder_name")
 
 
     def _get_query_hash_filename(self, query):
@@ -81,23 +81,7 @@ class FileClient(object):
         str_response = open(file_path, 'r').read()
         json_response = json.loads(str_response)
         endpoint_version = self._get_endpoint_version(json_response)
-        return KustoResponse(json_response, endpoint_version)
-
-
-    def execute_query(self, database_at_cluster, query, **kwargs):
-        """Executes a query.
-        :param str database_at_cluster: name of database and cluster that a folder will be derived that contains all the files with the query results for this specific database.
-        :param str query: Query to be executed.
-        """
-        return self.execute(database_at_cluster, query, **kwargs)
-
-
-    def execute_mgmt(self, database_at_cluster, query, **kwargs):
-        """Executes a management command.
-        :param str database_at_cluster: name of database and cluster that a folder will be derived that contains all the files with the query results for this specific database.
-        :param str query: Query to be executed.
-        """
-        return self.execute(database_at_cluster, query, **kwargs)
+        return KqlResponse(json_response, endpoint_version)
 
     def save(self, database, cluster, query, result, **kwargs):
         """Executes a query or management command.

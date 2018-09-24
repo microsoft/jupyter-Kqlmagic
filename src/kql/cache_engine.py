@@ -8,20 +8,20 @@ import re
 import os
 
 from kql.kql_engine import KqlEngine, KqlEngineError
-from kql.file_client import FileClient
+from kql.cache_client import CacheClient
 from kql.kql_proxy import KqlResponse
 
 
-class FileEngine(KqlEngine):
-    schema = "file://"
+class CacheEngine(KqlEngine):
+    schema = "cache://"
 
     @classmethod
     def tell_format(cls):
         return """
-               file://cluster('clustername').database('databasename')
-               file://database('databasename')
+               cache://cluster('clustername').database('databasename')
+               cache://database('databasename')
                      # Note: current cluster is attached
-               file://cluster('clustername')
+               cache://cluster('clustername')
                      # Note: not enough for to submit a query, set current clustername
                """
 
@@ -29,13 +29,14 @@ class FileEngine(KqlEngine):
     def __init__(self, conn_str, current=None, **kwargs):
         super().__init__()
         self._parsed_conn = {}
+        self.kql_engine = None
         if isinstance(conn_str, KqlEngine):
-            kql_engine = conn_str
-            database_name = kql_engine.get_database()
-            cluster_name = kql_engine.get_cluster()
-            conn_str = "file://cluster('{0}').database('{1}')".format(cluster_name, database_name)
+            self.kql_engine = conn_str
+            database_name = self.kql_engine.get_database()
+            cluster_name = self.kql_engine.get_cluster()
+            conn_str = "cache://cluster('{0}').database('{1}')".format(cluster_name, database_name)
         self._parse_connection_str(conn_str, current)
-        self.client = FileClient()
+        self.client = CacheClient()
 
         database = self.get_database()
         database_name, cluster_name = database.split('_at_')
@@ -52,10 +53,10 @@ class FileEngine(KqlEngine):
         conn_str_rest = None
 
         # parse connection string prefix
-        pattern = re.compile(r"^file://(?P<conn_str_rest>.*)$")
+        pattern = re.compile(r"^cache://(?P<conn_str_rest>.*)$")
         match = pattern.search(conn_str.strip())
         if not match:
-            raise KqlEngineError('Invalid connection string, must be prefixed by "file://"')
+            raise KqlEngineError('Invalid connection string, must be prefixed by "cache://"')
         conn_str_rest = match.group("conn_str_rest")
 
         # parse all tokens sequentially
@@ -84,11 +85,11 @@ class FileEngine(KqlEngine):
 
         self.cluster_name = self._parsed_conn.get("cluster")
         self.database_name = self._parsed_conn.get("database")
-        self.bind_url = "file://cluster('{0}.database('{1}')".format(
+        self.bind_url = "cache://cluster('{0}.database('{1}')".format(
             self.cluster_name, self.database_name,
         )
         self.database_name = self.database_name  + '_at_' + self.cluster_name
-        self.cluster_name = "file"
+        self.cluster_name = "cache"
 
 
     def _validate_connection_delimiter(self, require_delimiter, delimiter):

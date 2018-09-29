@@ -104,3 +104,6 @@ venv.bak/
 .mypy_cache/
 /notebooks/Kqlmagic_file_schema_files
 /notebooks/Untitled.ipynb
+/notebooks/Kqlmagic_cache_files
+/notebooks/csv_file.csv
+/notebooks/Kqlmagic_temp_files

@@ -169,6 +169,8 @@ class Parser(object):
             "pd": {"abbreviation": "palette_desaturation"},
             "palette_desaturation": {"flag": "palette_desaturation", "type": "float", "config": "config.palette_desaturation"},
             "pn": {"abbreviation": "palette_name"},
+            "params_dict": {"flag": "params_dict", "type": "str", "config": "config.params_dict"},
+            
             "palette_name": {"flag": "palette_name", "type": "str", "config": "config.palette_name"},
             "temp_folder_name": {"flag": "temp_folder_name", "readonly": "True", "config": "config.temp_folder_name"},
             "cache_folder_name": {"flag": "cache_folder_name", "readonly": "True", "config": "config.cache_folder_name"},
@@ -183,6 +185,7 @@ class Parser(object):
             "popup_palettes": {"flag": "popup_palettes", "type": "bool", "init": "False"},
             "pr": {"abbreviation": "palette_reverse"},
             "palette_reverse": {"flag": "palette_reverse", "type": "bool", "init": "False"},
+            "save_as": {"flag": "save_as", "type": "str", "init": "None"},
         }
 
         for value in options_table.values():
@@ -256,8 +259,8 @@ class Parser(object):
             if state == "bool" and option_config is not None:
                 template = "'{0}'" if type == "str" else "{0}"
                 saved = eval(option_config)
-                exec(option_config + "=" + template.format(str(options[key]).replace("'", "\\'")))
-                exec(option_config + "=" + template.format(str(saved).replace("'", "\\'")))
+                exec(option_config + "=" + (template.format(str(options[key]).replace("'", "\\'")) if options[key] is not None else 'None'))
+                exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else 'None'))
 
         if state != "bool":
             raise ValueError("bad options syntax")

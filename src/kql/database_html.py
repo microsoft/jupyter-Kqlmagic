@@ -189,7 +189,7 @@ class Database_html(object):
                 raw_schema_table = raw_query_result.tables[0]
                 database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
                 if kwargs.get('cache') and not kwargs.get('use_cache') and not isinstance(conn, CacheEngine):
-                    CacheClient().save(conn.get_database(), conn.get_cluster(), query, raw_query_result, **kwargs)
+                    CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
 
             elif engine_type == AppinsightsEngine:
                 database_metadata_tree = {}
@@ -207,7 +207,7 @@ class Database_html(object):
                                 if column_name and len(column_name) > 0 and column_type and len(column_type) > 0:
                                     database_metadata_tree.get(table_name)[column_name] = column_type
                         if kwargs.get('cache') and not kwargs.get('use_cache') and not isinstance(conn, CacheEngine):
-                            CacheClient().save(conn.get_database(), conn.get_cluster(), query, raw_query_result, **kwargs)
+                            CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
                     except:
                         pass
 

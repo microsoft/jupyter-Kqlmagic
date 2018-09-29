@@ -27,6 +27,7 @@ from azure.kusto.data.exceptions import KustoError
 
 from kql.results import ResultSet
 from kql.parser import Parser
+from kql.parameterizer import Parameterizer
 
 from kql.log import Logger, logger, set_logger, create_log_context, set_logging_options
 from kql.display import Display
@@ -113,6 +114,7 @@ class Kqlmagic(Magics, Configurable):
     add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
     cache = Bool(False, config=True, help="Cache query results.")
     use_cache = Bool(False, config=True, help="use cached query results, instead of executing the query.")
+    params_dict = Unicode(None, config=True, allow_none=True, help="paremeters dictionary name, if None, python shell user namespace will be used.")
     @validate("palette_name")
     def _valid_value_palette_name(cls, proposal):
         try:
@@ -495,7 +497,10 @@ class Kqlmagic(Magics, Configurable):
             #
             start_time = time.time()
 
-            raw_query_result = conn.execute(query, user_ns, **options)
+            params_dict_name = options.get('params_dict')
+            dictionary = user_ns.get(params_dict_name) if params_dict_name is not None and len(params_dict_name) > 0 else user_ns
+            parametrized_query = Parameterizer(dictionary).expand(query) if result_set is None else result_set.parametrized_query
+            raw_query_result = conn.execute(parametrized_query, user_ns, **options)
 
             end_time = time.time()
 
@@ -504,7 +509,7 @@ class Kqlmagic(Magics, Configurable):
             #
             if result_set is None:
                 fork_table_id = 0
-                saved_result = ResultSet(raw_query_result, query, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options)
+                saved_result = ResultSet(raw_query_result, parametrized_query, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options)
                 saved_result.metadata["magic"] = self
                 saved_result.metadata["parsed"] = parsed
                 saved_result.metadata["connection"] = conn.get_conn_name()
@@ -551,9 +556,15 @@ class Kqlmagic(Magics, Configurable):
                 result = None
 
             if options.get('cache') and not options.get('use_cache') and not isinstance(conn, CacheEngine):
-                file_path = CacheClient().save(conn.get_database(), conn.get_cluster(), query, raw_query_result, **options)
+                file_path = CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, **options)
                 if options.get("feedback", self.feedback):
                     saved_result.feedback_info.append("query results cached")
+
+            if options.get('save_as') is not None:
+                file_path = CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, 
+                                               filepath=options.get('save_as'), **options)
+                if options.get("feedback", self.feedback):
+                    saved_result.feedback_info.append("query results saved as {0}".format(file_path))
 
             saved_result.suppress_result = False
             saved_result.display_info = False

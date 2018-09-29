@@ -83,13 +83,13 @@ class CacheClient(object):
         endpoint_version = self._get_endpoint_version(json_response)
         return KqlResponse(json_response, endpoint_version)
 
-    def save(self, database, cluster, query, result, **kwargs):
+    def save(self, result, database, cluster, query, filepath=None, **kwargs):
         """Executes a query or management command.
         :param str database_at_cluster: name of database and cluster that a folder will be derived that contains all the files with the query results for this specific database.
         :param str query: Query to be executed.
         """
         database_at_cluster = database + '_at_' + cluster
-        file_path = self._get_file_path(query, database_at_cluster)
+        file_path = filepath or self._get_file_path(query, database_at_cluster)
         outfile = open(file_path, "w")
         outfile.write(json.dumps(result.json_response))
         outfile.flush()

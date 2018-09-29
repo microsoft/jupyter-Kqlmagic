@@ -52,6 +52,7 @@
     <Compile Include="src\kql\kql_magic.py" />
     <Compile Include="src\kql\my_aad_helper.py" />
     <Compile Include="src\kql\palette.py" />
+    <Compile Include="src\kql\parameterizer.py" />
     <Compile Include="src\kql\parser.py" />
     <Compile Include="src\kql\results.py" />
     <Compile Include="src\kql\kql_proxy.py" />

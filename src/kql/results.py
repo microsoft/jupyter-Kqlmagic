@@ -448,7 +448,7 @@ class ResultSet(list, ColumnGuesserMixin):
         elif c.get("fig"):
             if Display.notebooks_host:
                 plotly.offline.init_notebook_mode(connected=True)
-                plotly.offline.iplot(c.get("fig", filename="plotlychart"))
+                plotly.offline.iplot(c.get("fig"), filename="plotlychart")
             else:
                 Display.show(c.get("fig"), **options)
         else:

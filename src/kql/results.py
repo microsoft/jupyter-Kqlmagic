@@ -446,7 +446,11 @@ class ResultSet(list, ColumnGuesserMixin):
             html = Display.toHtml(**c)
             Display.show(html, **options)
         elif c.get("fig"):
-            Display.show(c.get("fig"), **options)
+            if Display.notebooks_host:
+                plotly.offline.init_notebook_mode(connected=True)
+                plotly.offline.iplot(c.get("fig", filename="plotlychart")
+            else:
+                Display.show(c.get("fig"), **options)
         else:
             return self.show_table(**kwargs)
 

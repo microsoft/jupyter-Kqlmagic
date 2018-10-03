@@ -10,8 +10,7 @@
 jupyter-Kqlmagic
 ===========
 
-Extension (Magic) to Jupyter notebook and Jupyter lab, that enable notebook experience working with Kusto, ApplicationInsights, and LogAnalytics data. 
-===========
+An extension (Magic) to Jupyter notebook and Jupyter lab, that enables notebook experience working with Kusto, ApplicationInsights, and LogAnalytics data. 
 
 :Author: Michael Binshtock, mbnshtck@gmail.com
 
@@ -20,10 +19,6 @@ Introduces a %kql (or %%kql) magic.
 
 Connect to kusto, using a connect strings, then issue KQL
 commands within IPython or IPython Notebook.
-
-.. image:: https://github.com/mbnshtck/jupyter-kql-magic/master/examples/writers.png
-   :width: 600px
-   :alt: screenshot of jupyter-kql-magic in the Notebook
 
 Examples
 --------

@@ -873,7 +873,7 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.plot``.
         """
 
-        self._build_chart_sub_tables()
+        self._build_chart_sub_tables(x_type='first')
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -929,7 +929,7 @@ class ResultSet(list, ColumnGuesserMixin):
         """
 
 
-        self._build_chart_sub_tables()
+        self._build_chart_sub_tables(x_type='first')
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -990,23 +990,28 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.plot``.
         """
 
-        self.build_columns()
-        quantity_columns = [c for c in self.columns if c.is_quantity]
-        if len(quantity_columns) < 2:
+        self._build_chart_sub_tables(x_type='datetime')
+        if len(self.chart_sub_tables) < 1:
             return None
-        if not quantity_columns[0].is_datetime:
-            return None
+        ylabel_names = []
+        for tab in self.chart_sub_tables:
+            if tab.col_y.name not in ylabel_names:
+                ylabel_names.append(tab.col_y.name)
+        ylabel = ", ".join(ylabel_names)
+        xlabel = self.chart_sub_tables[0].col_x.name
+        n_colors = len(self.chart_sub_tables)
 
-        xticks = quantity_columns[0]
-        ys = quantity_columns[1:]
-        ylabel = ", ".join([c.name for c in ys])
-        xlabel = xticks.name
         data = [
             go.Scatter(
-                x=xticks, y=yticks, name=yticks.name, line=dict(width=0.5, color=self.get_color_from_palette(idx, n_colors=len(ys))), opacity=0.8
+                x=list(tab.keys()), 
+                y=list(tab.values()), 
+                name=tab.name, 
+                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=n_colors)), 
+                opacity=0.8
             )
-            for idx, yticks in enumerate(ys)
+            for idx, tab in enumerate(self.chart_sub_tables)
         ]
+
         layout = go.Layout(
             title=title or "timechart",
             showlegend=True,
@@ -1014,9 +1019,9 @@ class ResultSet(list, ColumnGuesserMixin):
                 rangeselector=dict(
                     buttons=list(
                         [
-                            dict(count=1, label="1m", step="month", stepmode="backward"),
-                            dict(count=6, label="6m", step="month", stepmode="backward"),
-                            dict(step="all"),
+                            # dict(count=1, label="1m", step="month", stepmode="backward"),
+                            # dict(count=6, label="6m", step="month", stepmode="backward"),
+                            # dict(step="all"),
                         ]
                     )
                 ),
@@ -1037,7 +1042,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def _render_piechart_plotly(self, key_word_sep=" ", title=None, **kwargs):
 
-        self._build_chart_sub_tables()
+        self._build_chart_sub_tables(x_type='first')
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -1097,7 +1102,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def _render_barchart_plotly(self, key_word_sep=" ", title=None, **kwargs):
 
-        self._build_chart_sub_tables()
+        self._build_chart_sub_tables(x_type='first')
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -1133,7 +1138,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def _render_columnchart_plotly(self, key_word_sep=" ", title=None, **kwargs):
 
-        self._build_chart_sub_tables()
+        self._build_chart_sub_tables(x_type='first')
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -1185,27 +1190,26 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.plot``.
         """
 
-        self.build_columns()
-        quantity_columns = [c for c in self.columns if c.is_quantity]
-        if len(quantity_columns) < 2:
+        self._build_chart_sub_tables(x_type='quantity')
+        if len(self.chart_sub_tables) < 1:
             return None
+        ylabel_names = []
+        for tab in self.chart_sub_tables:
+            if tab.col_y.name not in ylabel_names:
+                ylabel_names.append(tab.col_y.name)
+        ylabel = ", ".join(ylabel_names)
+        xlabel = self.chart_sub_tables[0].col_x.name
+        n_colors = len(self.chart_sub_tables)
 
-        self.build_columns(quantity_columns[0].name)
-        quantity_columns = [c for c in self.columns if c.is_quantity]
-
-        xticks = quantity_columns[0]
-        ys = quantity_columns[1:]
-        ylabel = ", ".join([c.name for c in ys])
-        xlabel = xticks.name
         data = [
             go.Scatter(
-                x=xticks, 
-                y=yticks, 
-                name=yticks.name, 
-                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=len(ys))), 
+                x=list(tab.keys()), 
+                y=list(tab.values()), 
+                name=tab.name, 
+                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=n_colors)), 
                 opacity=0.8
             )
-            for idx, yticks in enumerate(ys)
+            for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
             title=title or "linechart",

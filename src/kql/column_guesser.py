@@ -57,20 +57,37 @@ class ColumnGuesserMixin(object):
     DATAFRAME_QUNATITY_TYPES = ["int64", "float64", "datetime64[ns]", "timedelta64[ns]", "int32",]
     DATAFRAME_TIME_TYPES = ["datetime64[ns]", "timedelta64[ns]",]
 
-    def _build_chart_sub_tables(self, name=None):
+    def _build_chart_sub_tables(self, name=None, x_type='first'):
+        self.chart_sub_tables = []
         self._build_columns(name, without_data=True)
-        quantity_columns = [c for c in self.columns[1:] if c.is_quantity]
-        non_quantity_columns = [c for c in self.columns[1:] if not c.is_quantity]
+
+        x_col_idx = None
+        if x_type =='first':
+            x_col_idx = 0
+        elif x_type == 'quantity':
+            for idx,c in enumerate(self.columns):
+                if c.is_quantity:
+                    x_col_idx = idx
+                    break
+        elif x_type == 'datetime':
+            for idx,c in enumerate(self.columns):
+                if c.is_datetime:
+                    x_col_idx = idx
+                    break
+        if x_col_idx is None:
+            return
+
+        quantity_columns = [c for idx,c in enumerate(self.columns) if idx != x_col_idx and c.is_quantity]
+        non_quantity_columns = [c for idx,c in enumerate(self.columns) if idx != x_col_idx and not c.is_quantity]
 
         rows = self
+        if self.columns[x_col_idx].is_quantity:
+            rows = sorted(self, key=lambda row: row[x_col_idx])
 
-        if self.columns[0].is_quantity:
-            rows = sorted(self, key=lambda row: row[0])
-
-        col_x = Column(col=self.columns[0])
+        col_x = Column(col=self.columns[x_col_idx])
         for row in rows:
-            if row[0] not in col_x:
-                col_x.append(row[0])
+            if row[x_col_idx] not in col_x:
+                col_x.append(row[x_col_idx])
 
         chart_sub_tables_dict = {}
         for row in rows:
@@ -83,10 +100,10 @@ class ColumnGuesserMixin(object):
                 if chart_sub_table is None:
                     chart_sub_table = chart_sub_tables_dict[sub_table_name] = ChartSubTable(
                         name=sub_table_name, 
-                        col_x=Column(col=self.columns[0]), 
+                        col_x=Column(col=self.columns[x_col_idx]), 
                         col_y=Column(col=qcol),
                         mapping=dict(zip(col_x, [None for i in range(len(col_x))])))
-                chart_sub_table[row[0]] = row[qcol.idx]
+                chart_sub_table[row[x_col_idx]] = row[qcol.idx]
         self.chart_sub_tables = list(chart_sub_tables_dict.values())
 
     def _build_columns(self, name=None, without_data=False):

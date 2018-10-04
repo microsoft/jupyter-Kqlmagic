@@ -107,3 +107,4 @@ venv.bak/
 /notebooks/Kqlmagic_cache_files
 /notebooks/csv_file.csv
 /notebooks/Kqlmagic_temp_files
+/notebooks/KustoMagic01.ipynb

@@ -1,10 +1,3 @@
-
-.. image:: https://mybinder.org/badge.svg :target: https://mybinder.org/v2/gh/mbnshtck/jupyter-kql-magic/master?filepath=notebooks%2FQuickStart.ipynb
-
-
-.. image:: https://mybinder.org/badge.svg :target: https://mybinder.org/v2/gh/mbnshtck/jupyter-kql-magic/master?filepath=notebooks%2FQuickStartAI.ipynb
-
-
 jupyter-Kqlmagic
 ===========
 
@@ -18,10 +11,6 @@ Introduces a %kql (or %%kql) magic.
 
 Connect to kusto, using a connect strings, then issue KQL
 commands within IPython or IPython Notebook.
-
-.. image:: https://github.com/mbnshtck/jupyter-kql-magic/master/examples/writers.png
-   :width: 600px
-   :alt: screenshot of jupyter-kql-magic in the Notebook
 
 Examples
 --------

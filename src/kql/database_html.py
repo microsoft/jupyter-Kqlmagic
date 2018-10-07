@@ -7,6 +7,7 @@
 from kql.display import Display
 from kql.kusto_engine import KustoEngine
 from kql.ai_engine import AppinsightsEngine
+from kql.la_engine import LoganalyticsEngine
 from kql.cache_engine import CacheEngine
 from kql.cache_client import CacheClient
 from kql.help_html import Help_html
@@ -15,24 +16,6 @@ from kql.help_html import Help_html
 class Database_html(object):
     """
     """
-
-    # optional queries to get list, itemType is as the table name without the s
-    # union * | summarize any(*) by itemType | project itemType
-    # %kql union * | project itemType | summarize any(*) by itemType
-    # %kql union * | project itemType | distinct *
-    application_insights_tables = [
-        "requests",
-        "exceptions",
-        "dependencies",
-        "traces",
-        "events",
-        "customEvents",
-        "metrics",
-        "customMetrics",
-        "pageViews",
-        "browserTimings",
-        "availabilityResults",
-    ]
     database_metadata_css = """.just-padding {
       height: 100%;
       width: 100%;
@@ -141,6 +124,20 @@ class Database_html(object):
         return database_metadata_tree
 
     @staticmethod
+    def _create_database_draft_metadata_tree(rows, **kwargs):
+        database_metadata_tree = {}
+        for row in rows:
+            table_name = row["name"]
+            if table_name and len(table_name) > 0:
+                database_metadata_tree[table_name] = {}
+                for col in row['columns']:
+                    column_name = col["name"]
+                    column_type = col["type"]
+                    if column_name and len(column_name) > 0 and column_type and len(column_type) > 0:
+                        database_metadata_tree.get(table_name)[column_name] = column_type
+        return database_metadata_tree
+
+    @staticmethod
     def _convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs):
         item = (
             """<a href='#"""
@@ -172,6 +169,7 @@ class Database_html(object):
     def get_schema_file_path(conn, **kwargs):
         engine_type = (KustoEngine if isinstance(conn, KustoEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, KustoEngine))
                        else AppinsightsEngine if isinstance(conn, AppinsightsEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, AppinsightsEngine))
+                       else LoganalyticsEngine if isinstance(conn, LoganalyticsEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, LoganalyticsEngine))
                        else None)
 
         if engine_type is not None:
@@ -191,25 +189,13 @@ class Database_html(object):
                 if kwargs.get('cache') and not kwargs.get('use_cache') and not isinstance(conn, CacheEngine):
                     CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
 
-            elif engine_type == AppinsightsEngine:
-                database_metadata_tree = {}
-                for table_name in Database_html.application_insights_tables:
-                    query = table_name + " | getschema"
-                    try:
-                        raw_query_result = conn.execute(query)
-                        raw_schema_table = raw_query_result.tables[0]
-                        rows = raw_schema_table.fetchall()
-                        if raw_schema_table.returns_rows():
-                            database_metadata_tree[table_name] = {}
-                            for row in rows:
-                                column_name = row["ColumnName"]
-                                column_type = row["ColumnType"]
-                                if column_name and len(column_name) > 0 and column_type and len(column_type) > 0:
-                                    database_metadata_tree.get(table_name)[column_name] = column_type
-                        if kwargs.get('cache') and not kwargs.get('use_cache') and not isinstance(conn, CacheEngine):
-                            CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
-                    except:
-                        pass
+            elif engine_type == AppinsightsEngine or LoganalyticsEngine:
+                query = ".show schema"
+                metadata_result = conn.client_execute(query)
+                metadata_schema_table = metadata_result.table
+                database_metadata_tree = Database_html._create_database_draft_metadata_tree(metadata_schema_table)
+                if kwargs.get('cache') and not kwargs.get('use_cache') and not isinstance(conn, CacheEngine):
+                    CacheClient().save(metadata_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
 
             html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)
             window_name = conn_name.replace("@", "_at_") + "_schema"

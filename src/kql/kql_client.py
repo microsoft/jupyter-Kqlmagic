@@ -140,6 +140,11 @@ class KqlResponseTable(six.Iterator):
         """ Returns iterator to get rows from response """
         return self.__iter__()
 
+class KqlSchemaResponse(object):
+    def __init__(self, json_response):
+        self.json_response = json_response
+        self.table = json_response["tables"]
+
 
 class KqlResponse(object):
     """ Wrapper for response """

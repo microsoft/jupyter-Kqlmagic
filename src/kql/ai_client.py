@@ -11,7 +11,7 @@ import json
 import adal
 import dateutil.parser
 import requests
-from kql.kql_client import KqlResponse, KqlError
+from kql.kql_client import KqlResponse, KqlSchemaResponse, KqlError
 
 
 _client_version = "0.1.0"
@@ -69,9 +69,9 @@ class AppinsightsClient(object):
         
         Parameters
         ----------
-        kusto_database : str
-            Database against query will be executed.
-        kusto_query : str
+        appid : str
+            the application Id.
+        query : str
             Query to be executed
         query_endpoint : str
             The query's endpoint
@@ -82,6 +82,20 @@ class AppinsightsClient(object):
         timeout : float, optional
             Optional parameter. Network timeout in seconds. Default is no timeout.
         """
+        if query.startswith('.'):
+            return self._execute_get_metadata()
+        else:
+            return self._execute_query(query)
+
+    def _execute_query(self, query: str):
+        """ Execute a simple query
+        
+        Parameters
+        ----------
+        query : str
+            Query to be executed
+        """
+
         query_endpoint = "{0}/{1}/apps/{2}/query".format(self.cluster, self.version, self.appid)
         request_payload = {"query": query}
 
@@ -105,6 +119,25 @@ class AppinsightsClient(object):
         else:
             raise KqlError([response.text], response)
 
+    def _execute_get_metadata(self):
+        """ Execute a metadata request to get query schema
+        """
+        # https://api.applicationinsights.io/v1/apps/DEMO_APP/metadata?api_key=DEMO_KEY
+        query_endpoint = "{0}/{1}/apps/{2}/metadata?api_key={3}".format(self.cluster, self.version, self.appid, self.appkey)
+        self.request_headers = {
+            "x-ms-client-version": "ApplicationInsights.Python.Client:" + _client_version,
+        }
+        if self.version != "beta":
+            prefer_str = "ai.response-thinning=false"
+            self.request_headers["Prefer"] = prefer_str
+        response = requests.get(query_endpoint, headers=self.request_headers)
+
+        if response.status_code == 200:
+            query_response = KqlSchemaResponse(response.json())
+            # print('query_response:', response.json())
+            return query_response
+        else:
+            raise KqlError([response.text], response)
 
     def _acquire_token(self):
         token_response = self.adal_context.acquire_token(self.appinsights_cluster, self.username, self.client_id)

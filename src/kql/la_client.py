@@ -12,7 +12,7 @@ import adal
 import dateutil.parser
 import requests
 # import webbrowser
-from kql.kql_client import KqlResponse, KqlError
+from kql.kql_client import KqlResponse, KqlSchemaResponse, KqlError
  
 
 _client_version = "0.1.0"
@@ -70,9 +70,9 @@ class LoganalyticsClient(object):
         
         Parameters
         ----------
-        kusto_database : str
-            Database against query will be executed.
-        kusto_query : str
+        workspace : str
+            the workspace Id.
+        query : str
             Query to be executed
         query_endpoint : str
             The query's endpoint
@@ -83,6 +83,20 @@ class LoganalyticsClient(object):
         timeout : float, optional
             Optional parameter. Network timeout in seconds. Default is no timeout.
         """
+        if query.startswith('.'):
+            return self._execute_get_metadata()
+        else:
+            return self._execute_query(query)
+
+    def _execute_query(self, query: str):
+        """ Execute a simple query
+        
+        Parameters
+        ----------
+        query : str
+            Query to be executed
+        """
+
         query_endpoint = "{0}/{1}/workspaces/{2}/query".format(self.cluster, self.version, self.workspace)
         request_payload = {"query": query}
 
@@ -106,6 +120,25 @@ class LoganalyticsClient(object):
         else:
             raise KqlError([response.text], response)
 
+    def _execute_get_metadata(self):
+        """ Execute a metadata request to get query schema
+        """
+        # https://api.loganalytics.io/v1/workspaces/DEMO_WORKSPACE/metadata?api_key=DEMO_KEY
+        query_endpoint = "{0}/{1}/workspaces/{2}/metadata?api_key={3}".format(self.cluster, self.version, self.workspace, self.appkey)
+        self.request_headers = {
+            "x-ms-client-version": "ApplicationInsights.Python.Client:" + _client_version,
+        }
+        if self.version != "beta":
+            prefer_str = "ai.response-thinning=false"
+            self.request_headers["Prefer"] = prefer_str
+        response = requests.get(query_endpoint, headers=self.request_headers)
+
+        if response.status_code == 200:
+            query_response = KqlSchemaResponse(response.json())
+            # print('query_response:', response.json())
+            return query_response
+        else:
+            raise KqlError([response.text], response)
 
     def _acquire_token(self):
         token_response = self.adal_context.acquire_token(self.loganalytics_cluster, self.username, self.client_id)

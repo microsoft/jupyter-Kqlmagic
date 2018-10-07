@@ -4,7 +4,7 @@
 # license information.
 #--------------------------------------------------------------------------
 
-from kql.kql_client import KqlResponse
+from kql.kql_client import KqlResponse, KqlSchemaResponse
 import hashlib
 import json
 import os
@@ -80,8 +80,11 @@ class CacheClient(object):
         file_path = self._get_file_path(query, database_at_cluster)
         str_response = open(file_path, 'r').read()
         json_response = json.loads(str_response)
-        endpoint_version = self._get_endpoint_version(json_response)
-        return KqlResponse(json_response, endpoint_version)
+        if query.startswith('.') and json_response.get('tables') is not None:
+            return KqlSchemaResponse(json_response)
+        else:
+            endpoint_version = self._get_endpoint_version(json_response)
+            return KqlResponse(json_response, endpoint_version)
 
     def save(self, result, database, cluster, query, filepath=None, **kwargs):
         """Executes a query or management command.

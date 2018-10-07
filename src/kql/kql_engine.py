@@ -48,12 +48,16 @@ class KqlEngine(object):
     def get_client(self):
         return self.client
 
-    def execute(self, query, user_namespace=None, **kwargs):
+    def client_execute(self, query, user_namespace=None, **kwargs):
         if query.strip():
             client = self.get_client()
             if not client:
                 raise KqlEngineError("Client is not defined.")
-            response = client.execute(self.get_database(), query, accept_partial_results=False, timeout=None)
+            return  client.execute(self.get_database(), query, accept_partial_results=False, timeout=None)
+
+    def execute(self, query, user_namespace=None, **kwargs):
+        if query.strip():
+            response = self.client_execute(query, user_namespace, **kwargs)
             # print(response.json_response)
             return KqlResponse(response, **kwargs)
 

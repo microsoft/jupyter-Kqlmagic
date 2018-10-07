@@ -1,7 +1,7 @@
 Jupyter Kqlmagic
 ===========
 
-Extension (Magic) for Jupyter notebook and Jupyter lab, that enables working with Kusto, ApplicationInsights, and LogAnalytics data. 
+Extension(Magic) for Jupyter notebook and Jupyter lab, that enables working with Kusto, ApplicationInsights, and LogAnalytics data. 
 ===========
 
 :Author: Michael Binshtock, mbnshtck@gmail.com
@@ -135,7 +135,7 @@ can be used in multi-line ``%%kql``.
 Connecting
 ----------
 
-Some example connection strings.
+Some example connection strings
 
     kusto://username('username').password('password').cluster('clustername').database('databasename')
     kusto://username('username').password('password').cluster('clustername')

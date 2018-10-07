@@ -1,7 +1,7 @@
-jupyter-Kqlmagic
+Jupyter Kqlmagic
 ===========
 
-Extension (Magic) to Jupyter notebook and Jupyter lab, that enable notebook experience working with Kusto, ApplicationInsights, and LogAnalytics data. 
+Extension (Magic) for Jupyter notebook and Jupyter lab, that enables working with Kusto, ApplicationInsights, and LogAnalytics data. 
 ===========
 
 :Author: Michael Binshtock, mbnshtck@gmail.com
@@ -41,7 +41,7 @@ Examples
     In [7]: result[0].description
     Out[7]: u'a lady attending on Princess Katherine'
 
-After the first connection, connect info can be omitted::
+After the first connection, connect info can be omitted.
 
     In [8]: %kql work | count
     Out[8]: [(43L)]
@@ -63,9 +63,9 @@ an existing connection by database@cluster
     ======================
     Poet       733
 
-If no connect string is supplied, ``%kql`` will provide a list of existing connections;
-however, if no connections have yet been made and the environment variable ``KQLMAGIC_CONNECTION_STR``
-is available, that will be used.
+If no connect string is supplied, ``%kql`` will provide a list of existing connections.
+However, if no connections have yet been made and the environment variable ``KQLMAGIC_CONNECTION_STR``
+is available, the variable will be used.
 
 For secure access, you may dynamically access your credentials (e.g. from your system environment or `getpass.getpass`) to avoid storing your password in the notebook itself. Use the `$` before any variable to access it in your `%kql` command.
 
@@ -79,7 +79,7 @@ For secure access, you may dynamically access your credentials (e.g. from your s
 
 You may use multiple Kql statements inside a single cell, but you will
 only see any query results from the last of them, so this really only
-makes sense for statements with no output
+makes sense for statements with no output.
 
 .. code-block:: python
 
@@ -91,7 +91,7 @@ makes sense for statements with no output
 
 
 Bind variables (bind parameters) can be used in the "named" (:x) style.
-The variable names used should be defined in the local namespace
+The variable names used should be defined in the local namespace.
 
 .. code-block:: python
 
@@ -116,14 +116,14 @@ or a single dictionary with a tuple of scalar values per key (``result.to_dict()
 Assignment
 ----------
 
-Ordinary IPython assignment works for single-line `%kql` queries:
+Ordinary IPython assignment works for single-line `%kql` queries.
 
 .. code-block:: python
 
     In [16]: works = %kql work | project title, year
 
 The `<<` operator captures query results in a local variable, and
-can be used in multi-line ``%%kql``:
+can be used in multi-line ``%%kql``.
 
 .. code-block:: python
 
@@ -135,7 +135,7 @@ can be used in multi-line ``%%kql``:
 Connecting
 ----------
 
-Some example connection strings::
+Some example connection strings.
 
     kusto://username('username').password('password').cluster('clustername').database('databasename')
     kusto://username('username').password('password').cluster('clustername')
@@ -183,13 +183,13 @@ only the screen display is truncated.
 
     In[3]: %config Kqlmagic.feedback = False
 
-Please note: if you have auto_dataframe set to true, the option will not apply. You can set the pandas display limit by using the pandas ``max_rows`` option as described in the `pandas documentation <http://pandas.pydata.org/pandas-docs/version/0.18.1/options.html#frequently-used-options>`_.
+Note: if you have auto_dataframe set to true, the option will not apply. You can set the pandas display limit by using the pandas ``max_rows`` option as described in the `pandas documentation <http://pandas.pydata.org/pandas-docs/version/0.18.1/options.html#frequently-used-options>`_.
 
 Pandas
 ------
 
 If you have installed ``pandas``, you can use a result set's
-``.DataFrame()`` method
+``.DataFrame()`` method.
 
 .. code-block:: python
 
@@ -203,7 +203,7 @@ Graphing
 --------
 
 If you have installed ``matplotlib``, you can use a result set's
-``.plot()``, ``.pie()``, and ``.bar()`` methods for quick plotting
+``.plot()``, ``.pie()``, and ``.bar()`` methods for quick plotting.
 
 .. code-block:: python
 
@@ -233,11 +233,11 @@ specified) or in a file of the given name.
 Installing
 ----------
 
-Install the lastest release with::
+Install the lastest release with
 
     pip install jupyter-kql-magic
 
-or download from https://github.com/mbnshtck/jupyter-kql-magic and::
+or download from https://github.com/mbnshtck/jupyter-kql-magic and
 
     cd jupyter-kql-magic
     sudo python setup.py install

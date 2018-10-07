@@ -43,7 +43,8 @@ class KqlResult(dict):
 class KqlResponseTable(six.Iterator):
     """ Iterator over returned rows """
 
-    def __init__(self, response_table):
+    def __init__(self, id, response_table):
+        self.id = id
         self.rows = response_table["Rows"]
         self.columns = response_table["Columns"]
         self.index2column_mapping = []
@@ -148,9 +149,11 @@ class KqlResponse(object):
     def __init__(self, json_response, endpoint_version="v1"):
         self.json_response = json_response
         self.endpoint_version = endpoint_version
+        self.visualization = None
         if self.endpoint_version == "v2":
             self.all_tables = [t for t in json_response if t["FrameType"] == "DataTable"]
             self.tables = [t for t in json_response if t["FrameType"] == "DataTable" and t["TableKind"] == "PrimaryResult"]
+            self.primary_results = [KqlResponseTable(t["TableId"], t) for t in self.tables]
         else:
             self.all_tables = self.json_response["Tables"]
             tables_num = self.json_response["Tables"].__len__()
@@ -158,7 +161,7 @@ class KqlResponse(object):
             self.tables = [self.json_response["Tables"][r[0]] for r in last_table["Rows"] if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
             if len(self.tables) == 0:
                 self.tables = self.all_tables[:1]
-        self.primary_results = [KqlResponseTable(t) for t in self.tables]
+            self.primary_results = [KqlResponseTable(idx, t) for idx,t in enumerate(self.tables)]
 
 
     def _get_endpoint_version(self, json_response):
@@ -170,22 +173,37 @@ class KqlResponse(object):
 
     @property
     def visualization_results(self):
-        if self.endpoint_version == "v2":
-            for table in self.all_tables:
-                if table["TableName"] == "@ExtendedProperties":
-                    for row in table["Rows"]:
-                        if row[1] == "Visualization":
-                            # print('visualization_properties: {}'.format(row[2]))
-                            return json.loads(row[2])
-        else:
-            tables_num = self.json_response["Tables"].__len__()
-            last_table = self.json_response["Tables"][tables_num - 1]
-            for row in last_table["Rows"]:
-                if row[2] == "@ExtendedProperties":
-                    table = self.json_response["Tables"][row[0]]
-                    # print('visualization_properties: {}'.format(table['Rows'][0][0]))
-                    return json.loads(table["Rows"][0][0])
-        return {}
+        if self.visualization is None:
+            self.visualization = {}
+            if self.endpoint_version == "v2":
+                for table in self.all_tables:
+                    if table["TableName"] == "@ExtendedProperties" and table["TableKind"] == "QueryProperties":
+                        cols_idx_map = self._map_columns_to_index(table["Columns"])
+                        types = self._get_columns_types(table["Columns"])
+                        key_idx = cols_idx_map.get('Key')
+                        id_idx = cols_idx_map.get('TableId')
+                        value_idx = cols_idx_map.get('Value')
+                        if (key_idx is not None and 
+                            id_idx is not None and 
+                            value_idx is not None and 
+                            types[key_idx] == "string" and 
+                            types[id_idx] == "int" and 
+                            types[value_idx] == "dynamic"):
+                            for row in table["Rows"]:
+                                if row[key_idx] == "Visualization":
+                                    # print('visualization_properties for table {0}: {1}'.format(id_idx, row[value_idx]))
+                                    self.visualization[row[id_idx]] = json.loads(row[value_idx])
+                                    # return json.loads(row[value_idx])
+            else:
+                tables_num = self.json_response["Tables"].__len__()
+                last_table = self.json_response["Tables"][tables_num - 1]
+                for row in last_table["Rows"]:
+                    if row[2] == "@ExtendedProperties" and row[1] == "QueryProperties":
+                        table = self.json_response["Tables"][row[0]]
+                        # print('visualization_properties for first table: {}'.format(table['Rows'][0][0]))
+                        self.visualization[0] = json.loads(table["Rows"][0][0])
+                        # return json.loads(table["Rows"][0][0])
+        return self.visualization
 
     @property
     def completion_query_info_results(self):
@@ -241,6 +259,12 @@ class KqlResponse(object):
         map = {}
         for idx, col in enumerate(columns):
             map[col["ColumnName"]] = idx
+        return map
+
+    def _get_columns_types(self, columns: list):
+        map = []
+        for col in columns:
+            map.append(col["ColumnType"])
         return map
 
     def get_raw_response(self):

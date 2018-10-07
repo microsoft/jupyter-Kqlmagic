@@ -446,7 +446,7 @@ class ResultSet(list, ColumnGuesserMixin):
             html = Display.toHtml(**c)
             Display.show(html, **options)
         elif c.get("fig"):
-            if Display.notebooks_host:
+            if Display.notebooks_host or options.get("notebook_app") == "jupyterlab":
                 plotly.offline.init_notebook_mode(connected=True)
                 plotly.offline.iplot(c.get("fig"), filename="plotlychart")
             else:

@@ -81,11 +81,11 @@ conda update jupyter
 run commandline
 activate environment
   C:\Users\michabin\AppData\Local\Continuum\Anaconda3\Scripts\activate
-  set TEST_CONNECTION_STR=kusto://username('michabin@microsoft.com').password(<password>).cluster('Oiildc').database('OperationInsights_PFS_PROD')
+  set TEST_CONNECTION_STR=kusto://username('michabin@microsoft.com').password('<password>').cluster('Oiildc').database('OperationInsights_PFS_PROD')
   // env default connection string
-  set KQLMAGIC_CONNECTION_STR=kusto://username('michabin@microsoft.com').password(<password>).cluster('Oiildc').database('OperationInsights_PFS_PROD')
+  set KQLMAGIC_CONNECTION_STR=kusto://username('michabin@microsoft.com').password('<password>').cluster('Oiildc').database('OperationInsights_PFS_PROD')
 
-  set HELP_CONNECTION_STR=kusto://username('michabin@microsoft.com').password(<password>).cluster('help').database('Samples')
+  set HELP_CONNECTION_STR=kusto://username('michabin@microsoft.com').password('<password>').cluster('help').database('Samples')
   set HELP_CONNECTION_STR=kusto://username('michabin@microsoft.com').cluster('help').database('Samples')
   set HELP_CONNECTION_STR=kusto://code().cluster('help').database('Samples')
 

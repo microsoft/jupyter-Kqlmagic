@@ -23,39 +23,36 @@ class LoganalyticsEngine(KqlEngine):
     # Object constructor
     def __init__(self, conn_str, current=None):
         super().__init__()
-        self.username = None
-        self.password = None
-        self.workspace = None
-        self.appkey = None
-        self.api_version = "v1"
-        self.cluster_url = "https://api.applicationinsights.io/{0}/apps".format(self.api_version)
         self.parse_connection_str(conn_str, current)
-        self.client = LoganalyticsClient(workspace=self.workspace, appkey=self.appkey, version=self.api_version)
+        self.client = LoganalyticsClient(self._parsed_conn)
 
     def parse_connection_str(self, conn_str: str, current):
         match = None
-        # conn_str = "kusto://username('michabin@microsoft.com').password('g=Hh-h34G').cluster('Oiildc').database('OperationInsights_PFS_PROD')"
+        # conn_str = "loganalytics://workspace('workspace-id').appkey('key')"
         if not match:
             pattern = re.compile(r"^loganalytics://workspace\((?P<workspace>.*)\)\.appkey\((?P<appkey>.*)\)$")
             match = pattern.search(conn_str)
             if match:
-                self.workspace = match.group("workspace").strip()[1:-1]
-                self.appkey = match.group("appkey").strip()[1:-1]
-                if self.appkey.lower() == "<appkey>":
-                    self.appkey = getpass.getpass(prompt="please enter appkey: ")
+                self._parsed_conn["workspace"] = match.group("workspace").strip()[1:-1]
+                self._parsed_conn["appkey"] = match.group("appkey").strip()[1:-1]
+                if self._parsed_conn["appkey"].lower() == "<appkey>":
+                    self._parsed_conn["appkey"] = getpass.getpass(prompt="please enter appkey: ")
 
         if not match:
             pattern = re.compile(r"^loganalytics://workspace\((?P<workspace>.*)\)$")
             match = pattern.search(conn_str)
             if match:
-                self.workspace = match.group("workspace").strip()[1:-1]
-                self.appkey = getpass.getpass(prompt="please enter appkey: ")
+                self._parsed_conn["workspace"] = match.group("workspace").strip()[1:-1]
+                self._parsed_conn["appkey"] = getpass.getpass(prompt="please enter appkey: ")
 
-        if not match:
-            raise KqlEngineError("Invalid connection string.")
-
-        self.cluster_name = "loganalytics"
-        self.database_name = self.workspace
-        self.bind_url = "loganalytics://workspace('{0}').appkey('{1}').cluster('{2}').database('{3}')".format(
-            self.workspace, self.appkey, self.cluster_name, self.database_name
-        )
+        if match:
+            self.cluster_name = "loganalytics"
+            self.database_name = self._parsed_conn["workspace"]
+            self.bind_url = "loganalytics://workspace('{0}').appkey('{1}').cluster('{2}').database('{3}')".format(
+                self._parsed_conn["workspace"], self._parsed_conn["appkey"], self.cluster_name, self.database_name)
+        else:
+            schema = "loganalytics"
+            keys = ["tenant", "code", "clientid", "clientsecret", "workspace"]
+            mandatory_key = "workspace"
+            not_in_url_key = "workspace"
+            self._parse_common_connection_str(conn_str, current, schema, keys, mandatory_key, not_in_url_key)

@@ -19,6 +19,29 @@ from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParamete
 from kql.display import Display
 
 
+class ConnKeysKCSB(object):
+    """
+    Object like dict, every dict[key] can be visited by dict.key
+    """
+    def __init__(self, conn_kv, data_source):
+        self.conn_kv = conn_kv
+        self.data_source = data_source
+        self.translate_map =  {
+            "authority_id" : "tenant", 
+            "aad_user_id" : "username",
+            "password" : "password",
+            "application_client_id" : "clientid",
+            "application_key" : "clientsecret",
+            "application_certificate" : "certificate",
+            "application_certificate_thumbprint" : "certificate_thumbprint",
+        }
+
+    def __getattr__(self, kcsb_attr_name):
+        if kcsb_attr_name == "data_source":
+            return self.data_source
+        key = self.translate_map.get(kcsb_attr_name)
+        return self.conn_kv.get(key)
+
 @unique
 class AuthenticationMethod(Enum):
     """Enum represnting all authentication methods available in Kusto with Python."""

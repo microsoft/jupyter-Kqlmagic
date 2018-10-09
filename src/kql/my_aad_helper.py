@@ -53,14 +53,14 @@ class AuthenticationMethod(Enum):
 
 
 class _MyAadHelper(object):
-    def __init__(self, kcsb):
+    def __init__(self, kcsb, default_cleintid):
         authority = kcsb.authority_id or "common"
         self._kusto_cluster = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
         self._adal_context = AuthenticationContext("https://login.microsoftonline.com/{0}".format(authority))
         self._username = None
         if all([kcsb.aad_user_id, kcsb.password]):
             self._authentication_method = AuthenticationMethod.aad_username_password
-            self._client_id = "db662dc1-0cfe-4e1c-a843-19a68e65be58"
+            self._client_id = default_cleintid
             self._username = kcsb.aad_user_id
             self._password = kcsb.password
         elif all([kcsb.application_client_id, kcsb.application_key]):
@@ -74,7 +74,7 @@ class _MyAadHelper(object):
             self._thumbprint = kcsb.application_certificate_thumbprint
         else:
             self._authentication_method = AuthenticationMethod.aad_device_login
-            self._client_id = "db662dc1-0cfe-4e1c-a843-19a68e65be58"
+            self._client_id = default_cleintid
 
     def acquire_token(self):
         """Acquire tokens from AAD."""

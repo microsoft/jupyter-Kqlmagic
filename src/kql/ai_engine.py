@@ -7,13 +7,17 @@
 import os.path
 import re
 from kql.kql_engine import KqlEngine, KqlEngineError
-from kql.ai_client import AppinsightsClient
+from kql.draft_client import DraftClient
 import requests
 import getpass
 
 
 class AppinsightsEngine(KqlEngine):
     schema = "appinsights://"
+    _DOMAIN = "apps"
+    _API_URI = "https://api.applicationinsights.io"
+
+
 
     @classmethod
     def tell_format(cls):
@@ -26,7 +30,7 @@ class AppinsightsEngine(KqlEngine):
     def __init__(self, conn_str, current=None):
         super().__init__()
         self._parse_connection_str(conn_str, current)
-        self.client = AppinsightsClient(self._parsed_conn)
+        self.client = DraftClient(self._parsed_conn, self._DOMAIN, self._API_URI)
 
     def _parse_connection_str(self, conn_str: str, current):
         match = None
@@ -56,5 +60,5 @@ class AppinsightsEngine(KqlEngine):
             schema = "appinsights"
             keys = ["tenant", "code", "clientid", "clientsecret", "appid"]
             mandatory_key = "appid"
-            not_in_url_key = "appid"
+            not_in_url_key = None # "appid"
             self._parse_common_connection_str(conn_str, current, schema, keys, mandatory_key, not_in_url_key)

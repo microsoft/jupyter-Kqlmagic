@@ -45,6 +45,8 @@ class Kusto_Client(object):
     >>> client_id = 'e07cf1fb-c6a6-4668-b21a-f74731afa19a'
     >>> kusto_client = KustoClient(kusto_cluster, client_id, username='your_username', password='your_password')"""
 
+    _DEFAULT_CLIENTID = "db662dc1-0cfe-4e1c-a843-19a68e65be58" # kusto client app, don't know app name
+
     def __init__(self, conn_kv):
         """
         Kusto Client constructor.
@@ -85,7 +87,7 @@ class Kusto_Client(object):
         self.client = KustoClient(kcsb)
 
         # replace aadhelper to use remote browser in interactive mode
-        self.client._aad_helper = _MyAadHelper(kcsb)
+        self.client._aad_helper = _MyAadHelper(kcsb, self._DEFAULT_CLIENTID)
 
         self.mgmt_endpoint_version = "v2" if self.client._mgmt_endpoint.endswith("v2/rest/query") else "v1"
         self.query_endpoint_version = "v2" if self.client._query_endpoint.endswith("v2/rest/query") else "v1"

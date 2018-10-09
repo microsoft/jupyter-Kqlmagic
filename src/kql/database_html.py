@@ -198,7 +198,7 @@ class Database_html(object):
                     CacheClient().save(metadata_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
 
             html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)
-            window_name = conn_name.replace("@", "_at_") + "_schema"
+            window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
             return Display._html_to_file_path(html_str, window_name, **kwargs)
         else:
             return None
@@ -208,5 +208,5 @@ class Database_html(object):
         if file_path:
             conn_name = conn.kql_engine.get_conn_name() if isinstance(conn, CacheEngine) else conn.get_conn_name()
             button_text = "popup schema " + conn_name
-            window_name = conn_name.replace("@", "_at_") + "_schema"
+            window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
             Display.show_window(window_name, file_path, button_text=button_text, onclick_visibility="visible")

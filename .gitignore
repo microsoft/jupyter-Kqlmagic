@@ -108,3 +108,4 @@ venv.bak/
 /notebooks/csv_file.csv
 /notebooks/Kqlmagic_temp_files
 /notebooks/KustoMagic01.ipynb
+/LOCAL_HACKING.txt

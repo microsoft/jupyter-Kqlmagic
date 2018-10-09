@@ -145,6 +145,12 @@ class KqlSchemaResponse(object):
         self.json_response = json_response
         self.table = json_response["tables"]
 
+    def has_exceptions(self):
+        return "Exceptions" in self.json_response
+
+    def get_exceptions(self):
+        return self.json_response["Exceptions"]
+
 
 class KqlResponse(object):
     """ Wrapper for response """

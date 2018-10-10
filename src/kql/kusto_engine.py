@@ -42,10 +42,9 @@ class KustoEngine(KqlEngine):
         else:
             # self.client_id = self.client_id or 'e07cf1fb-c6a6-4668-b21a-f74731afa19a'
             schema = "kusto"
-            keys = ["tenant", "code", "clientid", "clientsecret", "username", "password", "certificate", "certificate_thumbprint", "cluster", "database"]
             mandatory_key = "database"
             not_in_url_key = "database"
-            self._parse_common_connection_str(conn_str, current, schema, keys, mandatory_key, not_in_url_key)
+            self._parse_common_connection_str(conn_str, current, schema, mandatory_key, not_in_url_key)
             self.client = Kusto_Client(self._parsed_conn)
 
     def get_client(self):

@@ -33,6 +33,9 @@ class DraftClient(object):
         Parameters
         ----------
         """
+        # print("cluster", cluster)
+        # print("domain", domain)
+        # print("conn_kv", conn_kv)
         self.domain = domain
         self.cluster = cluster
         self.appkey = conn_kv.get("appkey")

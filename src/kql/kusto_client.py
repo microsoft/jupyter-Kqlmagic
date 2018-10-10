@@ -46,6 +46,7 @@ class Kusto_Client(object):
     >>> kusto_client = KustoClient(kusto_cluster, client_id, username='your_username', password='your_password')"""
 
     _DEFAULT_CLIENTID = "db662dc1-0cfe-4e1c-a843-19a68e65be58" # kusto client app, don't know app name
+#    _DEFAULT_CLIENTID = "8430759c-5626-4577-b151-d0755f5355d8" # kusto client app, don't know app name
 
     def __init__(self, conn_kv):
         """

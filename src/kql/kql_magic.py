@@ -430,7 +430,7 @@ class Kqlmagic(Magics, Configurable):
         # parse error
         except KqlEngineError as e:
             if options.get("short_errors", self.short_errors):
-                msg = Connection.tell_format(connect_str)
+                msg = Connection.tell_format(connection_string)
                 Display.showDangerMessage(str(e))
                 Display.showInfoMessage(msg)
                 return None

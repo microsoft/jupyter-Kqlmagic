@@ -24,11 +24,11 @@ class Connection(object):
 
     @classmethod
     def _tell_format(cls, engines):
-        strs = [e.engine1.tell_format() for e in engines]
+        strs = [e.tell_format() for e in engines]
         lsts = []
         for e in engines:
             lsts.extend(Connection.get_connection_list_by_schema(e.schema))
-        msg = """kql magic format requires connection info, examples:{0}
+        msg = """connection string, examples:{0}
                or an existing connection: {1}
                    """.format(
             ''.join(strs), str(lsts)

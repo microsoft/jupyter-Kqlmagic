@@ -6,7 +6,6 @@
 
 import six
 from datetime import timedelta, datetime
-import re
 import json
 import adal
 import dateutil.parser

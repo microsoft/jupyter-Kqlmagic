@@ -7,27 +7,25 @@
 import logging
 import uuid
 import traceback
-
-KQLMAGIC_LOGGER_NAME = "Kqlmagic-py"
-
+from kql.constants import Constants
 
 def create_log_context(correlation_id=None):
     return {"correlation_id": correlation_id or str(uuid.uuid4())}
 
 
 def set_logging_options(options=None):
-    """Configure Kqlmagic logger, including level and handler spec'd by python
+    """Configure logger, including level and handler spec'd by python
     logging module.
 
     Basic Usages::
-        >>>Kqlmagic.set_logging_options({
+        >>>set_logging_options({
         >>>  'level': 'DEBUG'
-        >>>  'handler': logging.FileHandler('Kqlmagic.log')
+        >>>  'handler': logging.FileHandler(<file-name>) # file name can be 
         >>>})
     """
     if options is None:
         options = {}
-    logger = logging.getLogger(KQLMAGIC_LOGGER_NAME)
+    logger = logging.getLogger(Constants.LOGGER_NAME)
 
     logger.setLevel(options.get("level", logging.ERROR))
 
@@ -42,7 +40,7 @@ def get_logging_options():
 
     :returns: a dict, with a key of 'level' for logging level.
     """
-    logger = logging.getLogger(KQLMAGIC_LOGGER_NAME)
+    logger = logging.getLogger(Constants.LOGGER_NAME)
     level = logger.getEffectiveLevel()
     return {"level": logging.getLevelName(level)}
 
@@ -60,7 +58,7 @@ class Logger(object):
 
         self._component_name = component_name
         self.log_context = log_context
-        self._logging = logging.getLogger(KQLMAGIC_LOGGER_NAME)
+        self._logging = logging.getLogger(Constants.LOGGER_NAME)
 
     def _log_message(self, msg, log_stack_trace=None):
         formatted = ""

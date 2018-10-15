@@ -7,12 +7,12 @@
 import uuid
 import six
 from datetime import timedelta, datetime
-import re
 import json
 import adal
 import dateutil.parser
 import requests
 # import webbrowser
+from kql.constants import Constants
 from kql.kql_client import KqlResponse, KqlSchemaResponse, KqlError
 from kql.my_aad_helper import _MyAadHelper, ConnKeysKCSB
  
@@ -68,8 +68,8 @@ class DraftClient(object):
         # print('query_endpoint: ', query_endpoint)
 
         request_headers = {
-            "x-ms-client-version": "Kqlmagic.Python.Client:" + self._CLIENT_VERSION,
-            "x-ms-client-request-id": "KPC.execute;" + str(uuid.uuid4()),
+            "x-ms-client-version": "{0}.Python.Client:{1}".format(Constants.MAGIC_CLASS_NAME, self._CLIENT_VERSION),
+            "x-ms-client-request-id": "{0}PC.execute;{1}".format(Constants.MAGIC_CLASS_NAME[0], str(uuid.uuid4())),
         }
         if self.appkey is not None:
             request_headers["x-api-key"] = self.appkey

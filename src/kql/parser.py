@@ -8,12 +8,24 @@ from os.path import expandvars
 import six
 from six.moves import configparser as CP
 from kql.log import Logger, logger
+from kql.kql_engine import KqlEngineError
+from kql.kusto_engine import KustoEngine
+from kql.ai_engine import AppinsightsEngine
+from kql.la_engine import LoganalyticsEngine
+from kql.cache_engine import CacheEngine
+
 from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
 
 
 class Parser(object):
-    @staticmethod
-    def parse(cell, config):
+    _ENGINES = [KustoEngine, AppinsightsEngine, LoganalyticsEngine, CacheEngine]
+    _ENGINES_NAME = []
+    for e in _ENGINES:
+        _ENGINES_NAME.extend(e._ALT_URI_SCHEMA_NAMES)
+
+
+    @classmethod
+    def parse(cls, cell, config):
         """Separate input into (connection info, KQL statements, options)"""
 
         parsed_queries = []
@@ -21,64 +33,53 @@ class Parser(object):
         parts = [part.strip() for part in cell.split(None, 1)]
         # print(parts)
         if not parts:
-            parsed_queries.append({"connection": "", "kql": "", "options": {}})
+            parsed_queries.append({"connection": "", "query": "", "options": {}})
             return parsed_queries
 
         #
         # replace substring of the form $name or ${name}, in windows also %name% if found in env variabes
         #
         parts[0] = expandvars(parts[0])  # for environment variables
+        sub_parts = parts[0].split("://", 1)
 
-        # assume connection is specified
-        connection = parts[0]
-        code = parts[1] if len(parts) > 1 else ""
+        connection = None
+        # assume connection is specified and will be found
+        code = parts[1] if len(parts) == 2 else ""
 
         #
         # connection taken from a section in  dsn file (file name have to be define in config.dsn_filename or specified as a parameter)
         #
         if parts[0].startswith("[") and parts[0].endswith("]"):
-            section = parts[0].lstrip("[").rstrip("]")
-            parser = CP.ConfigParser()
+            section = parts[0][1:-1].strip()
 
-            # parse to get flag, for the case that the file nema is specified
+            # parse to get flag, for the case that the file nema is specified in the options
             kql, options = Parser._parse_kql_options(code, config)
-            # print( "filename: {}".format(options.get("dsn_filename")))
-            # with open(options.get("dsn_filename"), "r") as text_file:
-            #     print ("file.content: {} ".format(text_file.read()))
 
+            parser = CP.ConfigParser()
             parser.read(options.get("dsn_filename", config.dsn_filename))
             cfg_dict = dict(parser.items(section))
-            cfg_dict_lower = dict()
-            # for k,v in cfg_dict:
-            #     cfg_dict_lower[k.lower()] = v
+
             cfg_dict_lower = {k.lower(): v for (k, v) in cfg_dict.items()}
-            if cfg_dict_lower.get("appid"):
-                connection_list = []
-                for key in ["appid", "appkey"]:
-                    if cfg_dict_lower.get(key):
-                        connection_list.append(str.format("{0}('{1}')", key, cfg_dict_lower.get(key)))
-                connection = "appinsights://" + ".".join(connection_list)
-            elif cfg_dict_lower.get("workspace"):
-                connection_list = []
-                for key in ["workspace", "appkey"]:
-                    if cfg_dict_lower.get(key):
-                        connection_list.append(str.format("{0}('{1}')", key, cfg_dict_lower.get(key)))
-                connection = "loganalytics://" + ".".join(connection_list)
-            else:
-                if cfg_dict_lower.get("user"):
-                    cfg_dict_lower["username"] = cfg_dict_lower.get("user")
-                connection_list = []
-                for key in ["username", "password", "cluster", "database"]:
-                    if cfg_dict_lower.get(key):
-                        connection_list.append(str.format("{0}('{1}')", key, cfg_dict_lower.get(key)))
-                connection = "kusto://" + ".".join(connection_list)
+            for e in cls._ENGINES:
+                if e._MANDATORY_KEY in cfg_dict_lower.keys():
+                    connection_kv = ["{0}('{1}')".format(k, v) for k,v in cfg_dict_lower.items() if v and k in  e._ALL_KEYS]
+                    connection = "{0}://{1}".format(e._URI_SCHEMA_NAME, ".".join(connection_kv))
+                    break
+
+        #
+        # connection specified starting with one of the supported prefixes
+        #
+        elif len(sub_parts) == 2 and sub_parts[0] in cls._ENGINES_NAME:
+            connection = parts[0]
+        #
+        # connection specified as database@cluster
+        #
+        elif "@" in parts[0] and '|' not in parts[0] and "'" not in parts[0] and '"' not in parts[0] and ' ' not in parts[0]:
+            connection = parts[0]
         #
         # connection not specified, override default
         #
-        elif not (
-            parts[0].startswith("kusto://") or parts[0].startswith("appinsights://") or 
-            parts[0].startswith("loganalytics://") or parts[0].startswith("cache://") or "@" in parts[0]
-        ):
+        if connection is None:
             connection = ""
             code = cell
 
@@ -113,7 +114,7 @@ class Parser(object):
             kql, options = Parser._parse_kql_options(query.strip(), config)
             if suppress_results:
                 options["suppress_results"] = True
-            parsed_queries.append({"connection": connection.strip(), "kql": kql, "options": options})
+            parsed_queries.append({"connection": connection.strip(), "query": kql, "options": options})
 
         return parsed_queries
 

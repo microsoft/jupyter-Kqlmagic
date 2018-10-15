@@ -6,7 +6,8 @@
 
 from nose import with_setup
 from nose.tools import raises
-from kql.kql_magic import Kqlmagic
+from kql.constants import Constants
+from kql.kql_magic import Kqlmagic as Magic
 from textwrap import dedent
 import os.path
 import re
@@ -15,14 +16,16 @@ import tempfile
 ip = get_ipython()
 
 def setup():
-    kqlmagic = Kqlmagic(shell=ip)
-    ip.register_magics(kqlmagic)
+    magic = Magic(shell=ip)
+    ip.register_magics(magic)
 
 def _setup():
     pass
 
 def _teardown():
     pass
+
+TEST_URI_SCHEMA_NAME = "kusto"
 
 query1 = "$TEST_CONNECTION_STR let T = view () { datatable(n:long, name:string)[1,'foo',2,'bar'] }; T"
 
@@ -56,7 +59,7 @@ def test_print():
 
 @with_setup(_setup, _teardown)
 def test_plain_style():
-    ip.run_line_magic('config', "Kqlmagic.prettytable_style = 'PLAIN_COLUMNS'")
+    ip.run_line_magic('config', "{0}.prettytable_style = 'PLAIN_COLUMNS'".format(Constants.MAGIC_CLASS_NAME))
     result = ip.run_line_magic('kql', query1)
     print(result)
     assert result[0][0] == 1
@@ -118,11 +121,11 @@ def test_duplicate_column_names_accepted():
 
 @with_setup(_setup, _teardown)
 def test_auto_limit():
-    ip.run_line_magic('config',  "Kqlmagic.auto_limit = 0")
+    ip.run_line_magic('config',  "{0}.auto_limit = 0".format(Constants.MAGIC_CLASS_NAME))
     result = ip.run_line_magic('kql',  query1)
     print(result)
     assert len(result) == 2
-    ip.run_line_magic('config',  "Kqlmagic.auto_limit = 1")
+    ip.run_line_magic('config',  "{0}.auto_limit = 1".format(Constants.MAGIC_CLASS_NAME))
     result = ip.run_line_magic('kql',  query1)
     print(result)
     assert len(result) == 1
@@ -135,14 +138,14 @@ query5 = """
         | sort by Result asc
         """
 def test_display_limit():
-    ip.run_line_magic('config',  "Kqlmagic.auto_limit = None")
-    ip.run_line_magic('config',  "Kqlmagic.display_limit = None")
+    ip.run_line_magic('config',  "{0}.auto_limit = None".format(Constants.MAGIC_CLASS_NAME))
+    ip.run_line_magic('config',  "{0}.display_limit = None".format(Constants.MAGIC_CLASS_NAME))
     result = ip.run_line_magic('kql', query5)
     print(result)
     assert 'apple' in result._repr_html_()
     assert 'banana' in result._repr_html_()
     assert 'cherry' in result._repr_html_()
-    ip.run_line_magic('config',  "Kqlmagic.display_limit = 1")
+    ip.run_line_magic('config',  "{0}.display_limit = 1".format(Constants.MAGIC_CLASS_NAME))
     assert 'apple' in result._repr_html_()
     assert 'cherry' not in result._repr_html_()
 
@@ -150,14 +153,14 @@ query6 = "$TEST_CONNECTION_STR let T = view () { datatable(first_name:string, la
 
 @with_setup(_setup, _teardown)
 def test_columns_to_local_vars():
-    ip.run_line_magic('config',  "Kqlmagic.columns_to_local_vars = True")
+    ip.run_line_magic('config',  "{0}.columns_to_local_vars = True".format(Constants.MAGIC_CLASS_NAME))
     result = ip.run_line_magic('kql', query6)
     print(result)
     assert result is None
     assert 'William' in ip.user_global_ns['first_name']
     assert 'Shakespeare' in ip.user_global_ns['last_name']
     assert len(ip.user_global_ns['first_name']) == 2
-    ip.run_line_magic('config',  "Kqlmagic.columns_to_local_vars = False")
+    ip.run_line_magic('config',  "{0}.columns_to_local_vars = False".format(Constants.MAGIC_CLASS_NAME))
 
 @with_setup(_setup, _teardown)
 def test_userns_not_changed():
@@ -171,20 +174,21 @@ def test_userns_not_changed():
     """
 def test_bind_vars():
     ip.user_global_ns['x'] = 22
-    result = ip.run_line_magic('kql', "kusto:// SELECT :x")
+    query = "{0}:// SELECT :x".format(TEST_URI_SCHEMA_NAME)
+    result = ip.run_line_magic('kql', query)
     assert result[0][0] == 22
     """
 
 @with_setup(_setup, _teardown)
 def test_auto_dataframe():
-    ip.run_line_magic('config',  "Kqlmagic.auto_dataframe = True")
+    ip.run_line_magic('config',  "{0}.auto_dataframe = True".format(Constants.MAGIC_CLASS_NAME))
     dframe = ip.run_cell("%kql {0}".format(query1))
     assert dframe.success
     assert dframe.result.name[0] == 'foo'
 
 @with_setup(_setup, _teardown)
 def test_csv():
-    ip.run_line_magic('config',  "Kqlmagic.auto_dataframe = False")  # uh-oh
+    ip.run_line_magic('config',  "{0}.auto_dataframe = False".format(Constants.MAGIC_CLASS_NAME))  # uh-oh
     result = ip.run_line_magic('kql', query1)
     result = result.csv()
     for row in result.splitlines():
@@ -193,7 +197,7 @@ def test_csv():
 
 @with_setup(_setup, _teardown)
 def test_csv_to_file():
-    ip.run_line_magic('config',  "Kqlmagic.auto_dataframe = False")  # uh-oh
+    ip.run_line_magic('config',  "{0}.auto_dataframe = False".format(Constants.MAGIC_CLASS_NAME))  # uh-oh
     result = ip.run_line_magic('kql', query1)
     with tempfile.TemporaryDirectory() as tempdir:
         fname = os.path.join(tempdir, 'test.csv')

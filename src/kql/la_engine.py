@@ -4,15 +4,23 @@
 # license information.
 #--------------------------------------------------------------------------
 
-import re
 from kql.kql_engine import KqlEngine, KqlEngineError
 from kql.draft_client import DraftClient
-import getpass
-
 
 class LoganalyticsEngine(KqlEngine):
-    schema = "loganalytics://"
+    _URI_SCHEMA_NAME = "loganalytics"
+    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "log_analytics"]
     _DOMAIN = "workspaces"
+    _MANDATORY_KEY = "workspace"
+    _VALID_KEYS_COMBINATIONS = [
+            ["tenant", "code", "workspace", "alias"],
+            ["tenant", "clientid", "clientsecret", "workspace", "alias"],
+            ["workspace", "appkey", "alias"], # only for demo, if workspace = "DEMO_WORKSPACE"
+    ]
+    _ALL_KEYS = set()
+    for c in _VALID_KEYS_COMBINATIONS:
+        _ALL_KEYS.update(set(c))
+
     _API_URI = "https://api.loganalytics.io"
 
     @classmethod
@@ -25,8 +33,5 @@ class LoganalyticsEngine(KqlEngine):
     # Object constructor
     def __init__(self, conn_str, current=None):
         super().__init__()
-        schema = "loganalytics"
-        mandatory_key = "workspace"
-        not_in_url_key = None # "workspace"
-        self._parse_common_connection_str(conn_str, current, schema, mandatory_key, not_in_url_key)
+        self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._ALL_KEYS, self._VALID_KEYS_COMBINATIONS)
         self.client = DraftClient(self._parsed_conn, self._DOMAIN, self._API_URI)

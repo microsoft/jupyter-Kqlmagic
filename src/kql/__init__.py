@@ -4,7 +4,7 @@
 # license information.
 #--------------------------------------------------------------------------
 
-from .kql_magic import *
+from .magic_extension import *
 from .version import VERSION
 
 __version__ = VERSION

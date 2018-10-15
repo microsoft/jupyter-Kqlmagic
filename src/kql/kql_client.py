@@ -291,7 +291,6 @@ class KqlResponse(object):
         return self.json_response["Exceptions"]
 
 
-# used in Kqlmagic
 class KqlError(Exception):
     """
     Represents error returned from server. Error can contain partial results of the executed query.

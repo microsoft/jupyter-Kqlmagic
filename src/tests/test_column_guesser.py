@@ -4,10 +4,9 @@
 # license information.
 #--------------------------------------------------------------------------
 
-import re
 import sys
 from nose.tools import with_setup, raises
-from kql.kql_magic import Kqlmagic
+from kql.kql_magic import Kqlmagic as Magic
 
 ip = get_ipython()
 
@@ -23,8 +22,8 @@ kql_env = KqlEnv('$TEST_CONNECTION_STR')
 basequery = "let manycoltbl = view () { datatable(name:string, y1:real, y2:real, name2:string, y3:real) ['r1-txt1', 1.01, 1.02, 'r1-txt2', 1.04, 'r2-txt1', 2.01, 2.02, 'r2-txt2', 2.04, 'r3-txt1', 3.01, 3.02, 'r3-txt2', 3.04] }; "
 
 def setup():
-    kqlmagic = Kqlmagic(shell=ip)
-    ip.register_magics(kqlmagic)
+    magic = Magic(shell=ip)
+    ip.register_magics(magic)
 
 def teardown():
     pass

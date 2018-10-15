@@ -13,7 +13,15 @@ from kql.kql_proxy import KqlResponse
 
 
 class CacheEngine(KqlEngine):
-    schema = "cache://"
+    _URI_SCHEMA_NAME = "cache"
+    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "file"]
+    _MANDATORY_KEY = "database"
+    _VALID_KEYS_COMBINATIONS = [
+            ["cluster", "database", "alias"],
+    ]
+    _ALL_KEYS = set()
+    for c in _VALID_KEYS_COMBINATIONS:
+        _ALL_KEYS.update(set(c))
 
     @classmethod
     def tell_format(cls):
@@ -34,8 +42,10 @@ class CacheEngine(KqlEngine):
             self.kql_engine = conn_str
             database_name = self.kql_engine.get_database()
             cluster_name = self.kql_engine.get_cluster()
-            conn_str = "cache://cluster('{0}').database('{1}')".format(cluster_name, database_name)
-        self._parse_connection_str(conn_str, current)
+            conn_str = "{0}://cluster('{1}').database('{2}')".format(self._URI_SCHEMA_NAME, cluster_name, database_name)
+        self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._ALL_KEYS, self._VALID_KEYS_COMBINATIONS)
+        self.database_name = self.database_name  + '_at_' + self.cluster_name
+        self.cluster_name = self._URI_SCHEMA_NAME
         self.client = CacheClient()
 
         database = self.get_database()
@@ -48,59 +58,6 @@ class CacheEngine(KqlEngine):
             outfile.flush()
             outfile.close()
 
-    def _parse_connection_str(self, conn_str: str, current):
-        prefix_matched = False
-        conn_str_rest = None
-
-        # parse connection string prefix
-        pattern = re.compile(r"^cache://(?P<conn_str_rest>.*)$")
-        match = pattern.search(conn_str.strip())
-        if not match:
-            raise KqlEngineError('Invalid connection string, must be prefixed by "cache://"')
-        conn_str_rest = match.group("conn_str_rest")
-
-        # parse all tokens sequentially
-        for token in ["cluster", "database"]:
-            pattern = re.compile("^(?P<delimiter>.?){0}\\((?P<{1}>.*?)\\)(?P<conn_str_rest>.*)$".format(token, token))
-            match = pattern.search(conn_str_rest)
-            if match:
-                self._validate_connection_delimiter(prefix_matched, match.group("delimiter"))
-                conn_str_rest = match.group("conn_str_rest")
-                prefix_matched = True
-                self._parsed_conn[token] = match.group(token).strip()[1:-1]
-
-        # at least one token must be matched, and we should have nothing more to parse
-        if not prefix_matched or len(conn_str_rest) > 0:
-            raise KqlEngineError("Invalid connection string.")
-
-        # database is mandatory
-        if not self._parsed_conn.get("database"):
-            raise KqlEngineError("database is not defined.")
-
-        if not self._parsed_conn.get("cluster"):
-            if not current:
-                raise KqlEngineError("Cluster is not defined.")
-            self._parsed_conn["cluster"] = current._parsed_conn.get("cluster")
-
-
-        self.cluster_name = self._parsed_conn.get("cluster")
-        self.database_name = self._parsed_conn.get("database")
-        self.bind_url = "cache://cluster('{0}.database('{1}')".format(
-            self.cluster_name, self.database_name,
-        )
-        self.database_name = self.database_name  + '_at_' + self.cluster_name
-        self.cluster_name = "cache"
-
-
-    def _validate_connection_delimiter(self, require_delimiter, delimiter):
-        # delimiter '.' should separate between tokens
-        if require_delimiter:
-            if delimiter != ".":
-                raise KqlEngineError("Invalid connection string, missing or wrong delimiter")
-        # delimiter '.' should not exsit before first token
-        else:
-            if len(delimiter) > 0:
-                raise KqlEngineError("Invalid connection string.")
 
     def validate(self, **kwargs):
         ip = get_ipython()

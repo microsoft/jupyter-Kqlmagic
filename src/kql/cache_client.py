@@ -4,6 +4,7 @@
 # license information.
 #--------------------------------------------------------------------------
 
+from kql.constants import Constants
 from kql.kql_client import KqlResponse, KqlSchemaResponse
 import hashlib
 import json
@@ -27,7 +28,7 @@ class CacheClient(object):
         """
         ip = get_ipython()
         root_path = ip.starting_dir.replace("\\", "/")
-        self.files_folder = root_path + "/" + ip.run_line_magic("config", "Kqlmagic.cache_folder_name")
+        self.files_folder = root_path + "/" + ip.run_line_magic("config", "{0}.cache_folder_name".format(Constants.MAGIC_CLASS_NAME))
 
 
     def _get_query_hash_filename(self, query):

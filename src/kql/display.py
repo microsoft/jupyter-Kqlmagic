@@ -143,7 +143,7 @@ class Display(object):
 
             <button onclick="this.style.visibility='"""
             + onclick_visibility
-            + """';kqlMagicLaunchWindowFunction('"""
+            + """';kql_MagicLaunchWindowFunction('"""
             + file_path
             + """','"""
             + window_params
@@ -157,7 +157,7 @@ class Display(object):
 
             <script>
 
-            function kqlMagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {
+            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {
                 var url;
                 if (file_path.startsWith('http')) {
                     url = file_path;
@@ -211,7 +211,7 @@ class Display(object):
                 var w = screen.width / 2;
                 var h = screen.height / 2;
                 params = 'width='+w+',height='+h;
-                kqlMagic_"""
+                kql_Magic_"""
             + window_name
             + """ = window.open(url, window_name, window_params + params);
             }

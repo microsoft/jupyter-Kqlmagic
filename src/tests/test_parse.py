@@ -37,34 +37,41 @@ def test_parse_kql_only():
             'options': default_options}
 
 def test_parse_kusto_socket_connection():
-    assert Parser.parse("kusto://cluster('clustername').database('dbname') {}".format(query1), empty_config) == \
-           {'connection': "kusto://cluster('clustername').database('dbname')",
+    conn_str = "{}://cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)
+    assert Parser.parse("{0} {1}".format(conn_str, query1), empty_config) == \
+           {'connection': conn_str,
             'kql': query1,
             'options': default_options}
 
 def test_expand_environment_variables_in_connection():
-    os.environ['KQL_DATABASE'] = "kusto://cluster('clustername').database('dbname')"
+    conn_str = "{}://cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)
+    os.environ['KQL_DATABASE'] = conn_str
     assert Parser.parse("$KQL_DATABASE {}".format(query1), empty_config) == \
-            {'connection': "kusto://cluster('clustername').database('dbname')",
+            {'connection': conn_str,
             'kql': query1,
             'options': default_options}
 
 def test_parse_kusto_socket_connection_with_credentials():
-    assert Parser.parse("kusto://username('username').password('password').cluster('clustername').database('dbname') {}".format(query1), empty_config) == \
-           {'connection': "kusto://username('username').password('password').cluster('clustername').database('dbname')",
+    conn_str = "{}://username('username').password('password').cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)
+    assert Parser.parse("{0} {1}".format(conn_str, query1), empty_config) == \
+           {'connection': conn_str,
             'kql': query1,
             'options': default_options}
 
 def test_parse_kusto_socket_connection_with_env_credentials():
+    conn_str = "{}://username($USERNAME).password($PASSWORD).cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)
+    result_conn_str = "{}://username('michael').password('michael123').cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)
     os.environ['USERNAME'] = "'michael'"
     os.environ['PASSWORD'] = "'michael123'"
-    assert Parser.parse("kusto://username($USERNAME).password($PASSWORD).cluster('clustername').database('dbname') {}".format(query1), empty_config) == \
-           {'connection': "kusto://username('michael').password('michael123').cluster('clustername').database('dbname')",
+    assert Parser.parse("{0} {1}".format(conn_str, query1), empty_config) == \
+           {'connection': result_conn_str,
             'kql': query1,
             'options': default_options}
 
 def test_parse_kusto_socket_connection_dsn():
-    assert Parser.parse("kusto://username($USERNAME).password($PASSWORD).cluster('clustername').database('dbname') {}".format(query1), empty_config) == \
-            {'connection': "kusto://username('michael').password('michael123').cluster('clustername').database('dbname')",
+    conn_str = "{}://username($USERNAME).password($PASSWORD).cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)
+    result_conn_str = "{}://username('michael').password('michael123').cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)
+    assert Parser.parse("{0} {1}".format(conn_str, query1), empty_config) == \
+            {'connection': result_conn_str,
             'kql': query1,
             'options': default_options}

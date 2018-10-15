@@ -4,15 +4,23 @@
 # license information.
 #--------------------------------------------------------------------------
 
-import re
-import getpass
-
 from kql.kql_engine import KqlEngine, KqlEngineError
 from kql.kusto_client import Kusto_Client
 
 
 class KustoEngine(KqlEngine):
-    schema = "kusto://"
+    _URI_SCHEMA_NAME = "kusto"
+    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "adx", "ade", "azuredataexplorer", "azure_data_explorer"]
+    _MANDATORY_KEY = "database"
+    _VALID_KEYS_COMBINATIONS = [
+            ["tenant", "code", "cluster", "database", "alias"],
+            ["tenant", "username", "password", "cluster", "database", "alias"],
+            ["tenant", "clientid", "clientsecret", "cluster", "database", "alias"],
+            ["tenant", "clientid", "certificate", "certificate_thumbprint", "cluster", "database", "alias"],
+    ]
+    _ALL_KEYS = set()
+    for c in _VALID_KEYS_COMBINATIONS:
+        _ALL_KEYS.update(set(c))
 
     @classmethod
     def tell_format(cls):
@@ -34,17 +42,15 @@ class KustoEngine(KqlEngine):
     # Object constructor
     def __init__(self, conn_str, current=None, conn_class=None):
         super().__init__()
-        if isinstance(conn_str, list):
+        if isinstance(conn_str, dict):
             self.conn_class = conn_class
-            self.database_name = conn_str[0]
-            self.cluster_name = conn_str[1]
-            self.bind_url = "kusto://cluster('{0}').database('{1}')".format(self.cluster_name, self.database_name)
+            self.database_name = conn_str.get("database_name")
+            self.cluster_name = conn_str.get("cluster_name")
+            self.alias = conn_str.get("alias")
+            self.bind_url = "{0}://cluster('{1}').database('{2}')".format(self._URI_SCHEMA_NAME, self.cluster_name, self.database_name)
         else:
             # self.client_id = self.client_id or 'e07cf1fb-c6a6-4668-b21a-f74731afa19a'
-            schema = "kusto"
-            mandatory_key = "database"
-            not_in_url_key = "database"
-            self._parse_common_connection_str(conn_str, current, schema, mandatory_key, not_in_url_key)
+            self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._ALL_KEYS, self._VALID_KEYS_COMBINATIONS)
             self.client = Kusto_Client(self._parsed_conn)
 
     def get_client(self):

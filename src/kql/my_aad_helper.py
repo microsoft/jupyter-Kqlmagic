@@ -112,19 +112,19 @@ class _MyAadHelper(object):
                 + device_code
                 + """</b><br></h1-->
 
-                <input  id="kqlMagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size = '"""
+                <input  id="kql_MagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size = '"""
                 + str(len(device_code))
                 + """' value='"""
                 + device_code
                 + """'>
 
-                <button id='kqlMagicCodeAuth_button', onclick="this.style.visibility='hidden';kqlMagicCodeAuthFunction()">Copy code to clipboard and authenticate</button>
+                <button id='kql_MagicCodeAuth_button', onclick="this.style.visibility='hidden';kql_MagicCodeAuthFunction()">Copy code to clipboard and authenticate</button>
 
                 <script>
-                var kqlMagicUserCodeAuthWindow = null
-                function kqlMagicCodeAuthFunction() {
+                var kql_MagicUserCodeAuthWindow = null
+                function kql_MagicCodeAuthFunction() {
                     /* Get the text field */
-                    var copyText = document.getElementById("kqlMagicCodeAuthInput");
+                    var copyText = document.getElementById("kql_MagicCodeAuthInput");
 
                     /* Select the text field */
                     copyText.select();
@@ -138,9 +138,9 @@ class _MyAadHelper(object):
                     var w = screen.width / 2;
                     var h = screen.height / 2;
                     params = 'width='+w+',height='+h
-                    kqlMagicUserCodeAuthWindow = window.open('"""
+                    kql_MagicUserCodeAuthWindow = window.open('"""
                 + url
-                + """', 'kqlMagicUserCodeAuthWindow', params);
+                + """', 'kql_MagicUserCodeAuthWindow', params);
 
                     // TODO: save selected cell index, so that the clear will be done on the lince cell
                 }
@@ -158,8 +158,8 @@ class _MyAadHelper(object):
                     <html><body><script>
 
                         // close authentication window
-                        if (kqlMagicUserCodeAuthWindow && kqlMagicUserCodeAuthWindow.opener != null && !kqlMagicUserCodeAuthWindow.closed) {
-                            kqlMagicUserCodeAuthWindow.close()
+                        if (kql_MagicUserCodeAuthWindow && kql_MagicUserCodeAuthWindow.opener != null && !kql_MagicUserCodeAuthWindow.closed) {
+                            kql_MagicUserCodeAuthWindow.close()
                         }
                         // TODO: make sure, you clear the right cell. BTW, not sure it is a must to do any clearing
 

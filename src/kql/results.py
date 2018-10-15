@@ -222,7 +222,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
     @property
     def query(self):
-        return self.metadata.get("parsed").get("kql").strip()
+        return self.metadata.get("parsed").get("query").strip()
 
     @property
     def plotly_fig(self):

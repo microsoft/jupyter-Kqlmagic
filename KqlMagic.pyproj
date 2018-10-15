@@ -38,6 +38,7 @@
     <Compile Include="src\kql\ai_engine.py" />
     <Compile Include="src\kql\column_guesser.py" />
     <Compile Include="src\kql\connection.py" />
+    <Compile Include="src\kql\constants.py" />
     <Compile Include="src\kql\display.py" />
     <Compile Include="src\kql\cache_client.py" />
     <Compile Include="src\kql\cache_engine.py" />
@@ -49,6 +50,7 @@
     <Compile Include="src\kql\la_engine.py" />
     <Compile Include="src\kql\log.py" />
     <Compile Include="src\kql\kql_magic.py" />
+    <Compile Include="src\kql\magic_extension.py" />
     <Compile Include="src\kql\my_aad_helper.py" />
     <Compile Include="src\kql\palette.py" />
     <Compile Include="src\kql\parameterizer.py" />

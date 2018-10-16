@@ -30,7 +30,6 @@ KEYWORDS            = 'database ipython jupyter jupyterlab jupyter-notebook quer
 
 INSTALL_REQUIRES    = [
                         'ipython>=7.0.1',
-                        'traitlets>=4.3.2',
                         'plotly>=3.3.0',
                         'prettytable>=0.7.2',
                         'matplotlib>=3.0.0',
@@ -42,6 +41,7 @@ INSTALL_REQUIRES    = [
                         'seaborn>=0.9.0',
                         'requests>=2.19.1',
                         'python-dateutil>=2.7.3',
+                        'traitlets,
                         'psutil',
                         'six>=1.11.0',
                         'setuptools>=40.4.3',

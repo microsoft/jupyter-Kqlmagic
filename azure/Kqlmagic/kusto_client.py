@@ -72,17 +72,18 @@ class Kusto_Client(object):
 
         if all([conn_kv.get("username"), conn_kv.get("password")]):
             kcsb = KustoConnectionStringBuilder.with_aad_user_password_authentication(kusto_cluster, conn_kv.get("username"), conn_kv.get("password"))
+            if conn_kv.get("tenant") is not None: kcsb.authority_id = conn_kv.get("tenant")
+
         elif all([conn_kv.get("clientid"), conn_kv.get("clientsecret")]):
-            kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(kusto_cluster, conn_kv.get("clientid"), conn_kv.get("clientsecret"))
+            kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(
+                kusto_cluster, conn_kv.get("clientid"), conn_kv.get("clientsecret"), conn_kv.get("tenant"))
         elif all([conn_kv.get("clientid"), conn_kv.get("certificate"), conn_kv.get("certificate_thumbprint")]):
             kcsb = KustoConnectionStringBuilder.with_aad_application_certificate_authentication(
-                kusto_cluster, conn_kv.get("clientid"), conn_kv.get("certificate"), conn_kv.get("certificate_thumbprint")
+                kusto_cluster, conn_kv.get("clientid"), conn_kv.get("certificate"), conn_kv.get("certificate_thumbprint", conn_kv.get("tenant"))
             )
         else:
             kcsb = KustoConnectionStringBuilder.with_aad_device_authentication(kusto_cluster)
-
-        if conn_kv.get("tenant") is not None:
-            kcsb.authority_id = conn_kv.get("tenant")
+            if conn_kv.get("tenant") is not None: kcsb.authority_id = conn_kv.get("tenant")
 
         self.client = KustoClient(kcsb)
 

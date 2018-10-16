@@ -146,6 +146,9 @@ class KqlEngine(object):
         missing_set = conn_keys_set.difference(matched_keys_set).difference(secret_key_set).difference(self._OPTIONAL_KEYS)
         if len(missing_set) > 0:
             raise KqlEngineError('invalid connection string, missing {0}.'.format(missing_set))
+        # special case although tenant in _OPTIONAL_KEYS
+        if parsed_conn_kv.get("tenant") is None and "clienid" in conn_keys_set:
+            raise KqlEngineError('invalid connection string, missing tenant key/value.')
 
         # make sure that all required keys are with proper value
         for key in matched_keys_set: #.difference(secret_key_set).difference(self._SHOULD_BE_NULL_KEYS):

@@ -26,17 +26,17 @@ DOWNLOAD_URL        = 'https://pypi.python.org/pypi/jupyter-kql-magic'
 
 LICENSE             = 'MIT License'
 
-KEYWORDS            = 'database ipython jupyter notebook query language kql kusto loganalytics applicationinsights'
+KEYWORDS            = 'database ipython jupyter jupyterlab jupyter-notebook query language kql kusto loganalytics applicationinsights'
 
 INSTALL_REQUIRES    = [
                         'ipython>=7.0.1',
                         'traitlets>=4.3.2',
                         'plotly>=3.3.0',
                         'prettytable>=0.7.2',
-                        'matplotlib>=2.2.3',
+                        'matplotlib>=3.0.0',
                         'pandas>=0.23.4',
-                        'azure-kusto-data>=0.0.13',
-                        'azure-kusto-ingest>=0.0.13',
+                        'azure-kusto-data>=0.0.14',
+                        'azure-kusto-ingest>=0.0.14',
                         'adal>=1.1.0',
                         'Pygments>=2.2.0',
                         'seaborn>=0.9.0',
@@ -44,7 +44,7 @@ INSTALL_REQUIRES    = [
                         'python-dateutil>=2.7.3',
                         'psutil>=5.4.7',
                         'six>=1.11.0',
-                        'setuptools>=40.3.0',
+                        'setuptools>=40.4.3',
 ]
 
 
@@ -79,15 +79,21 @@ setup(name=NAME,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     classifiers=[
-        'Development Status :: 3 - Beta',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
+        'Intended Audience :: Customer Service',
+        'Intended Audience :: Information Technology',
         'Intended Audience :: Science/Research',
         'Environment :: Console',
+        'Environment :: Plugins',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Topic :: Database',
         'Topic :: Database :: Front-Ends',
+        'Framework :: IPython',
+        'Framework :: Jupyter',
+        'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',

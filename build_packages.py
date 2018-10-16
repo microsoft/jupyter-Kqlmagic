@@ -16,11 +16,11 @@ try:
 except ImportError:  # Should not happen, but at worst in most case this is the same
     from pip._vendor.packaging.version import parse as Version, InvalidVersion
 
-default_destination_folder = os.path.join("..", "dist")
+DEFAULT_DESTINATION_FOLDER = os.path.join("..", "dist")
 package_list = ["Kqlmagic"]
 
 
-def create_package(name, dest_folder=default_destination_folder):
+def create_package(name, dest_folder=DEFAULT_DESTINATION_FOLDER):
     absdirpath = os.path.abspath(name)
     check_call(["python", "setup.py", "bdist_wheel", "-d", dest_folder], cwd=absdirpath)
     check_call(["python", "setup.py", "sdist", "-d", dest_folder], cwd=absdirpath)
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dest",
         "-d",
-        default=default_destination_folder,
+        default=DEFAULT_DESTINATION_FOLDER,
         help="Destination folder. Relative to the package dir. [default: %(default)s]",
     )
 

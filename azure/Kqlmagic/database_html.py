@@ -4,13 +4,13 @@
 # license information.
 #--------------------------------------------------------------------------
 
-from kql.display import Display
-from kql.kusto_engine import KustoEngine
-from kql.ai_engine import AppinsightsEngine
-from kql.la_engine import LoganalyticsEngine
-from kql.cache_engine import CacheEngine
-from kql.cache_client import CacheClient
-from kql.help_html import Help_html
+from Kqlmagic.display import Display
+from Kqlmagic.kusto_engine import KustoEngine
+from Kqlmagic.ai_engine import AppinsightsEngine
+from Kqlmagic.la_engine import LoganalyticsEngine
+from Kqlmagic.cache_engine import CacheEngine
+from Kqlmagic.cache_client import CacheClient
+from Kqlmagic.help_html import Help_html
 
 
 class Database_html(object):

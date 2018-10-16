@@ -4,7 +4,7 @@
 # license information.
 #--------------------------------------------------------------------------
 import getpass
-from kql.kql_proxy import KqlResponse
+from Kqlmagic.kql_proxy import KqlResponse
 import functools
 
 

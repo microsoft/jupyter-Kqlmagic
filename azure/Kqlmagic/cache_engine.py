@@ -7,9 +7,9 @@
 import re
 import os
 
-from kql.kql_engine import KqlEngine, KqlEngineError
-from kql.cache_client import CacheClient
-from kql.kql_proxy import KqlResponse
+from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
+from Kqlmagic.cache_client import CacheClient
+from Kqlmagic.kql_proxy import KqlResponse
 
 
 class CacheEngine(KqlEngine):

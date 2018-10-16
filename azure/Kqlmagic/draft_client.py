@@ -12,9 +12,9 @@ import adal
 import dateutil.parser
 import requests
 # import webbrowser
-from kql.constants import Constants
-from kql.kql_client import KqlResponse, KqlSchemaResponse, KqlError
-from kql.my_aad_helper import _MyAadHelper, ConnKeysKCSB
+from Kqlmagic.constants import Constants
+from Kqlmagic.kql_client import KqlResponse, KqlSchemaResponse, KqlError
+from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
  
 
 

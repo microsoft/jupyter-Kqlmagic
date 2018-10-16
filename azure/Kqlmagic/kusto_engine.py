@@ -4,8 +4,8 @@
 # license information.
 #--------------------------------------------------------------------------
 
-from kql.kql_engine import KqlEngine, KqlEngineError
-from kql.kusto_client import Kusto_Client
+from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
+from Kqlmagic.kusto_client import Kusto_Client
 
 
 class KustoEngine(KqlEngine):

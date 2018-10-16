@@ -14,11 +14,11 @@ import os.path
 import re
 import uuid
 import prettytable
-from kql.column_guesser import ColumnGuesserMixin
+from Kqlmagic.column_guesser import ColumnGuesserMixin
 
-from kql.display import Display
+from Kqlmagic.display import Display
 
-from kql.palette import Palette, Palettes
+from Kqlmagic.palette import Palette, Palettes
 
 import plotly
 

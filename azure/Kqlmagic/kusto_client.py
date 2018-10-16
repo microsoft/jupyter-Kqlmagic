@@ -15,8 +15,8 @@ from azure.kusto.data.exceptions import KustoServiceError
 
 # from azure.kusto.data import KustoClient
 from azure.kusto.data._response import WellKnownDataSet
-from kql.my_aad_helper import _MyAadHelper
-from kql.kql_client import KqlResponse, KqlError
+from Kqlmagic.my_aad_helper import _MyAadHelper
+from Kqlmagic.kql_client import KqlResponse, KqlError
 
 
 

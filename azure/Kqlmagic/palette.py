@@ -5,7 +5,7 @@
 #--------------------------------------------------------------------------
 
 import six
-from kql.display import Display
+from Kqlmagic.display import Display
 import seaborn as sns
 
 

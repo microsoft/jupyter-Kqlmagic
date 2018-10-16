@@ -6,7 +6,7 @@
 
 import sys
 from nose.tools import with_setup, raises
-from kql.kql_magic import Kqlmagic as Magic
+from Kqlmagic.kql_magic import Kqlmagic as Magic
 
 ip = get_ipython()
 

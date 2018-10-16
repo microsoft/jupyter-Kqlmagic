@@ -5,7 +5,7 @@
 #--------------------------------------------------------------------------
 
 import os
-from kql.parser import Parser
+from Kqlmagic.parser import Parser
 from six.moves import configparser
 try:
     from traitlets.config.configurable import Configurable

@@ -6,7 +6,7 @@
 
 import six
 import json
-from kql.display import Display
+from Kqlmagic.display import Display
 
 
 class KqlRow(six.Iterator):

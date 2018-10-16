@@ -4,8 +4,8 @@
 # license information.
 #--------------------------------------------------------------------------
 
-from kql.constants import Constants
-from kql.kql_client import KqlResponse, KqlSchemaResponse
+from Kqlmagic.constants import Constants
+from Kqlmagic.kql_client import KqlResponse, KqlSchemaResponse
 import hashlib
 import json
 import os

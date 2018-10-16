@@ -8,7 +8,7 @@
 
 """Setup for Kqlmagic"""
 
-DESCRIPTION         = "Kqlmagic: KQL (Kusto Query Language) execution via Jupyter magic"
+DESCRIPTION         = "Kqlmagic: KQL (Kusto Query Language), enable query Azure Monitor data from a Jupyter compatibe notebook using magic"
 
 NAME                = "Kqlmagic"
 
@@ -26,7 +26,7 @@ DOWNLOAD_URL        = 'https://pypi.python.org/pypi/jupyter-kql-magic'
 
 LICENSE             = 'MIT License'
 
-KEYWORDS            = 'database ipython jupyter notebook kql kusto loganalytics applicationinsights'
+KEYWORDS            = 'database ipython jupyter notebook query language kql kusto loganalytics applicationinsights'
 
 INSTALL_REQUIRES    = [
                         'ipython>=7.0.1',
@@ -59,7 +59,7 @@ from os import path
 from setuptools import setup, find_packages
 
 CURRENT_PATH = path.abspath(path.dirname(__file__))
-PACKAGE_PATH = 'src-kql'.replace('-', path.sep)
+PACKAGE_PATH = 'azure-Kqlmagic'.replace('-', path.sep)
 
 with open(path.join(PACKAGE_PATH, 'version.py'), 'r') as fd:
     VERSION = re.search(r'^VERSION\s*=\s*[\'"]([^\'"]*)[\'"]',
@@ -79,7 +79,7 @@ setup(name=NAME,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     classifiers=[
-        'Development Status :: 1 - Alpha',
+        'Development Status :: 3 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
         'Intended Audience :: Science/Research',
@@ -103,8 +103,8 @@ setup(name=NAME,
     url=URL,
     download_url=DOWNLOAD_URL,
     license=LICENSE,
-    packages=find_packages('src'),
-    package_dir = {'': 'src'},
+    packages=find_packages('azure'),
+    package_dir = {'': 'azure'},
     include_package_data=True,
     zip_safe=False,
     install_requires=INSTALL_REQUIRES,

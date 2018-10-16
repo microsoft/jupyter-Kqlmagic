@@ -16,7 +16,7 @@ from six.moves.urllib.parse import urlparse
 import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
-from kql.display import Display
+from Kqlmagic.display import Display
 
 
 class ConnKeysKCSB(object):

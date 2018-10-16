@@ -7,12 +7,12 @@
 from os.path import expandvars
 import six
 from six.moves import configparser as CP
-from kql.log import Logger, logger
-from kql.kql_engine import KqlEngineError
-from kql.kusto_engine import KustoEngine
-from kql.ai_engine import AppinsightsEngine
-from kql.la_engine import LoganalyticsEngine
-from kql.cache_engine import CacheEngine
+from Kqlmagic.log import Logger, logger
+from Kqlmagic.kql_engine import KqlEngineError
+from Kqlmagic.kusto_engine import KustoEngine
+from Kqlmagic.ai_engine import AppinsightsEngine
+from Kqlmagic.la_engine import LoganalyticsEngine
+from Kqlmagic.cache_engine import CacheEngine
 
 from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
 

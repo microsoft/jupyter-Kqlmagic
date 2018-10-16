@@ -32,43 +32,43 @@
     <Content Include="run_tests.sh" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="azure\Kqlmagic\ai_engine.py" />
+    <Compile Include="azure\Kqlmagic\cache_client.py" />
+    <Compile Include="azure\Kqlmagic\cache_engine.py" />
+    <Compile Include="azure\Kqlmagic\column_guesser.py" />
+    <Compile Include="azure\Kqlmagic\connection.py" />
+    <Compile Include="azure\Kqlmagic\constants.py" />
+    <Compile Include="azure\Kqlmagic\database_html.py" />
+    <Compile Include="azure\Kqlmagic\display.py" />
+    <Compile Include="azure\Kqlmagic\draft_client.py" />
+    <Compile Include="azure\Kqlmagic\help_html.py" />
+    <Compile Include="azure\Kqlmagic\kql_client.py" />
+    <Compile Include="azure\Kqlmagic\kql_engine.py" />
+    <Compile Include="azure\Kqlmagic\kql_magic.py" />
+    <Compile Include="azure\Kqlmagic\kql_proxy.py" />
+    <Compile Include="azure\Kqlmagic\kusto_client.py" />
+    <Compile Include="azure\Kqlmagic\kusto_engine.py" />
+    <Compile Include="azure\Kqlmagic\la_engine.py" />
+    <Compile Include="azure\Kqlmagic\log.py" />
+    <Compile Include="azure\Kqlmagic\magic_extension.py" />
+    <Compile Include="azure\Kqlmagic\my_aad_helper.py" />
+    <Compile Include="azure\Kqlmagic\palette.py" />
+    <Compile Include="azure\Kqlmagic\parameterizer.py" />
+    <Compile Include="azure\Kqlmagic\parser.py" />
+    <Compile Include="azure\Kqlmagic\results.py" />
+    <Compile Include="azure\Kqlmagic\version.py" />
+    <Compile Include="azure\Kqlmagic\__init__.py" />
+    <Compile Include="azure\tests\test_column_guesser.py" />
+    <Compile Include="azure\tests\test_magic.py" />
+    <Compile Include="azure\tests\test_parse.py" />
     <Compile Include="azure_bdist_wheel.py" />
     <Compile Include="build_packages.py" />
     <Compile Include="setup.py" />
-    <Compile Include="src\kql\ai_engine.py" />
-    <Compile Include="src\kql\column_guesser.py" />
-    <Compile Include="src\kql\connection.py" />
-    <Compile Include="src\kql\constants.py" />
-    <Compile Include="src\kql\display.py" />
-    <Compile Include="src\kql\cache_client.py" />
-    <Compile Include="src\kql\cache_engine.py" />
-    <Compile Include="src\kql\draft_client.py" />
-    <Compile Include="src\kql\help_html.py" />
-    <Compile Include="src\kql\kql_client.py" />
-    <Compile Include="src\kql\kql_engine.py" />
-    <Compile Include="src\kql\kusto_client.py" />
-    <Compile Include="src\kql\la_engine.py" />
-    <Compile Include="src\kql\log.py" />
-    <Compile Include="src\kql\kql_magic.py" />
-    <Compile Include="src\kql\magic_extension.py" />
-    <Compile Include="src\kql\my_aad_helper.py" />
-    <Compile Include="src\kql\palette.py" />
-    <Compile Include="src\kql\parameterizer.py" />
-    <Compile Include="src\kql\parser.py" />
-    <Compile Include="src\kql\results.py" />
-    <Compile Include="src\kql\kql_proxy.py" />
-    <Compile Include="src\kql\kusto_engine.py" />
-    <Compile Include="src\kql\database_html.py" />
-    <Compile Include="src\kql\version.py" />
-    <Compile Include="src\kql\__init__.py" />
-    <Compile Include="src\tests\test_column_guesser.py" />
-    <Compile Include="src\tests\test_magic.py" />
-    <Compile Include="src\tests\test_parse.py" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="src\" />
-    <Folder Include="src\kql" />
-    <Folder Include="src\tests" />
+    <Folder Include="azure\" />
+    <Folder Include="azure\Kqlmagic\" />
+    <Folder Include="C:\My Projects\jupyter-Kqlmagic-microsoft\azure\tests\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

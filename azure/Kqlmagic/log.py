@@ -7,7 +7,7 @@
 import logging
 import uuid
 import traceback
-from kql.constants import Constants
+from Kqlmagic.constants import Constants
 
 def create_log_context(correlation_id=None):
     return {"correlation_id": correlation_id or str(uuid.uuid4())}

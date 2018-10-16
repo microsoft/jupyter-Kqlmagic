@@ -6,8 +6,8 @@
 
 from nose import with_setup
 from nose.tools import raises
-from kql.constants import Constants
-from kql.kql_magic import Kqlmagic as Magic
+from Kqlmagic.constants import Constants
+from Kqlmagic.kql_magic import Kqlmagic as Magic
 from textwrap import dedent
 import os.path
 import re

@@ -9,8 +9,8 @@ import time
 import logging
 
 
-from kql.version import VERSION, get_pypi_latest_version, compare_version
-from kql.constants import Constants
+from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version
+from Kqlmagic.constants import Constants
 
 logging.getLogger(Constants.LOGGER_NAME).addHandler(logging.NullHandler())
 
@@ -22,22 +22,22 @@ from IPython.core.magics.display import Javascript
 from traitlets.config.configurable import Configurable
 from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate
 
-from kql.connection import Connection
+from Kqlmagic.connection import Connection
 from azure.kusto.data.exceptions import KustoError
 
-from kql.results import ResultSet
-from kql.parser import Parser
-from kql.parameterizer import Parameterizer
+from Kqlmagic.results import ResultSet
+from Kqlmagic.parser import Parser
+from Kqlmagic.parameterizer import Parameterizer
 
-from kql.log import Logger, logger, set_logger, create_log_context, set_logging_options
-from kql.display import Display
-from kql.database_html import Database_html
-from kql.help_html import Help_html
-from kql.kusto_engine import KustoEngine
-from kql.kql_engine import KqlEngineError
-from kql.palette import Palettes, Palette
-from kql.cache_engine import CacheEngine
-from kql.cache_client import CacheClient
+from Kqlmagic.log import Logger, logger, set_logger, create_log_context, set_logging_options
+from Kqlmagic.display import Display
+from Kqlmagic.database_html import Database_html
+from Kqlmagic.help_html import Help_html
+from Kqlmagic.kusto_engine import KustoEngine
+from Kqlmagic.kql_engine import KqlEngineError
+from Kqlmagic.palette import Palettes, Palette
+from Kqlmagic.cache_engine import CacheEngine
+from Kqlmagic.cache_client import CacheClient
 
 _MAGIC_NAME = 'kql'
 

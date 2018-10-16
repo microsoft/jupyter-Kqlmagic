@@ -4,32 +4,29 @@
 # license information.
 #--------------------------------------------------------------------------
 
-import os.path
-from kql.kql_engine import KqlEngine, KqlEngineError
-from kql.draft_client import DraftClient
-import requests
+from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
+from Kqlmagic.draft_client import DraftClient
 
-
-class AppinsightsEngine(KqlEngine):
-    _URI_SCHEMA_NAME = "appinsights"
-    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "app_insights", "applicationinsights", "application_insights"]
-    _DOMAIN = "apps"
-    _MANDATORY_KEY = "appid"
+class LoganalyticsEngine(KqlEngine):
+    _URI_SCHEMA_NAME = "loganalytics"
+    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "log_analytics"]
+    _DOMAIN = "workspaces"
+    _MANDATORY_KEY = "workspace"
     _VALID_KEYS_COMBINATIONS = [
-            ["tenant", "code", "appid", "alias"],
-            ["tenant", "clientid", "clientsecret", "appid", "alias"],
-            ["appid", "appkey", "alias"],
+            ["tenant", "code", "workspace", "alias"],
+            ["tenant", "clientid", "clientsecret", "workspace", "alias"],
+            ["workspace", "appkey", "alias"], # only for demo, if workspace = "DEMO_WORKSPACE"
     ]
     _ALL_KEYS = set()
     for c in _VALID_KEYS_COMBINATIONS:
         _ALL_KEYS.update(set(c))
 
-    _API_URI = "https://api.applicationinsights.io"
+    _API_URI = "https://api.loganalytics.io"
 
     @classmethod
     def tell_format(cls):
         return """
-               appinsights://appid('appid').appkey('appkey')
+               loganalytics://workspace('workspaceid').appkey('appkey')
 
                ## Note: if appkey is missing, user will be prompted to enter appkey"""
 

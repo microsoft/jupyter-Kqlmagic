@@ -8,7 +8,7 @@
 
 """Setup for Kqlmagic"""
 
-DESCRIPTION         = "Kqlmagic: KQL (Kusto Query Language), enable query Azure Monitor data from a Jupyter compatibe notebook using magic"
+DESCRIPTION         = "Kqlmagic enables to explore Azure Monitor data, using kql (Kusto query language) from Jupyter notebook and Jupyter lab"
 
 NAME                = "Kqlmagic"
 
@@ -20,9 +20,9 @@ MAINTAINER          = 'Michael Binshtock'
 
 MAINTAINER_EMAIL    = 'michabin@microsoft.com'
 
-URL                 = 'https://pypi.python.org/pypi/jupyter-kql-magic'
+URL                 = 'https://github.com/Microsoft/jupyter-Kqlmagic'
 
-DOWNLOAD_URL        = 'https://pypi.python.org/pypi/jupyter-kql-magic'
+# DOWNLOAD_URL        = 'https://pypi.python.org/pypi/jupyter-kql-magic'
 
 LICENSE             = 'MIT License'
 
@@ -95,7 +95,6 @@ setup(name=NAME,
         'Framework :: Jupyter',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',

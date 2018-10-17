@@ -27,6 +27,7 @@
     <Content Include="MANIFEST.in" />
     <Content Include="NEWS.txt" />
     <Content Include="NOTICE.TXT" />
+    <Content Include="README.md" />
     <Content Include="README.rst" />
     <Content Include="run_black.sh" />
     <Content Include="run_tests.sh" />
@@ -68,6 +69,7 @@
   <ItemGroup>
     <Folder Include="azure\" />
     <Folder Include="azure\Kqlmagic\" />
+    <Folder Include="azure\tests\" />
     <Folder Include="C:\My Projects\jupyter-Kqlmagic-microsoft\azure\tests\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

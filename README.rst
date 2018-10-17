@@ -1,3 +1,47 @@
+Kqlmagic for Jupyter notebook and Jupyter lab (Python3 kernel)
+==============================================================
+
+Overview
+--------
+`Install latest version of package`
+`In [1]: !pip Kqlmagic --no-cache-dir --upgrade`
+`Add Kqlmagic to notebook magics`
+`In [2]: %reload_ext Kqlmagic`
+`Connect to database at cluster`
+`In [3]: %kql kusto://code;cluster='help';database='Samples'`
+`Query database@cluster and render result set to a pie chart`
+`In [4]: %kql Samples@help StormEvents | summarize count() by State | sort by count_ | limit 10 | render piechart title='my apple pie'` 
+
+
+Kqlmagic enables to explore Azure Monitor data, using kql (Kusto query language) from Jupyter notebook and Jupyter lab.
+
+* `How to install the package <https://github.com/Microsoft/jupyter-Kqlmagic#install>`_.
+* `How to load the magic extension <https://github.com/Microsoft/jupyter-Kqlmagic#load>`_.
+
+
+* `Get Started with Kqlmagic for Kusto notebook <https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FQuickStart.ipynb>`_.
+
+* `Get Started with Kqlmagic for Application Insights notebook <https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FQuickStartAI.ipynb>`_.
+
+* `Parametrize your Kqlmagic query with Python notebook <https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FParametrizeYourQuery.ipynb>`_.
+
+* `Choose colors palette for your Kqlmagic query chart result notebook <https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FColorYourCharts.ipynb>`_.
+
+
+* `GitHub Repository <https://github.com/Microsoft/jupyter-Kqlmagic/tree/master>`_.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 .. image:: https://mybinder.org/badge.svg :target: https://mybinder.org/v2/gh/mbnshtck/jupyter-kql-magic/master?filepath=notebooks%2FQuickStart.ipynb
 
@@ -246,7 +290,7 @@ Installing
 
 Install the lastest release with::
 
-    pip install jupyter-kql-magic
+    pip install Kqlmagic --no-cache-dir --upgrade
 
 or download from https://github.com/mbnshtck/jupyter-kql-magic and::
 

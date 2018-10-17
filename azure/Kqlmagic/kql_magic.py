@@ -193,19 +193,19 @@ class Kqlmagic(Magics, Configurable):
                         <p>   &bull; kql language reference: Click on 'Help' tab > and Select 'kql referece'<br>
                           &bull; """+Constants.MAGIC_CLASS_NAME+""" configuarion: Run in cell '%config """+Constants.MAGIC_CLASS_NAME+"""'<br>
                           &bull; """+Constants.MAGIC_CLASS_NAME+""" syntax: Run in cell '%kql?'<br>
-                          &bull; """+Constants.MAGIC_CLASS_NAME+""" upgrate syntax: Run in cell '!pip install """+Constants.MAGIC_PIP_REFERENCE_NAME+""" --upgrade'<br>
+                          &bull; """+Constants.MAGIC_CLASS_NAME+""" upgrate syntax: Run in cell '!pip install """+Constants.MAGIC_PIP_REFERENCE_NAME+""" --no-cache-dir --upgrade'<br>
                     </div>
                 </div>
             </body>
             </html>"""
             Display.show_html(html_str)
-            Display.showInfoMessage("""{0} package is updated frequently. Run '!pip install {1} --upgrade' to use the latest version.<br>{0} version: {2}, source: {3}""".format(Constants.MAGIC_PACKAGE_NAME, Constants.MAGIC_PIP_REFERENCE_NAME, VERSION, Constants.MAGIC_SOURCE_REPOSITORY_NAME))
+            Display.showInfoMessage("""{0} package is updated frequently. Run '!pip install {1} --no-cache-dir --upgrade' to use the latest version.<br>{0} version: {2}, source: {3}""".format(Constants.MAGIC_PACKAGE_NAME, Constants.MAGIC_PIP_REFERENCE_NAME, VERSION, Constants.MAGIC_SOURCE_REPOSITORY_NAME))
             # <div><img src='https://az818438.vo.msecnd.net/icons/kusto.png'></div>
 
             try:
                 pypi_version = get_pypi_latest_version(Constants.MAGIC_PACKAGE_NAME)
                 if pypi_version and compare_version(pypi_version) > 0:
-                    Display.showWarningMessage("""{0} version {1} was found in PyPI, consider to upgrade before you continue. Run '!pip install {0} --upgrade'""".format(Constants.MAGIC_PACKAGE_NAME, pypi_version))
+                    Display.showWarningMessage("""{0} version {1} was found in PyPI, consider to upgrade before you continue. Run '!pip install {0} --no-cache-dir --upgrade'""".format(Constants.MAGIC_PACKAGE_NAME, pypi_version))
             except:
                 pass
 
@@ -284,7 +284,7 @@ class Kqlmagic(Magics, Configurable):
 
             %%kql kusto://username('myName').password('myPassword').cluster('myCluster').database('myDatabase')
             <KQL statement>
-            # Note: establish connection to kusto and submit query.
+            # Note: establish connection to Azure Data Explorer (kusto) and submit query.
 
             %%kql myDatabase@myCluster
             <KQL statement>

@@ -8,7 +8,7 @@
 
 """Setup for Kqlmagic"""
 
-DESCRIPTION         = "Kqlmagic enables to explore Azure Monitor data, using kql (Kusto query language) from Jupyter notebook and Jupyter lab"
+DESCRIPTION         = "Kqlmagic: Microsoft Azure Monitor magic extension to Jupyter notebook"
 
 NAME                = "Kqlmagic"
 

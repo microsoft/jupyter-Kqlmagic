@@ -1,7 +1,8 @@
-# Kqlmagic: Extension (Magic) to Jupyter notebook and Jupyter lab.
-Enables notebook experience exploring Azure Monitor data: Azure Data Explorer (Kusto), ApplicationInsights, and LogAnalytics data.
+# Kqlmagic: Microsoft Azure Monitor magic extension to Jupyter notebook.
 
-[*Kqlmagic*]("https://github.com/Microsoft/jupyter-Kqlmagic/tree/master") Package provides the capability to explore Azure Monitor data using kql (Kusto query language) from Jupyter notebook and Jupyter lab.<br>
+[*Kqlmagic*](https://github.com/Microsoft/jupyter-Kqlmagic/tree/master) magic extension enables notebook experience, exploring Microsoft Azure Monitor data: Azure Data Explorer (Kusto), 
+ApplicationInsights, and LogAnalytics data, from Jupyter notebook (Python3 kernel),, using kql (Kusto Query language).
+
 
 
 ## Install
@@ -29,8 +30,9 @@ Download a zip of the code via GitHub or PyPI. Then follow the same instructions
 
 ## Load
 
-To load the Kqlmagic extension, run in jupyter cell:
-`%reload_ext Kqlmagic`
+To load the Kqlmagic extension, run in notebook cell:
+
+`In [ ]: %reload_ext Kqlmagic`
 
 
 ## Authentication methods:
@@ -41,7 +43,7 @@ To load the Kqlmagic extension, run in jupyter cell:
 * certificate - Provide your AAD tenant ID, AAD app ID, certificate and certificate-thumbprint (supported only with Azure Data Explorer)
 * appid/appkey - Provide you application insight appid, and appkey (supported only with Application Insights)
 
-## Notebook Samples:
+## Get Started Notebooks:
 
 * [Get Started with Kqlmagic for Kusto](https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FQuickStart.ipynb)
 

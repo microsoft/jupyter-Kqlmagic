@@ -24,6 +24,7 @@
     <Content Include="HISTORY.rst" />
     <Content Include="LICENSE.TXT" />
     <Content Include="LOCAL_HACKING.txt" />
+    <Content Include="LOCAL_README.txt" />
     <Content Include="MANIFEST.in" />
     <Content Include="NEWS.txt" />
     <Content Include="NOTICE.TXT" />

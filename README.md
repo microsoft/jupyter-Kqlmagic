@@ -28,7 +28,7 @@ Download a zip of the code via GitHub or PyPI. Then follow the same instructions
 
 ## Load
 
-To load the Kqlmagic extension, run in a cell:
+To load the Kqlmagic extension, run in jupyter cell:
 `%reload_ext Kqlmagic`
 
 

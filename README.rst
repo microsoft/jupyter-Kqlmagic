@@ -6,20 +6,20 @@ Example
 --------
 
 .. code-block:: python
-    `Install latest version of package`
-    `In [1]: !pip Kqlmagic --no-cache-dir --upgrade`
+    Install latest version of package
+    In [1]: !pip Kqlmagic --no-cache-dir --upgrade
 
 .. code-block:: python
-    `Add Kqlmagic to notebook magics`
-    `In [2]: %reload_ext Kqlmagic`
+    Add Kqlmagic to notebook magics
+    In [2]: %reload_ext Kqlmagic
 
 .. code-block:: python
-    `Connect to database at cluster`
-    `In [3]: %kql kusto://code;cluster='help';database='Samples'`
+    Connect to database at cluster
+    In [3]: %kql kusto://code;cluster='help';database='Samples'
 
 .. code-block:: python
-    `Query database@cluster and render result set to a pie chart`
-    `In [4]: %kql Samples@help StormEvents | summarize count() by State | sort by count_ | limit 10 | render piechart title='my apple pie'` 
+    Query database@cluster and render result set to a pie chart
+    In [4]: %kql Samples@help StormEvents | summarize count() by State | sort by count_ | limit 10 | render piechart title='my apple pie'
 
 
 Get Started Notebooks

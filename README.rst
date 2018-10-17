@@ -1,6 +1,6 @@
 Kqlmagic: Microsoft Azure Monitor magic extension to Jupyter notebook
 =====================================================================
-Enables notebook experience, exploring Microsoft Azure Monitor data: Azure Data Explorer (Kusto), 
+Enables notebook experience, exploring Microsoft Azure Monitor data: Azure Data Explorer (Kusto),
 ApplicationInsights, and LogAnalytics data, from Jupyter notebook (Python3 kernel), using kql (Kusto Query language).
 
 Example

@@ -50,7 +50,6 @@ INSTALL_REQUIRES    = [
 import codecs
 
 import re
-
 from os import path
 
 # Always prefer setuptools over distutils
@@ -68,8 +67,8 @@ with codecs.open(path.join(CURRENT_PATH, 'README.rst'), encoding='utf-8') as f:
     README = f.read()
 with codecs.open(path.join(CURRENT_PATH, 'NEWS.txt'), encoding='utf-8') as f:
     NEWS = f.read()
-LONG_DESCRIPTION = README + '\n\n' + NEWS
 
+LONG_DESCRIPTION = (README + '\n\n' + NEWS).replace('\r','')
 
 
 setup(name=NAME,

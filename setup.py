@@ -22,8 +22,6 @@ MAINTAINER_EMAIL    = 'michabin@microsoft.com'
 
 URL                 = 'https://github.com/Microsoft/jupyter-Kqlmagic'
 
-# DOWNLOAD_URL        = 'https://pypi.python.org/pypi/jupyter-kql-magic'
-
 LICENSE             = 'MIT License'
 
 KEYWORDS            = 'database ipython jupyter jupyterlab jupyter-notebook query language kql kusto loganalytics applicationinsights'
@@ -106,7 +104,6 @@ setup(name=NAME,
     maintainer=MAINTAINER,
     maintainer_email=MAINTAINER_EMAIL,
     url=URL,
-    download_url=DOWNLOAD_URL,
     license=LICENSE,
     packages=find_packages('azure'),
     package_dir = {'': 'azure'},

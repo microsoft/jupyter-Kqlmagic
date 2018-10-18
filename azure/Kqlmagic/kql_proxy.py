@@ -160,6 +160,17 @@ class KqlTableResponse(object):
                 frame[col_name] = frame[col_name].apply(lambda x: json.loads(x) if x else None)
             elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
                 pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
+                # NA type promotion
+                if pandas_type ==  "int64":
+                    for i in range(0, len(frame[col_name])):
+                        if frame[col_name][i] is None:
+                            pandas_type = "float64"
+                            break
+                elif pandas_type ==  "bool":
+                    for i in range(0, len(frame[col_name])):
+                        if frame[col_name][i] is None:
+                            pandas_type = "object"
+                            break
                 frame[col_name] = frame[col_name].astype(pandas_type, errors="raise" if raise_errors else "ignore")
         return frame
 

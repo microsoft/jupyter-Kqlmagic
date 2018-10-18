@@ -35,6 +35,9 @@ Get Started Notebooks
 
 * `Get Started with Kqlmagic for Application Insights notebook <https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FQuickStartAI.ipynb>`_.
 
+* `Get Started with Kqlmagic for Log Analytics notebook <https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FQuickStartLA.ipynb>`_.
+
+
 * `Parametrize your Kqlmagic query with Python notebook <https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FParametrizeYourQuery.ipynb>`_.
 
 * `Choose colors palette for your Kqlmagic query chart result notebook <https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FColorYourCharts.ipynb>`_.

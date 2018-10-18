@@ -23,11 +23,11 @@
     <Content Include="dev_requirements.txt" />
     <Content Include="HISTORY.rst" />
     <Content Include="LICENSE.TXT" />
-    <Content Include="LOCAL_HACKING.txt" />
-    <Content Include="LOCAL_README.txt" />
     <Content Include="MANIFEST.in" />
     <Content Include="NEWS.txt" />
     <Content Include="NOTICE.TXT" />
+    <Content Include="private_local\LOCAL_HACKING.txt" />
+    <Content Include="private_local\LOCAL_README.txt" />
     <Content Include="README.md" />
     <Content Include="README.rst" />
     <Content Include="run_black.sh" />
@@ -72,6 +72,7 @@
     <Folder Include="azure\Kqlmagic\" />
     <Folder Include="azure\tests\" />
     <Folder Include="C:\My Projects\jupyter-Kqlmagic-microsoft\azure\tests\" />
+    <Folder Include="private_local\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

@@ -88,6 +88,14 @@ class KqlEngine(object):
     def _parse_common_connection_str(self, conn_str: str, current, uri_schema_name, mandatory_key:str, alt_names:list, all_keys:list, valid_keys_combinations:list):
         # get key/values in connection string
         parsed_conn_kv = self._parse_and_get_connection_keys(conn_str, uri_schema_name, alt_names)
+
+        # In case certificate_pem_file was specified instead of certificate.
+        pem_file_name = parsed_conn_kv.get("certificate_pem_file")
+        if pem_file_name is not None:
+            with open(pem_file_name, "r") as pem_file:
+                parsed_conn_kv["certificate"] = pem_file.read()
+                del parsed_conn_kv["certificate_pem_file"]
+
         matched_keys_set = set(parsed_conn_kv.keys())
 
         # check for unknown keys

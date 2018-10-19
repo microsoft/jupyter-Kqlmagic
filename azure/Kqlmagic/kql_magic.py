@@ -516,6 +516,9 @@ class Kqlmagic(Magics, Configurable):
 
             end_time = time.time()
 
+            if options.get('save_as') is not None:
+                save_as_file_path = CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, 
+                                               filepath=options.get('save_as'), **options)
             #
             # model query results
             #
@@ -573,10 +576,8 @@ class Kqlmagic(Magics, Configurable):
                     saved_result.feedback_info.append("query results cached")
 
             if options.get('save_as') is not None:
-                file_path = CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, 
-                                               filepath=options.get('save_as'), **options)
                 if options.get("feedback", self.feedback):
-                    saved_result.feedback_info.append("query results saved as {0}".format(file_path))
+                    saved_result.feedback_info.append("query results saved as {0}".format(save_as_file_path))
 
             saved_result.suppress_result = False
             saved_result.display_info = False

@@ -8,7 +8,7 @@ import sys
 from nose.tools import with_setup, raises
 from Kqlmagic.kql_magic import Kqlmagic as Magic
 
-ip = get_ipython()
+ip = get_ipython() # pylint: disable=E0602
 
 class KqlEnv(object):
     # Object constructor

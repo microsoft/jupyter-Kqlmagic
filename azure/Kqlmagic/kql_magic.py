@@ -117,8 +117,9 @@ class Kqlmagic(Magics, Configurable):
     cache = Bool(False, config=True, help="Cache query results.")
     use_cache = Bool(False, config=True, help="use cached query results, instead of executing the query.")
     params_dict = Unicode(None, config=True, allow_none=True, help="paremeters dictionary name, if None, python shell user namespace will be used.")
+    
     @validate("palette_name")
-    def _valid_value_palette_name(cls, proposal):
+    def _valid_value_palette_name(self, proposal):
         try:
             Palette.validate_palette_name(proposal["value"])
         except AttributeError as e:
@@ -127,7 +128,7 @@ class Kqlmagic(Magics, Configurable):
         return proposal["value"]
 
     @validate("palette_desaturation")
-    def _valid_value_palette_desaturation(cls, proposal):
+    def _valid_value_palette_desaturation(self, proposal):
         try:
             Palette.validate_palette_desaturation(proposal["value"])
         except AttributeError as e:
@@ -136,7 +137,7 @@ class Kqlmagic(Magics, Configurable):
         return proposal["value"]
 
     @validate("palette_colors")
-    def _valid_value_palette_color(cls, proposal):
+    def _valid_value_palette_color(self, proposal):
         try:
             Palette.validate_palette_colors(proposal["value"])
         except AttributeError as e:
@@ -160,13 +161,12 @@ class Kqlmagic(Magics, Configurable):
         Magics.__init__(self, shell=shell)
 
         set_logger(Logger())
-
-        get_ipython().magic("matplotlib inline")
+        ip = get_ipython() # pylint: disable=E0602
+        ip.magic("matplotlib inline")
 
         # Add ourself to the list of module configurable via %config
         self.shell.configurables.append(self)
 
-        ip = get_ipython()
         load_mode = _get_kql_magic_load_mode()
 
         if load_mode != "silent":
@@ -210,8 +210,7 @@ class Kqlmagic(Magics, Configurable):
                 pass
 
         _override_default_configuration(ip, load_mode)
-
-        root_path = get_ipython().starting_dir.replace("\\", "/")
+        root_path = ip.starting_dir.replace("\\", "/")
 
         folder_name = ip.run_line_magic("config", "{0}.temp_folder_name".format(Constants.MAGIC_CLASS_NAME))
         showfiles_folder_Full_name = root_path + "/" + folder_name
@@ -652,7 +651,7 @@ def _set_default_connections():
         if connection_str.startswith("'") or connection_str.startswith('"'):
             connection_str = connection_str[1:-1]
 
-        ip = get_ipython()
+        ip = get_ipython() # pylint: disable=E0602
         result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
         if result and _get_kql_magic_load_mode() != "silent":
             print(result)

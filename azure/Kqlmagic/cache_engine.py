@@ -10,18 +10,17 @@ import os
 from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
 from Kqlmagic.cache_client import CacheClient
 from Kqlmagic.kql_proxy import KqlResponse
+from Kqlmagic.constants import ConnStrKeys
+
 
 
 class CacheEngine(KqlEngine):
     _URI_SCHEMA_NAME = "cache"
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "file"]
-    _MANDATORY_KEY = "database"
+    _MANDATORY_KEY = ConnStrKeys.DATABASE
     _VALID_KEYS_COMBINATIONS = [
-            ["cluster", "database", "alias"],
+            [ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
     ]
-    _ALL_KEYS = set()
-    for c in _VALID_KEYS_COMBINATIONS:
-        _ALL_KEYS.update(set(c))
 
     @classmethod
     def tell_format(cls):
@@ -43,7 +42,7 @@ class CacheEngine(KqlEngine):
             database_name = self.kql_engine.get_database()
             cluster_name = self.kql_engine.get_cluster()
             conn_str = "{0}://cluster('{1}').database('{2}')".format(self._URI_SCHEMA_NAME, cluster_name, database_name)
-        self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._ALL_KEYS, self._VALID_KEYS_COMBINATIONS)
+        self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS)
         self.database_name = self.database_name  + '_at_' + self.cluster_name
         self.cluster_name = self._URI_SCHEMA_NAME
         self.client = CacheClient()
@@ -60,9 +59,6 @@ class CacheEngine(KqlEngine):
 
 
     def validate(self, **kwargs):
-        ip = get_ipython()
-        root_path = ip.starting_dir.replace("\\", "/")
-
         client = self.get_client()
         if not client:
             raise KqlEngineError("Client is not defined.")

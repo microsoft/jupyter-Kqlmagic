@@ -9,12 +9,14 @@ from IPython.core.display import display, HTML
 from IPython.display import JSON
 
 import json
-from pygments import highlight, lexers, formatters
+from pygments import highlight
+from pygments.lexers.data import JsonLexer
+from pygments.formatters.terminal import TerminalFormatter
 import datetime
 
 
 class DateTimeEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj): # pylint: disable=E0202
         if isinstance(obj, datetime.datetime):
             return obj.isoformat()
         elif isinstance(obj, datetime.date):
@@ -31,7 +33,7 @@ class FormattedJsonDict(dict):
         self.update(j)
 
         formatted_json = json.dumps(self, indent=4, sort_keys=True, cls=DateTimeEncoder)
-        self.colorful_json = highlight(formatted_json.encode("UTF-8"), lexers.JsonLexer(), formatters.TerminalFormatter())
+        self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
 
     def get(self, key, default=None):
         item = super(FormattedJsonDict, self).get(key, default)
@@ -49,7 +51,7 @@ class FormattedJsonList(list):
         super(FormattedJsonList, self).__init__(*args, **kwargs)
         self.extend(j)
         formatted_json = json.dumps(self, indent=4, sort_keys=True, cls=DateTimeEncoder)
-        self.colorful_json = highlight(formatted_json.encode("UTF-8"), lexers.JsonLexer(), formatters.TerminalFormatter())
+        self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
 
     def __getitem__(self, key):
         item = super(FormattedJsonList, self).__getitem__(key)
@@ -119,7 +121,8 @@ class Display(object):
         text_file.write(html_str)
         text_file.close()
         # ipython will delete file at shutdown or by restart
-        get_ipython().tempfiles.append(full_file_name)
+        ip = get_ipython() # pylint: disable=E0602
+        ip.tempfiles.append(full_file_name)
         file_path = Display.showfiles_folder_name + "/" + file_name + ".html"
         return file_path
 

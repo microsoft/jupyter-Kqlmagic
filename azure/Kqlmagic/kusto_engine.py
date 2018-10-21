@@ -6,21 +6,26 @@
 
 from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
 from Kqlmagic.kusto_client import Kusto_Client
+from Kqlmagic.constants import ConnStrKeys
 
 
 class KustoEngine(KqlEngine):
+
+    # Constants
+    # ---------
+
     _URI_SCHEMA_NAME = "kusto"
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "adx", "ade", "azuredataexplorer", "azure_data_explorer"]
-    _MANDATORY_KEY = "database"
+    _MANDATORY_KEY = ConnStrKeys.DATABASE
     _VALID_KEYS_COMBINATIONS = [
-            ["tenant", "code", "cluster", "database", "alias"],
-            ["tenant", "username", "password", "cluster", "database", "alias"],
-            ["tenant", "clientid", "clientsecret", "cluster", "database", "alias"],
-            ["tenant", "clientid", "certificate", "certificate_thumbprint", "cluster", "database", "alias"],
+            [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+            [ConnStrKeys.TENANT, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+            [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+            [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CERTIFICATE, ConnStrKeys.CERTIFICATE_THUMBPRINT, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
     ]
-    _ALL_KEYS = set()
-    for c in _VALID_KEYS_COMBINATIONS:
-        _ALL_KEYS.update(set(c))
+
+    # Class methods
+    # -------------
 
     @classmethod
     def tell_format(cls):
@@ -39,18 +44,24 @@ class KustoEngine(KqlEngine):
 
                ## Note: if password is missing, user will be prompted to enter password"""
 
-    # Object constructor
+    # Instance methods
+    # ----------------
+
     def __init__(self, conn_str, current=None, conn_class=None):
         super().__init__()
         if isinstance(conn_str, dict):
             self.conn_class = conn_class
-            self.database_name = conn_str.get("database_name")
-            self.cluster_name = conn_str.get("cluster_name")
-            self.alias = conn_str.get("alias")
-            self.bind_url = "{0}://cluster('{1}').database('{2}')".format(self._URI_SCHEMA_NAME, self.cluster_name, self.database_name)
+            self.database_name = conn_str.get(ConnStrKeys.DATABASE)
+            self.cluster_name = conn_str.get(ConnStrKeys.CLUSTER)
+            self.alias = conn_str.get(ConnStrKeys.ALIAS)
+            self.bind_url = "{0}://{1}('{2}').{3}('{4}')".format(
+                self._URI_SCHEMA_NAME, 
+                ConnStrKeys.CLUSTER,
+                self.cluster_name,
+                ConnStrKeys.DATABASE,
+                self.database_name)
         else:
-            # self.client_id = self.client_id or 'e07cf1fb-c6a6-4668-b21a-f74731afa19a'
-            self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._ALL_KEYS, self._VALID_KEYS_COMBINATIONS)
+            self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS)
             self.client = Kusto_Client(self._parsed_conn)
 
     def get_client(self):

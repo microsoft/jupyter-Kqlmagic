@@ -14,3 +14,21 @@ class Constants(object):
     MAGIC_ALIASES = []
     LOGGER_NAME = "{0}-py".format(MAGIC_CLASS_NAME)
 
+class ConnStrKeys(object):
+    TENANT = "tenant"
+    USERNAME = "username"
+    PASSWORD = "password"
+    CLIENTID = "clientid"
+    CLIENTSECRET = "clientsecret"
+    CERTIFICATE = "certificate"
+    CERTIFICATE_PEM_FILE = "certificate_pem_file"
+    CERTIFICATE_THUMBPRINT = "certificate_thumbprint"
+    APPKEY = "appkey"
+    CODE = "code"
+
+    CLUSTER = "cluster"
+    DATABASE = "database"
+    WORKSPACE = "workspace"
+    APPID = "appid"
+
+    ALIAS = "alias"

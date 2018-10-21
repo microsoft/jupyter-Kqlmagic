@@ -4,6 +4,7 @@
 # license information.
 #--------------------------------------------------------------------------
 
+import itertools
 from os.path import expandvars
 import six
 from six.moves import configparser as CP
@@ -62,7 +63,8 @@ class Parser(object):
             cfg_dict_lower = {k.lower(): v for (k, v) in cfg_dict.items()}
             for e in cls._ENGINES:
                 if e._MANDATORY_KEY in cfg_dict_lower.keys():
-                    connection_kv = ["{0}('{1}')".format(k, v) for k,v in cfg_dict_lower.items() if v and k in  e._ALL_KEYS]
+                    all_keys = set(itertools.chain(*e._VALID_KEYS_COMBINATIONS))
+                    connection_kv = ["{0}('{1}')".format(k, v) for k,v in cfg_dict_lower.items() if v and k in  all_keys]
                     connection = "{0}://{1}".format(e._URI_SCHEMA_NAME, ".".join(connection_kv))
                     break
 
@@ -195,8 +197,6 @@ class Parser(object):
             elif value.get("init"):
                 options[value.get("flag")] = eval(value.get("init"))
 
-        int_options = {}
-        str_options = {}
 
         if not words:
             return ("", options)

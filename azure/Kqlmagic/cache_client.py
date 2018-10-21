@@ -5,7 +5,7 @@
 #--------------------------------------------------------------------------
 
 from Kqlmagic.constants import Constants
-from Kqlmagic.kql_client import KqlResponse, KqlSchemaResponse
+from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse
 import hashlib
 import json
 import os
@@ -26,7 +26,8 @@ class CacheClient(object):
         cluster_folder : str
             folder that contains all the databse_folders that contains the query result files
         """
-        ip = get_ipython()
+        
+        ip = get_ipython() # pylint: disable=E0602
         root_path = ip.starting_dir.replace("\\", "/")
         self.files_folder = root_path + "/" + ip.run_line_magic("config", "{0}.cache_folder_name".format(Constants.MAGIC_CLASS_NAME))
 
@@ -67,7 +68,7 @@ class CacheClient(object):
 
     def _get_endpoint_version(self, json_response):
         try:
-            tables_num = json_response["Tables"].__len__()
+            tables_num = json_response["Tables"].__len__() # pylint: disable=W0612
             return "v1"
         except:
             return "v2"
@@ -85,7 +86,7 @@ class CacheClient(object):
             return KqlSchemaResponse(json_response)
         else:
             endpoint_version = self._get_endpoint_version(json_response)
-            return KqlResponse(json_response, endpoint_version)
+            return KqlQueryResponse(json_response, endpoint_version)
 
     def save(self, result, database, cluster, query, filepath=None, **kwargs):
         """Executes a query or management command.

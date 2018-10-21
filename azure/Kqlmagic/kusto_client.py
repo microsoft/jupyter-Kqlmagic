@@ -16,7 +16,9 @@ from azure.kusto.data.exceptions import KustoServiceError
 # from azure.kusto.data import KustoClient
 from azure.kusto.data._response import WellKnownDataSet
 from Kqlmagic.my_aad_helper import _MyAadHelper
-from Kqlmagic.kql_client import KqlResponse, KqlError
+from Kqlmagic.kql_client import KqlQueryResponse, KqlError
+from Kqlmagic.constants import ConnStrKeys
+
 
 
 
@@ -68,22 +70,21 @@ class Kusto_Client(object):
         authority : 'microsoft.com', optional
             In case your tenant is not microsoft please use this param.
         """
-        kusto_cluster = "https://{0}.kusto.windows.net".format(conn_kv["cluster"])
+        kusto_cluster = "https://{0}.kusto.windows.net".format(conn_kv[ConnStrKeys.CLUSTER])
 
-        if all([conn_kv.get("username"), conn_kv.get("password")]):
-            kcsb = KustoConnectionStringBuilder.with_aad_user_password_authentication(kusto_cluster, conn_kv.get("username"), conn_kv.get("password"))
-            if conn_kv.get("tenant") is not None: kcsb.authority_id = conn_kv.get("tenant")
+        if all([conn_kv.get(ConnStrKeys.USERNAME), conn_kv.get(ConnStrKeys.PASSWORD)]):
+            kcsb = KustoConnectionStringBuilder.with_aad_user_password_authentication(kusto_cluster, conn_kv.get(ConnStrKeys.USERNAME), conn_kv.get(ConnStrKeys.PASSWORD))
+            if conn_kv.get(ConnStrKeys.TENANT) is not None: kcsb.authority_id = conn_kv.get(ConnStrKeys.TENANT)
 
-        elif all([conn_kv.get("clientid"), conn_kv.get("clientsecret")]):
+        elif all([conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CLIENTSECRET)]):
             kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(
-                kusto_cluster, conn_kv.get("clientid"), conn_kv.get("clientsecret"), conn_kv.get("tenant"))
-        elif all([conn_kv.get("clientid"), conn_kv.get("certificate"), conn_kv.get("certificate_thumbprint")]):
+                kusto_cluster, conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CLIENTSECRET), conn_kv.get(ConnStrKeys.TENANT))
+        elif all([conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CERTIFICATE), conn_kv.get(ConnStrKeys.CERTIFICATE_THUMBPRINT)]):
             kcsb = KustoConnectionStringBuilder.with_aad_application_certificate_authentication(
-                kusto_cluster, conn_kv.get("clientid"), conn_kv.get("certificate"), conn_kv.get("certificate_thumbprint", conn_kv.get("tenant"))
-            )
+                kusto_cluster, conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CERTIFICATE), conn_kv.get(ConnStrKeys.CERTIFICATE_THUMBPRINT), conn_kv.get(ConnStrKeys.TENANT))
         else:
             kcsb = KustoConnectionStringBuilder.with_aad_device_authentication(kusto_cluster)
-            if conn_kv.get("tenant") is not None: kcsb.authority_id = conn_kv.get("tenant")
+            if conn_kv.get(ConnStrKeys.TENANT) is not None: kcsb.authority_id = conn_kv.get(ConnStrKeys.TENANT)
 
         self.client = KustoClient(kcsb)
 
@@ -112,4 +113,4 @@ class Kusto_Client(object):
         endpoint_version = self.mgmt_endpoint_version if query.startswith(".") else self.query_endpoint_version
         get_raw_response=True
         response = self.client.execute(kusto_database, query, accept_partial_results, timeout, get_raw_response)
-        return KqlResponse(response, endpoint_version)
+        return KqlQueryResponse(response, endpoint_version)

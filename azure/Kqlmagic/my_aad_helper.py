@@ -4,7 +4,7 @@
 # license information.
 #--------------------------------------------------------------------------
 
-""" A module to acquire tokens from AAD.
+"""A module to acquire tokens from AAD.
 """
 
 from enum import Enum, unique
@@ -17,7 +17,11 @@ import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
 from Kqlmagic.display import Display
+from Kqlmagic.constants import ConnStrKeys
 
+
+class AuthenticationError(Exception):
+    pass
 
 class ConnKeysKCSB(object):
     """
@@ -27,13 +31,13 @@ class ConnKeysKCSB(object):
         self.conn_kv = conn_kv
         self.data_source = data_source
         self.translate_map =  {
-            "authority_id" : "tenant", 
-            "aad_user_id" : "username",
-            "password" : "password",
-            "application_client_id" : "clientid",
-            "application_key" : "clientsecret",
-            "application_certificate" : "certificate",
-            "application_certificate_thumbprint" : "certificate_thumbprint",
+            "authority_id" : ConnStrKeys.TENANT, 
+            "aad_user_id" : ConnStrKeys.USERNAME,
+            "password" : ConnStrKeys.PASSWORD,
+            "application_client_id" : ConnStrKeys.CLIENTID,
+            "application_key" : ConnStrKeys.CLIENTSECRET,
+            "application_certificate" : ConnStrKeys.CERTIFICATE,
+            "application_certificate_thumbprint" : ConnStrKeys.CERTIFICATE_THUMBPRINT,
         }
 
     def __getattr__(self, kcsb_attr_name):
@@ -44,7 +48,7 @@ class ConnKeysKCSB(object):
 
 @unique
 class AuthenticationMethod(Enum):
-    """Enum represnting all authentication methods available in Kusto with Python."""
+    """Enum represnting all authentication methods available in Azure Monitor with Python."""
 
     aad_username_password = "aad_username_password"
     aad_application_key = "aad_application_key"
@@ -53,14 +57,14 @@ class AuthenticationMethod(Enum):
 
 
 class _MyAadHelper(object):
-    def __init__(self, kcsb, default_cleintid):
+    def __init__(self, kcsb, default_clientid):
         authority = kcsb.authority_id or "common"
-        self._kusto_cluster = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
+        self._resource = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
         self._adal_context = AuthenticationContext("https://login.microsoftonline.com/{0}".format(authority))
         self._username = None
         if all([kcsb.aad_user_id, kcsb.password]):
             self._authentication_method = AuthenticationMethod.aad_username_password
-            self._client_id = default_cleintid
+            self._client_id = default_clientid
             self._username = kcsb.aad_user_id
             self._password = kcsb.password
         elif all([kcsb.application_client_id, kcsb.application_key]):
@@ -74,33 +78,33 @@ class _MyAadHelper(object):
             self._thumbprint = kcsb.application_certificate_thumbprint
         else:
             self._authentication_method = AuthenticationMethod.aad_device_login
-            self._client_id = default_cleintid
+            self._client_id = default_clientid
 
     def acquire_token(self):
         """Acquire tokens from AAD."""
-        token = self._adal_context.acquire_token(self._kusto_cluster, self._username, self._client_id)
+        token = self._adal_context.acquire_token(self._resource, self._username, self._client_id)
         if token is not None:
             expiration_date = dateutil.parser.parse(token[TokenResponseFields.EXPIRES_ON])
             if expiration_date > datetime.now() + timedelta(minutes=1):
                 return self._get_header(token)
             if TokenResponseFields.REFRESH_TOKEN in token:
                 token = self._adal_context.acquire_token_with_refresh_token(
-                    token[TokenResponseFields.REFRESH_TOKEN], self._client_id, self._kusto_cluster
+                    token[TokenResponseFields.REFRESH_TOKEN], self._client_id, self._resource
                 )
                 if token is not None:
                     return self._get_header(token)
 
         if self._authentication_method is AuthenticationMethod.aad_username_password:
-            token = self._adal_context.acquire_token_with_username_password(self._kusto_cluster, self._username, self._password, self._client_id)
+            token = self._adal_context.acquire_token_with_username_password(self._resource, self._username, self._password, self._client_id)
         elif self._authentication_method is AuthenticationMethod.aad_application_key:
-            token = self._adal_context.acquire_token_with_client_credentials(self._kusto_cluster, self._client_id, self._client_secret)
+            token = self._adal_context.acquire_token_with_client_credentials(self._resource, self._client_id, self._client_secret)
         elif self._authentication_method is AuthenticationMethod.aad_device_login:
             # print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
             # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
             # token = self._adal_context.acquire_token_with_device_code(
-            #     self._kusto_cluster, code, self._client_id
+            #     self._resource, code, self._client_id
             # )
-            code = self._adal_context.acquire_user_code(self._kusto_cluster, self._client_id)
+            code = self._adal_context.acquire_user_code(self._resource, self._client_id)
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
 
@@ -152,7 +156,7 @@ class _MyAadHelper(object):
             Display.show_html(html_str)
             # webbrowser.open(code['verification_url'])
             try:
-                token = self._adal_context.acquire_token_with_device_code(self._kusto_cluster, code, self._client_id)
+                token = self._adal_context.acquire_token_with_device_code(self._resource, code, self._client_id)
             finally:
                 html_str = """<!DOCTYPE html>
                     <html><body><script>
@@ -174,10 +178,10 @@ class _MyAadHelper(object):
                 Display.show_html(html_str)
         elif self._authentication_method is AuthenticationMethod.aad_application_certificate:
             token = self._adal_context.acquire_token_with_client_certificate(
-                self._kusto_cluster, self._client_id, self._certificate, self._thumbprint
+                self._resource, self._client_id, self._certificate, self._thumbprint
             )
         else:
-            raise KustoClientError("Please choose authentication method from azure.kusto.data.security.AuthenticationMethod")
+            raise AuthenticationError("Unknown authentication method.")
         return self._get_header(token)
 
     def _get_header(self, token):

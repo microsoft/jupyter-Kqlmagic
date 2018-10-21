@@ -152,7 +152,7 @@ class KqlSchemaResponse(object):
         return self.json_response["Exceptions"]
 
 
-class KqlResponse(object):
+class KqlQueryResponse(object):
     """ Wrapper for response """
 
     # TODO: add support to get additional infromation from response, like execution time
@@ -177,7 +177,7 @@ class KqlResponse(object):
 
     def _get_endpoint_version(self, json_response):
         try:
-            tables_num = json_response["Tables"].__len__()
+            tables_num = json_response["Tables"].__len__() # pylint: disable=W0612
             return "v1"
         except:
             return "v2"

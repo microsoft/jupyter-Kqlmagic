@@ -13,7 +13,7 @@ import os.path
 import re
 import tempfile
 
-ip = get_ipython()
+ip = get_ipython() # pylint: disable=E0602
 
 def setup():
     magic = Magic(shell=ip)

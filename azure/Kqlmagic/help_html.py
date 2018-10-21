@@ -23,12 +23,12 @@ class Help_html(object):
             start = window_location[8:].find("/") + 9
             parts = window_location[start:].split("/")
             parts.pop()
-            # Help_html.showfiles_base_url = window_location[:start] + 'files/' + '/'.join(parts)
             Help_html.showfiles_base_url = window_location[:start] + "/".join(parts)
         else:
             if Help_html.notebooks_host:
-                start = Help_html.notebooks_host.find("//") + 2
-                suffix = "." + Help_html.notebooks_host[start:]
+                host = Help_html.notebooks_host or ''
+                start = host.find("//") + 2
+                suffix = "." + host[start:]
             else:
                 suffix = ".notebooks.azure.com"
             end = window_location.find(suffix)
@@ -69,7 +69,8 @@ class Help_html(object):
             url = None
 
         if url:
-            help_links = get_ipython().kernel._trait_values["help_links"]
+            ip = get_ipython() # pylint: disable=E0602
+            help_links = ip.kernel._trait_values["help_links"]
             found = False
             for link in help_links:
                 # if found update url

@@ -11,6 +11,7 @@ from Kqlmagic.ai_engine import AppinsightsEngine
 from Kqlmagic.la_engine import LoganalyticsEngine
 from Kqlmagic.cache_engine import CacheEngine
 from Kqlmagic.display import Display
+from Kqlmagic.constants import ConnStrKeys
 
 
 class ConnectionError(Exception):
@@ -77,7 +78,7 @@ class Connection(object):
                 database_name = cluster_conn_engine.get_database()
                 alias = cluster_conn_engine.get_alias()
             else:
-                database_name, cluster_name = conn_name.split("@")
+                database_name, cluster_name = connect_str.split("@")
                 alias = None
             conn_engine = Connection._get_kusto_database_engine(database_name, cluster_name, alias)
 
@@ -97,7 +98,7 @@ class Connection(object):
             raise KqlEngineError(
                 'invalid connection_str, connection_str pattern "database@cluster" can be used only after a previous connection was established to a cluster'
             )
-        details = {"database_name": database_name, "cluster_name":cluster_name, "alias": alias}
+        details = {ConnStrKeys.DATABASE: database_name, ConnStrKeys.CLUSTER:cluster_name, ConnStrKeys.ALIAS: alias}
         return KustoEngine(details, conn_class=Connection)
 
     @classmethod

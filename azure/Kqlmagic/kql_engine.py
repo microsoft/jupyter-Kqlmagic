@@ -3,9 +3,11 @@
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
 #--------------------------------------------------------------------------
+import itertools
 import getpass
 from Kqlmagic.kql_proxy import KqlResponse
 import functools
+from Kqlmagic.constants import ConnStrKeys
 
 
 class KqlEngine(object):
@@ -77,28 +79,29 @@ class KqlEngine(object):
         if table.rowcount() != 1 or table.colcount() != 1 or [r for r in table.fetchall()][0][0] != 10:
             raise KqlEngineError("Client failed to validate connection.")
 
-    _CREDENTIAL_KEYS = {"tenant", "username", "clienid", "certificate", "clientsecret", "appkey", "password", "certificate_thumbprint"}
-    _SECRET_KEYS = {"clientsecret", "appkey", "password", "certificate_thumbprint"}
-    _NOT_INHERITABLE_KEYS = {"appkey", "alias"}
-    _OPTIONAL_KEYS = {"tenant", "alias"}
-    _INHERITABLE_KEYS = {"cluster", "tenant"}
-    _EXCLUDE_FROM_URL_KEYS = {"database", "alias"}
-    _SHOULD_BE_NULL_KEYS = {"code"}
+    _CREDENTIAL_KEYS = {ConnStrKeys.TENANT, ConnStrKeys.USERNAME, ConnStrKeys.CLIENTID, ConnStrKeys.CERTIFICATE, ConnStrKeys.CLIENTSECRET, ConnStrKeys.APPKEY, ConnStrKeys.PASSWORD, ConnStrKeys.CERTIFICATE_THUMBPRINT}
+    _SECRET_KEYS = {ConnStrKeys.CLIENTSECRET, ConnStrKeys.APPKEY, ConnStrKeys.PASSWORD, ConnStrKeys.CERTIFICATE_THUMBPRINT}
+    _NOT_INHERITABLE_KEYS = {ConnStrKeys.APPKEY, ConnStrKeys.ALIAS}
+    _OPTIONAL_KEYS = {ConnStrKeys.TENANT, ConnStrKeys.ALIAS}
+    _INHERITABLE_KEYS = {ConnStrKeys.CLUSTER, ConnStrKeys.TENANT}
+    _EXCLUDE_FROM_URL_KEYS = {ConnStrKeys.DATABASE, ConnStrKeys.ALIAS}
+    _SHOULD_BE_NULL_KEYS = {ConnStrKeys.CODE}
 
-    def _parse_common_connection_str(self, conn_str: str, current, uri_schema_name, mandatory_key:str, alt_names:list, all_keys:list, valid_keys_combinations:list):
+    def _parse_common_connection_str(self, conn_str: str, current, uri_schema_name, mandatory_key:str, alt_names:list, valid_keys_combinations:list):
         # get key/values in connection string
         parsed_conn_kv = self._parse_and_get_connection_keys(conn_str, uri_schema_name, alt_names)
 
         # In case certificate_pem_file was specified instead of certificate.
-        pem_file_name = parsed_conn_kv.get("certificate_pem_file")
+        pem_file_name = parsed_conn_kv.get(ConnStrKeys.CERTIFICATE_PEM_FILE)
         if pem_file_name is not None:
             with open(pem_file_name, "r") as pem_file:
-                parsed_conn_kv["certificate"] = pem_file.read()
-                del parsed_conn_kv["certificate_pem_file"]
+                parsed_conn_kv[ConnStrKeys.CERTIFICATE] = pem_file.read()
+                del parsed_conn_kv[ConnStrKeys.CERTIFICATE_PEM_FILE]
 
         matched_keys_set = set(parsed_conn_kv.keys())
 
         # check for unknown keys
+        all_keys = set(itertools.chain(*valid_keys_combinations))
         unknonw_keys_set = matched_keys_set.difference(all_keys)
         if len(unknonw_keys_set) > 0:
             raise KqlEngineError("invalid connection string, detected unknown keys: {0}.".format(unknonw_keys_set))
@@ -155,7 +158,7 @@ class KqlEngine(object):
         if len(missing_set) > 0:
             raise KqlEngineError('invalid connection string, missing {0}.'.format(missing_set))
         # special case although tenant in _OPTIONAL_KEYS
-        if parsed_conn_kv.get("tenant") is None and "clienid" in conn_keys_set:
+        if parsed_conn_kv.get(ConnStrKeys.TENANT) is None and ConnStrKeys.CLIENTID in conn_keys_set:
             raise KqlEngineError('invalid connection string, missing tenant key/value.')
 
         # make sure that all required keys are with proper value
@@ -175,9 +178,9 @@ class KqlEngine(object):
                 matched_keys_set.add(s)
 
         # set attribuets
-        self.cluster_name = parsed_conn_kv.get("cluster") or uri_schema_name
+        self.cluster_name = parsed_conn_kv.get(ConnStrKeys.CLUSTER) or uri_schema_name
         self.database_name = parsed_conn_kv.get(mandatory_key)
-        self.alias = parsed_conn_kv.get("alias")
+        self.alias = parsed_conn_kv.get(ConnStrKeys.ALIAS)
         bind_url = []
         for key in conn_keys_list:
             if key not in self._EXCLUDE_FROM_URL_KEYS:
@@ -294,3 +297,4 @@ class KqlEngine(object):
 
 class KqlEngineError(Exception):
     """Generic error class."""
+    pass

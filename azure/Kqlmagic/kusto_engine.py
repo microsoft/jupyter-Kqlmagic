@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
 from Kqlmagic.kusto_client import Kusto_Client
@@ -18,10 +18,18 @@ class KustoEngine(KqlEngine):
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "adx", "ade", "azuredataexplorer", "azure_data_explorer"]
     _MANDATORY_KEY = ConnStrKeys.DATABASE
     _VALID_KEYS_COMBINATIONS = [
-            [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
-            [ConnStrKeys.TENANT, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
-            [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
-            [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CERTIFICATE, ConnStrKeys.CERTIFICATE_THUMBPRINT, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+        [
+            ConnStrKeys.TENANT,
+            ConnStrKeys.CLIENTID,
+            ConnStrKeys.CERTIFICATE,
+            ConnStrKeys.CERTIFICATE_THUMBPRINT,
+            ConnStrKeys.CLUSTER,
+            ConnStrKeys.DATABASE,
+            ConnStrKeys.ALIAS,
+        ],
     ]
 
     # Class methods
@@ -55,13 +63,12 @@ class KustoEngine(KqlEngine):
             self.cluster_name = conn_str.get(ConnStrKeys.CLUSTER)
             self.alias = conn_str.get(ConnStrKeys.ALIAS)
             self.bind_url = "{0}://{1}('{2}').{3}('{4}')".format(
-                self._URI_SCHEMA_NAME, 
-                ConnStrKeys.CLUSTER,
-                self.cluster_name,
-                ConnStrKeys.DATABASE,
-                self.database_name)
+                self._URI_SCHEMA_NAME, ConnStrKeys.CLUSTER, self.cluster_name, ConnStrKeys.DATABASE, self.database_name
+            )
         else:
-            self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS)
+            self._parsed_conn = self._parse_common_connection_str(
+                conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS
+            )
             self.client = Kusto_Client(self._parsed_conn)
 
     def get_client(self):

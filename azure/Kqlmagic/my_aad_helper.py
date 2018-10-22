@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 """A module to acquire tokens from AAD.
 """
@@ -23,21 +23,23 @@ from Kqlmagic.constants import ConnStrKeys
 class AuthenticationError(Exception):
     pass
 
+
 class ConnKeysKCSB(object):
     """
     Object like dict, every dict[key] can be visited by dict.key
     """
+
     def __init__(self, conn_kv, data_source):
         self.conn_kv = conn_kv
         self.data_source = data_source
-        self.translate_map =  {
-            "authority_id" : ConnStrKeys.TENANT, 
-            "aad_user_id" : ConnStrKeys.USERNAME,
-            "password" : ConnStrKeys.PASSWORD,
-            "application_client_id" : ConnStrKeys.CLIENTID,
-            "application_key" : ConnStrKeys.CLIENTSECRET,
-            "application_certificate" : ConnStrKeys.CERTIFICATE,
-            "application_certificate_thumbprint" : ConnStrKeys.CERTIFICATE_THUMBPRINT,
+        self.translate_map = {
+            "authority_id": ConnStrKeys.TENANT,
+            "aad_user_id": ConnStrKeys.USERNAME,
+            "password": ConnStrKeys.PASSWORD,
+            "application_client_id": ConnStrKeys.CLIENTID,
+            "application_key": ConnStrKeys.CLIENTSECRET,
+            "application_certificate": ConnStrKeys.CERTIFICATE,
+            "application_certificate_thumbprint": ConnStrKeys.CERTIFICATE_THUMBPRINT,
         }
 
     def __getattr__(self, kcsb_attr_name):
@@ -45,6 +47,7 @@ class ConnKeysKCSB(object):
             return self.data_source
         key = self.translate_map.get(kcsb_attr_name)
         return self.conn_kv.get(key)
+
 
 @unique
 class AuthenticationMethod(Enum):
@@ -88,9 +91,7 @@ class _MyAadHelper(object):
             if expiration_date > datetime.now() + timedelta(minutes=1):
                 return self._get_header(token)
             if TokenResponseFields.REFRESH_TOKEN in token:
-                token = self._adal_context.acquire_token_with_refresh_token(
-                    token[TokenResponseFields.REFRESH_TOKEN], self._client_id, self._resource
-                )
+                token = self._adal_context.acquire_token_with_refresh_token(token[TokenResponseFields.REFRESH_TOKEN], self._client_id, self._resource)
                 if token is not None:
                     return self._get_header(token)
 
@@ -177,9 +178,7 @@ class _MyAadHelper(object):
 
                 Display.show_html(html_str)
         elif self._authentication_method is AuthenticationMethod.aad_application_certificate:
-            token = self._adal_context.acquire_token_with_client_certificate(
-                self._resource, self._client_id, self._certificate, self._thumbprint
-            )
+            token = self._adal_context.acquire_token_with_client_certificate(self._resource, self._client_id, self._certificate, self._thumbprint)
         else:
             raise AuthenticationError("Unknown authentication method.")
         return self._get_header(token)

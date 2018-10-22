@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import os.path
 from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
@@ -21,13 +21,12 @@ class AppinsightsEngine(KqlEngine):
     _DOMAIN = "apps"
     _MANDATORY_KEY = ConnStrKeys.APPID
     _VALID_KEYS_COMBINATIONS = [
-            [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
-            [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
-            [ConnStrKeys.APPID, ConnStrKeys.APPKEY, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
+        [ConnStrKeys.APPID, ConnStrKeys.APPKEY, ConnStrKeys.ALIAS],
     ]
 
     _DATA_SOURCE = "https://api.applicationinsights.io"
-
 
     # Class methods
     # -------------
@@ -44,5 +43,7 @@ class AppinsightsEngine(KqlEngine):
 
     def __init__(self, conn_str, current=None):
         super().__init__()
-        self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS)
+        self._parsed_conn = self._parse_common_connection_str(
+            conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS
+        )
         self.client = DraftClient(self._parsed_conn, self._DOMAIN, self._DATA_SOURCE)

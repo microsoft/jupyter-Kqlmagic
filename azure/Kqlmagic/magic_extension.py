@@ -1,11 +1,12 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 from Kqlmagic.constants import Constants
 from Kqlmagic.kql_magic import Kqlmagic as Magic
+
 
 def load_ipython_extension(ip):
     """Load the extension in Jupyter."""
@@ -17,10 +18,11 @@ def load_ipython_extension(ip):
     # display_javascript(js, raw=True)
     result = ip.register_magics(Magic)
     for alias in Constants.MAGIC_ALIASES:
-        ip.magics_manager.register_alias(alias, Constants.MAGIC_NAME, 'cell')
-        ip.magics_manager.register_alias(alias, Constants.MAGIC_NAME, 'line')
+        ip.magics_manager.register_alias(alias, Constants.MAGIC_NAME, "cell")
+        ip.magics_manager.register_alias(alias, Constants.MAGIC_NAME, "line")
         # ip.run_line_magic("alias_magic", "{0} {1}".format(alias, Constants.MAGIC_NAME))
     return result
+
 
 def unload_ipython_extension(ip):
     """Unoad the extension in Jupyter."""

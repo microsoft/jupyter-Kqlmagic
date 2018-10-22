@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import itertools
 from os.path import expandvars
@@ -23,7 +23,6 @@ class Parser(object):
     _ENGINES_NAME = []
     for e in _ENGINES:
         _ENGINES_NAME.extend(e._ALT_URI_SCHEMA_NAMES)
-
 
     @classmethod
     def parse(cls, cell, config):
@@ -64,7 +63,7 @@ class Parser(object):
             for e in cls._ENGINES:
                 if e._MANDATORY_KEY in cfg_dict_lower.keys():
                     all_keys = set(itertools.chain(*e._VALID_KEYS_COMBINATIONS))
-                    connection_kv = ["{0}('{1}')".format(k, v) for k,v in cfg_dict_lower.items() if v and k in  all_keys]
+                    connection_kv = ["{0}('{1}')".format(k, v) for k, v in cfg_dict_lower.items() if v and k in all_keys]
                     connection = "{0}://{1}".format(e._URI_SCHEMA_NAME, ".".join(connection_kv))
                     break
 
@@ -76,7 +75,7 @@ class Parser(object):
         #
         # connection specified as database@cluster
         #
-        elif "@" in parts[0] and '|' not in parts[0] and "'" not in parts[0] and '"' not in parts[0] and ' ' not in parts[0]:
+        elif "@" in parts[0] and "|" not in parts[0] and "'" not in parts[0] and '"' not in parts[0] and " " not in parts[0]:
             connection = parts[0]
         #
         # connection not specified, override default
@@ -173,7 +172,6 @@ class Parser(object):
             "palette_desaturation": {"flag": "palette_desaturation", "type": "float", "config": "config.palette_desaturation"},
             "pn": {"abbreviation": "palette_name"},
             "params_dict": {"flag": "params_dict", "type": "str", "config": "config.params_dict"},
-            
             "palette_name": {"flag": "palette_name", "type": "str", "config": "config.palette_name"},
             "temp_folder_name": {"flag": "temp_folder_name", "readonly": "True", "config": "config.temp_folder_name"},
             "cache_folder_name": {"flag": "cache_folder_name", "readonly": "True", "config": "config.cache_folder_name"},
@@ -181,8 +179,8 @@ class Parser(object):
             "notebook_app": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
             "add_kql_ref_to_help": {"flag": "add_kql_ref_to_help", "readonly": "True", "config": "config.add_kql_ref_to_help"},
             "add_schema_to_help": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
-            "cache" : {"flag": "cache", "readonly": "True", "config": "config.cache"},
-            "use_cache" : {"flag": "use_cache", "readonly": "True", "config": "config.use_cache"},
+            "cache": {"flag": "cache", "readonly": "True", "config": "config.cache"},
+            "use_cache": {"flag": "use_cache", "readonly": "True", "config": "config.use_cache"},
             "version": {"flag": "version", "type": "bool", "init": "False"},
             "palette": {"flag": "palette", "type": "bool", "init": "False"},
             "popup_palettes": {"flag": "popup_palettes", "type": "bool", "init": "False"},
@@ -196,7 +194,6 @@ class Parser(object):
                 options[value.get("flag")] = eval(value.get("config"))
             elif value.get("init"):
                 options[value.get("flag")] = eval(value.get("init"))
-
 
         if not words:
             return ("", options)
@@ -260,8 +257,8 @@ class Parser(object):
             if state == "bool" and option_config is not None:
                 template = "'{0}'" if type == "str" else "{0}"
                 saved = eval(option_config)
-                exec(option_config + "=" + (template.format(str(options[key]).replace("'", "\\'")) if options[key] is not None else 'None'))
-                exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else 'None'))
+                exec(option_config + "=" + (template.format(str(options[key]).replace("'", "\\'")) if options[key] is not None else "None"))
+                exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else "None"))
 
         if state != "bool":
             raise ValueError("bad options syntax")

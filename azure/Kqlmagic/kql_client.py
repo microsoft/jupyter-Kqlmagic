@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import six
 from datetime import timedelta, datetime
@@ -14,6 +14,7 @@ import requests
 
 # Regex for TimeSpan
 _TIMESPAN_PATTERN = re.compile(r"(-?)((?P<d>[0-9]*).)?(?P<h>[0-9]{2}):(?P<m>[0-9]{2}):(?P<s>[0-9]{2}(\.[0-9]+)?$)")
+
 
 class KqlResult(dict):
     """ Simple wrapper around dictionary, to enable both index and key access to rows in result """
@@ -31,7 +32,7 @@ class KqlResult(dict):
             start = min(key.start or 0, len(self))
             end = min(key.stop or len(self), len(self))
             mapping = self.index2column_mapping[start:end]
-            dic = dict([(c, dict.__getitem__(self, c)) for c in mapping ])
+            dic = dict([(c, dict.__getitem__(self, c)) for c in mapping])
             return KqlResult(mapping, dic)
         elif isinstance(key, six.integer_types):
             val = dict.__getitem__(self, self.index2column_mapping[key])
@@ -90,10 +91,7 @@ class KqlResponseTable(six.Iterator):
             else:
                 factor = 1
             return factor * timedelta(
-                days=int(match.group("d") or 0),
-                hours=int(match.group("h")),
-                minutes=int(match.group("m")),
-                seconds=float(match.group("s")),
+                days=int(match.group("d") or 0), hours=int(match.group("h")), minutes=int(match.group("m")), seconds=float(match.group("s"))
             )
         else:
             raise ValueError("Timespan value '{}' cannot be decoded".format(value))
@@ -140,6 +138,7 @@ class KqlResponseTable(six.Iterator):
         """ Returns iterator to get rows from response """
         return self.__iter__()
 
+
 class KqlSchemaResponse(object):
     def __init__(self, json_response):
         self.json_response = json_response
@@ -172,12 +171,11 @@ class KqlQueryResponse(object):
             self.tables = [self.json_response["Tables"][r[0]] for r in last_table["Rows"] if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
             if len(self.tables) == 0:
                 self.tables = self.all_tables[:1]
-            self.primary_results = [KqlResponseTable(idx, t) for idx,t in enumerate(self.tables)]
-
+            self.primary_results = [KqlResponseTable(idx, t) for idx, t in enumerate(self.tables)]
 
     def _get_endpoint_version(self, json_response):
         try:
-            tables_num = json_response["Tables"].__len__() # pylint: disable=W0612
+            tables_num = json_response["Tables"].__len__()  # pylint: disable=W0612
             return "v1"
         except:
             return "v2"
@@ -191,15 +189,17 @@ class KqlQueryResponse(object):
                     if table["TableName"] == "@ExtendedProperties" and table["TableKind"] == "QueryProperties":
                         cols_idx_map = self._map_columns_to_index(table["Columns"])
                         types = self._get_columns_types(table["Columns"])
-                        key_idx = cols_idx_map.get('Key')
-                        id_idx = cols_idx_map.get('TableId')
-                        value_idx = cols_idx_map.get('Value')
-                        if (key_idx is not None and 
-                            id_idx is not None and 
-                            value_idx is not None and 
-                            types[key_idx] == "string" and 
-                            types[id_idx] == "int" and 
-                            types[value_idx] == "dynamic"):
+                        key_idx = cols_idx_map.get("Key")
+                        id_idx = cols_idx_map.get("TableId")
+                        value_idx = cols_idx_map.get("Value")
+                        if (
+                            key_idx is not None
+                            and id_idx is not None
+                            and value_idx is not None
+                            and types[key_idx] == "string"
+                            and types[id_idx] == "int"
+                            and types[value_idx] == "dynamic"
+                        ):
                             for row in table["Rows"]:
                                 if row[key_idx] == "Visualization":
                                     # print('visualization_properties for table {0}: {1}'.format(id_idx, row[value_idx]))

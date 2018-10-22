@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import os
 import time
@@ -39,7 +39,7 @@ from Kqlmagic.palette import Palettes, Palette
 from Kqlmagic.cache_engine import CacheEngine
 from Kqlmagic.cache_client import CacheClient
 
-_MAGIC_NAME = 'kql'
+_MAGIC_NAME = "kql"
 
 
 @magics_class
@@ -117,7 +117,7 @@ class Kqlmagic(Magics, Configurable):
     cache = Bool(False, config=True, help="Cache query results.")
     use_cache = Bool(False, config=True, help="use cached query results, instead of executing the query.")
     params_dict = Unicode(None, config=True, allow_none=True, help="paremeters dictionary name, if None, python shell user namespace will be used.")
-    
+
     @validate("palette_name")
     def _valid_value_palette_name(self, proposal):
         try:
@@ -161,7 +161,7 @@ class Kqlmagic(Magics, Configurable):
         Magics.__init__(self, shell=shell)
 
         set_logger(Logger())
-        ip = get_ipython() # pylint: disable=E0602
+        ip = get_ipython()  # pylint: disable=E0602
         ip.magic("matplotlib inline")
 
         # Add ourself to the list of module configurable via %config
@@ -170,7 +170,8 @@ class Kqlmagic(Magics, Configurable):
         load_mode = _get_kql_magic_load_mode()
 
         if load_mode != "silent":
-            html_str = """<html>
+            html_str = (
+                """<html>
             <head>
             <style>
             .kql-magic-banner {
@@ -191,21 +192,40 @@ class Kqlmagic(Magics, Configurable):
                     <div>
                         <p>Kusto is a log analytics cloud platform optimized for ad-hoc big data queries. Read more about it here: http://aka.ms/kdocs</p>
                         <p>   &bull; kql language reference: Click on 'Help' tab > and Select 'kql referece'<br>
-                          &bull; """+Constants.MAGIC_CLASS_NAME+""" configuarion: Run in cell '%config """+Constants.MAGIC_CLASS_NAME+"""'<br>
-                          &bull; """+Constants.MAGIC_CLASS_NAME+""" syntax: Run in cell '%kql?'<br>
-                          &bull; """+Constants.MAGIC_CLASS_NAME+""" upgrate syntax: Run in cell '!pip install """+Constants.MAGIC_PIP_REFERENCE_NAME+""" --no-cache-dir --upgrade'<br>
+                          &bull; """
+                + Constants.MAGIC_CLASS_NAME
+                + """ configuarion: Run in cell '%config """
+                + Constants.MAGIC_CLASS_NAME
+                + """'<br>
+                          &bull; """
+                + Constants.MAGIC_CLASS_NAME
+                + """ syntax: Run in cell '%kql?'<br>
+                          &bull; """
+                + Constants.MAGIC_CLASS_NAME
+                + """ upgrate syntax: Run in cell '!pip install """
+                + Constants.MAGIC_PIP_REFERENCE_NAME
+                + """ --no-cache-dir --upgrade'<br>
                     </div>
                 </div>
             </body>
             </html>"""
+            )
             Display.show_html(html_str)
-            Display.showInfoMessage("""{0} package is updated frequently. Run '!pip install {1} --no-cache-dir --upgrade' to use the latest version.<br>{0} version: {2}, source: {3}""".format(Constants.MAGIC_PACKAGE_NAME, Constants.MAGIC_PIP_REFERENCE_NAME, VERSION, Constants.MAGIC_SOURCE_REPOSITORY_NAME))
+            Display.showInfoMessage(
+                """{0} package is updated frequently. Run '!pip install {1} --no-cache-dir --upgrade' to use the latest version.<br>{0} version: {2}, source: {3}""".format(
+                    Constants.MAGIC_PACKAGE_NAME, Constants.MAGIC_PIP_REFERENCE_NAME, VERSION, Constants.MAGIC_SOURCE_REPOSITORY_NAME
+                )
+            )
             # <div><img src='https://az818438.vo.msecnd.net/icons/kusto.png'></div>
 
             try:
                 pypi_version = get_pypi_latest_version(Constants.MAGIC_PACKAGE_NAME)
                 if pypi_version and compare_version(pypi_version) > 0:
-                    Display.showWarningMessage("""{0} version {1} was found in PyPI, consider to upgrade before you continue. Run '!pip install {0} --no-cache-dir --upgrade'""".format(Constants.MAGIC_PACKAGE_NAME, pypi_version))
+                    Display.showWarningMessage(
+                        """{0} version {1} was found in PyPI, consider to upgrade before you continue. Run '!pip install {0} --no-cache-dir --upgrade'""".format(
+                            Constants.MAGIC_PACKAGE_NAME, pypi_version
+                        )
+                    )
             except:
                 pass
 
@@ -508,22 +528,25 @@ class Kqlmagic(Magics, Configurable):
             #
             start_time = time.time()
 
-            params_dict_name = options.get('params_dict')
+            params_dict_name = options.get("params_dict")
             dictionary = user_ns.get(params_dict_name) if params_dict_name is not None and len(params_dict_name) > 0 else user_ns
             parametrized_query = Parameterizer(dictionary).expand(query) if result_set is None else result_set.parametrized_query
             raw_query_result = conn.execute(parametrized_query, user_ns, **options)
 
             end_time = time.time()
 
-            if options.get('save_as') is not None:
-                save_as_file_path = CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, 
-                                               filepath=options.get('save_as'), **options)
+            if options.get("save_as") is not None:
+                save_as_file_path = CacheClient().save(
+                    raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, filepath=options.get("save_as"), **options
+                )
             #
             # model query results
             #
             if result_set is None:
                 fork_table_id = 0
-                saved_result = ResultSet(raw_query_result, parametrized_query, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options)
+                saved_result = ResultSet(
+                    raw_query_result, parametrized_query, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options
+                )
                 saved_result.metadata["magic"] = self
                 saved_result.metadata["parsed"] = parsed
                 saved_result.metadata["connection"] = conn.get_conn_name()
@@ -569,12 +592,12 @@ class Kqlmagic(Magics, Configurable):
                 self.shell.user_ns.update({result_var: result if result is not None else saved_result})
                 result = None
 
-            if options.get('cache') and not options.get('use_cache') and not isinstance(conn, CacheEngine):
+            if options.get("cache") and not options.get("use_cache") and not isinstance(conn, CacheEngine):
                 file_path = CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, **options)
                 if options.get("feedback", self.feedback):
                     saved_result.feedback_info.append("query results cached")
 
-            if options.get('save_as') is not None:
+            if options.get("save_as") is not None:
                 if options.get("feedback", self.feedback):
                     saved_result.feedback_info.append("query results saved as {0}".format(save_as_file_path))
 
@@ -611,11 +634,14 @@ class Kqlmagic(Magics, Configurable):
             else:
                 raise e
 
+
 def _override_default_configuration(ip, load_mode):
     """override default {0} configuration from environment variable {1}_CONFIGURATION.
        the settings should be separated by a semicolon delimiter.
        for example:
-       {1}_CONFIGURATION = 'auto_limit = 1000; auto_dataframe = True' """.format(Constants.MAGIC_CLASS_NAME, Constants.MAGIC_CLASS_NAME.upper())
+       {1}_CONFIGURATION = 'auto_limit = 1000; auto_dataframe = True' """.format(
+        Constants.MAGIC_CLASS_NAME, Constants.MAGIC_CLASS_NAME.upper()
+    )
 
     kql_magic_configuration = os.getenv("{0}_CONFIGURATION".format(Constants.MAGIC_CLASS_NAME.upper()))
     if kql_magic_configuration:
@@ -651,7 +677,7 @@ def _set_default_connections():
         if connection_str.startswith("'") or connection_str.startswith('"'):
             connection_str = connection_str[1:-1]
 
-        ip = get_ipython() # pylint: disable=E0602
+        ip = get_ipython()  # pylint: disable=E0602
         result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
         if result and _get_kql_magic_load_mode() != "silent":
             print(result)
@@ -720,4 +746,6 @@ Answer: Execute the to_dataframe method on the result. For example:
 If I use {0}.auto_dataframe = True, How can I get programmaticaly the last raw results of the last submitted query?
 Answer: _kql_raw_result_ holds the raw results.
 
-""".format(Constants.MAGIC_CLASS_NAME)
+""".format(
+    Constants.MAGIC_CLASS_NAME
+)

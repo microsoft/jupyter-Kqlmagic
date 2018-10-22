@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 from datetime import timedelta, datetime
 
@@ -17,7 +17,7 @@ makes guesses about the role of each column for plotting purposes
 class Column(list):
     "Store a column of tabular data; record its name and whether it is numeric"
     # Object constructor
-    def __init__(self, idx=None,name='', col=None, is_quantity=True, is_datetime=True, **kwargs):
+    def __init__(self, idx=None, name="", col=None, is_quantity=True, is_datetime=True, **kwargs):
         if col is not None:
             self.is_quantity = col.is_quantity
             self.is_datetime = col.is_datetime
@@ -29,6 +29,7 @@ class Column(list):
             self.idx = idx
             self.name = name
         super(Column, self).__init__(**kwargs)
+
 
 class ChartSubTable(dict):
     def __init__(self, col_x=None, col_y=None, name=None, mapping=None, **kwargs):
@@ -54,31 +55,31 @@ class ColumnGuesserMixin(object):
     pie: ... y
     """
 
-    DATAFRAME_QUNATITY_TYPES = ["int64", "float64", "datetime64[ns]", "timedelta64[ns]", "int32",]
-    DATAFRAME_TIME_TYPES = ["datetime64[ns]", "timedelta64[ns]",]
+    DATAFRAME_QUNATITY_TYPES = ["int64", "float64", "datetime64[ns]", "timedelta64[ns]", "int32"]
+    DATAFRAME_TIME_TYPES = ["datetime64[ns]", "timedelta64[ns]"]
 
-    def _build_chart_sub_tables(self, name=None, x_type='first'):
+    def _build_chart_sub_tables(self, name=None, x_type="first"):
         self.chart_sub_tables = []
         self._build_columns(name, without_data=True)
 
         x_col_idx = None
-        if x_type =='first':
+        if x_type == "first":
             x_col_idx = 0
-        elif x_type == 'quantity':
-            for idx,c in enumerate(self.columns):
+        elif x_type == "quantity":
+            for idx, c in enumerate(self.columns):
                 if c.is_quantity:
                     x_col_idx = idx
                     break
-        elif x_type == 'datetime':
-            for idx,c in enumerate(self.columns):
+        elif x_type == "datetime":
+            for idx, c in enumerate(self.columns):
                 if c.is_datetime:
                     x_col_idx = idx
                     break
         if x_col_idx is None:
             return
 
-        quantity_columns = [c for idx,c in enumerate(self.columns) if idx != x_col_idx and c.is_quantity]
-        non_quantity_columns = [c for idx,c in enumerate(self.columns) if idx != x_col_idx and not c.is_quantity]
+        quantity_columns = [c for idx, c in enumerate(self.columns) if idx != x_col_idx and c.is_quantity]
+        non_quantity_columns = [c for idx, c in enumerate(self.columns) if idx != x_col_idx and not c.is_quantity]
 
         rows = self
         if self.columns[x_col_idx].is_quantity:
@@ -93,16 +94,17 @@ class ColumnGuesserMixin(object):
         for row in rows:
             for qcol in quantity_columns:
                 if len(non_quantity_columns) > 0:
-                    sub_table_name = ':'.join([row[col.idx] for col in non_quantity_columns]) + ':' + qcol.name
+                    sub_table_name = ":".join([row[col.idx] for col in non_quantity_columns]) + ":" + qcol.name
                 else:
-                    sub_table_name =  qcol.name
+                    sub_table_name = qcol.name
                 chart_sub_table = chart_sub_tables_dict.get(sub_table_name)
                 if chart_sub_table is None:
                     chart_sub_table = chart_sub_tables_dict[sub_table_name] = ChartSubTable(
-                        name=sub_table_name, 
-                        col_x=Column(col=self.columns[x_col_idx]), 
+                        name=sub_table_name,
+                        col_x=Column(col=self.columns[x_col_idx]),
                         col_y=Column(col=qcol),
-                        mapping=dict(zip(col_x, [None for i in range(len(col_x))])))
+                        mapping=dict(zip(col_x, [None for i in range(len(col_x))])),
+                    )
                 chart_sub_table[row[x_col_idx]] = row[qcol.idx]
         self.chart_sub_tables = list(chart_sub_tables_dict.values())
 
@@ -135,7 +137,6 @@ class ColumnGuesserMixin(object):
                         col.is_datetime = False
                     elif not isinstance(col_val, datetime):
                         col.is_datetime = False
-
 
     def _get_y(self):
         for idx in range(len(self.columns) - 1, -1, -1):

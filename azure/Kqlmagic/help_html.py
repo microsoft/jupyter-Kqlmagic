@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import time
 from IPython.core.display import display
@@ -26,7 +26,7 @@ class Help_html(object):
             Help_html.showfiles_base_url = window_location[:start] + "/".join(parts)
         else:
             if Help_html.notebooks_host:
-                host = Help_html.notebooks_host or ''
+                host = Help_html.notebooks_host or ""
                 start = host.find("//") + 2
                 suffix = "." + host[start:]
             else:
@@ -69,7 +69,7 @@ class Help_html(object):
             url = None
 
         if url:
-            ip = get_ipython() # pylint: disable=E0602
+            ip = get_ipython()  # pylint: disable=E0602
             help_links = ip.kernel._trait_values["help_links"]
             found = False
             for link in help_links:

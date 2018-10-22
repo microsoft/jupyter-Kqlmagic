@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 from Kqlmagic.display import Display
 from Kqlmagic.kusto_engine import KustoEngine
@@ -16,6 +16,7 @@ from Kqlmagic.help_html import Help_html
 class Database_html(object):
     """
     """
+
     database_metadata_css = """.just-padding {
       height: 100%;
       width: 100%;
@@ -130,7 +131,7 @@ class Database_html(object):
             table_name = row["name"]
             if table_name and len(table_name) > 0:
                 database_metadata_tree[table_name] = {}
-                for col in row['columns']:
+                for col in row["columns"]:
                     column_name = col["name"]
                     column_type = col["type"]
                     if column_name and len(column_name) > 0 and column_type and len(column_type) > 0:
@@ -161,16 +162,20 @@ class Database_html(object):
 
     @staticmethod
     def _convert_column_metadata_to_item(column_name, column_type, **kwargs):
-        col_metadata = {}
         item = "<b>" + column_name + "</b> : " + column_type
         return """<a href="#" class="list-group-item">""" + item + """</a>"""
 
     @staticmethod
     def get_schema_file_path(conn, **kwargs):
-        engine_type = (KustoEngine if isinstance(conn, KustoEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, KustoEngine))
-                       else AppinsightsEngine if isinstance(conn, AppinsightsEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, AppinsightsEngine))
-                       else LoganalyticsEngine if isinstance(conn, LoganalyticsEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, LoganalyticsEngine))
-                       else None)
+        engine_type = (
+            KustoEngine
+            if isinstance(conn, KustoEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, KustoEngine))
+            else AppinsightsEngine
+            if isinstance(conn, AppinsightsEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, AppinsightsEngine))
+            else LoganalyticsEngine
+            if isinstance(conn, LoganalyticsEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, LoganalyticsEngine))
+            else None
+        )
 
         if engine_type is not None:
             if isinstance(conn, CacheEngine):
@@ -180,13 +185,12 @@ class Database_html(object):
                 database_name = conn.get_database()
                 conn_name = conn.get_conn_name()
 
-
             if engine_type == KustoEngine:
                 query = ".show schema"
                 raw_query_result = conn.execute(query)
                 raw_schema_table = raw_query_result.tables[0]
                 database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
-                if kwargs.get('cache') and not kwargs.get('use_cache') and not isinstance(conn, CacheEngine):
+                if kwargs.get("cache") and not kwargs.get("use_cache") and not isinstance(conn, CacheEngine):
                     CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
 
             elif engine_type == AppinsightsEngine or LoganalyticsEngine:
@@ -194,7 +198,7 @@ class Database_html(object):
                 metadata_result = conn.client_execute(query)
                 metadata_schema_table = metadata_result.table
                 database_metadata_tree = Database_html._create_database_draft_metadata_tree(metadata_schema_table)
-                if kwargs.get('cache') and not kwargs.get('use_cache') and not isinstance(conn, CacheEngine):
+                if kwargs.get("cache") and not kwargs.get("use_cache") and not isinstance(conn, CacheEngine):
                     CacheClient().save(metadata_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
 
             html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)

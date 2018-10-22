@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import copy
 import functools
@@ -79,13 +79,13 @@ class UnicodeWriter(object):
 class FileResultDescriptor(bytes):
     """Provides IPython Notebook-friendly output for the feedback after a ``.csv`` called."""
 
-    FILE_BINARY_FORMATS = ['png', 'pdf', 'jpeg', 'jpg', 'eps']
-    FILE_STRING_FORMATS = ['svg', 'webp', 'csv']
+    FILE_BINARY_FORMATS = ["png", "pdf", "jpeg", "jpg", "eps"]
+    FILE_STRING_FORMATS = ["svg", "webp", "csv"]
 
     @staticmethod
     def get_format(file, format=None):
         if format is None and file is not None and isinstance(file, str):
-            parts = file.split('.')
+            parts = file.split(".")
             if len(parts) > 1:
                 f = parts[-1]
                 if f in FileResultDescriptor.FILE_BINARY_FORMATS or f in FileResultDescriptor.FILE_STRING_FORMATS:
@@ -113,7 +113,7 @@ class FileResultDescriptor(bytes):
             return self if self.format in FileResultDescriptor.FILE_BINARY_FORMATS else "".join(chr(x) for x in self)
         else:
             print(self._file_location_message())
-            return open(self.file_or_image, 'rb' if self.format in self.FILE_BINARY_FORMATS else 'r').read()
+            return open(self.file_or_image, "rb" if self.format in self.FILE_BINARY_FORMATS else "r").read()
 
     def _file_location_message(self):
         return "%s at %s" % (self.message, os.path.join(os.path.abspath("."), self.file_or_image))
@@ -121,7 +121,7 @@ class FileResultDescriptor(bytes):
     # Printable unambiguous presentation of the object
     def __repr__(self):
         if self.is_image:
-            return "".join( chr(x) for x in self)
+            return "".join(chr(x) for x in self)
         elif self.show:
             return str(self._get_data())
         else:
@@ -129,34 +129,34 @@ class FileResultDescriptor(bytes):
 
     # IPython html presentation of the object
     def _repr_html_(self):
-        if self.show and self.format == 'html':
+        if self.show and self.format == "html":
             return self._get_data()
         if not self.show and not self.is_image:
             return '<a href="%s" download>%s</a>' % (os.path.join(".", "files", self.file_or_image), self.message)
 
     def _repr_png_(self):
-        if self.show and self.format == 'png':
-            print('_repr_png_')
+        if self.show and self.format == "png":
+            print("_repr_png_")
             return self._get_data()
 
     def _repr_jpeg_(self):
-        if self.show and (self.format == 'jpeg' or self.format == 'jpg'):
+        if self.show and (self.format == "jpeg" or self.format == "jpg"):
             return self._get_data()
 
     def _repr_svg_(self):
-        if self.show and self.format == 'svg':
+        if self.show and self.format == "svg":
             return self._get_data()
 
     def _repr_webp_(self):
-        if self.show and self.format == 'webp':
+        if self.show and self.format == "webp":
             return self._get_data()
 
     def _repr_pdf_(self):
-        if self.show and self.format == 'pdf':
+        if self.show and self.format == "pdf":
             return self._get_data()
 
     def _repr_eps_(self):
-        if self.show and self.format == 'eps':
+        if self.show and self.format == "eps":
             return self._get_data()
 
 
@@ -303,7 +303,7 @@ class ResultSet(list, ColumnGuesserMixin):
                         r.feedback_info.append("Done ({:0>2}:{:06.3f}): {} records".format(int(minutes), seconds, r.records_count))
 
     def fork_result(self, fork_table_id=0):
-        #return self._fork_table_resultSets.get(str(fork_table_id))
+        # return self._fork_table_resultSets.get(str(fork_table_id))
         return self._fork_table_resultSets[str(fork_table_id)]
 
     @property
@@ -454,26 +454,26 @@ class ResultSet(list, ColumnGuesserMixin):
         else:
             return self.show_table(**kwargs)
 
-
     def to_image(self, **kwargs):
         "export image of the chart that was specified in the query to a file"
         params = kwargs or {}
         fig = self._getChartHtml().get("fig")
         if fig is not None:
-            file = params.get('filename')
+            file = params.get("filename")
             image = self._export_chart_image_plotly(fig, file, **kwargs)
-            return FileResultDescriptor(image,message='image results', format=params.get('format'), show=params.get('show') )
-
+            return FileResultDescriptor(image, message="image results", format=params.get("format"), show=params.get("show"))
 
     def _export_chart_image_plotly(self, fig, file, **kwargs):
         params = kwargs or {}
         if file:
-            plotly.io.write_image(fig, file, format=params.get('format'),
-                          scale=params.get('scale'), width=params.get('width'), height=params.get('height'))
+            plotly.io.write_image(
+                fig, file, format=params.get("format"), scale=params.get("scale"), width=params.get("width"), height=params.get("height")
+            )
             return file
         else:
-            return plotly.io.to_image(fig, format=params.get('format'),
-                          scale=params.get('scale'), width=params.get('width'), height=params.get('height'))
+            return plotly.io.to_image(
+                fig, format=params.get("format"), scale=params.get("scale"), width=params.get("width"), height=params.get("height")
+            )
 
     def popup_Chart(self, **kwargs):
         "display the chart that was specified in the query in a popup window"
@@ -690,8 +690,8 @@ class ResultSet(list, ColumnGuesserMixin):
             writer.writerow(row)
         if filename:
             outfile.close()
-            message = 'csv results'
-            return FileResultDescriptor(filename, message=message, format='csv', **kwargs)
+            message = "csv results"
+            return FileResultDescriptor(filename, message=message, format="csv", **kwargs)
         else:
             return outfile.getvalue()
 
@@ -753,7 +753,6 @@ class ResultSet(list, ColumnGuesserMixin):
         w = 0.8
         dimw = w / dim
 
-        ax = plt.subplot(111)
         x = plt.arange(len(self.columns[0]))
         xpos = -dimw * (len(quantity_columns) / 2)
         for y in quantity_columns:
@@ -803,7 +802,6 @@ class ResultSet(list, ColumnGuesserMixin):
         w = 0.8
         dimw = w / dim
 
-        ax = plt.subplot(111)
         x = plt.arange(len(self.columns[0]))
         xpos = -dimw * (len(quantity_columns) / 2)
         for y in quantity_columns:
@@ -873,7 +871,7 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.plot``.
         """
 
-        self._build_chart_sub_tables(x_type='first')
+        self._build_chart_sub_tables(x_type="first")
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -928,8 +926,7 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.plot``.
         """
 
-
-        self._build_chart_sub_tables(x_type='first')
+        self._build_chart_sub_tables(x_type="first")
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -943,7 +940,7 @@ class ResultSet(list, ColumnGuesserMixin):
         ys_stcks = []
         y_stck = [0 for x in range(len(self.chart_sub_tables[0]))]
         for tab in self.chart_sub_tables:
-            y_stck = [(r or 0) + y_stck[idx]  for (idx, r) in enumerate(tab.values())]
+            y_stck = [(r or 0) + y_stck[idx] for (idx, r) in enumerate(tab.values())]
             ys_stcks.append(y_stck)
 
         data = [
@@ -990,7 +987,7 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.plot``.
         """
 
-        self._build_chart_sub_tables(x_type='datetime')
+        self._build_chart_sub_tables(x_type="datetime")
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -1003,11 +1000,11 @@ class ResultSet(list, ColumnGuesserMixin):
 
         data = [
             go.Scatter(
-                x=list(tab.keys()), 
-                y=list(tab.values()), 
-                name=tab.name, 
-                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=n_colors)), 
-                opacity=0.8
+                x=list(tab.keys()),
+                y=list(tab.values()),
+                name=tab.name,
+                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=n_colors)),
+                opacity=0.8,
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
@@ -1042,15 +1039,13 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def _render_piechart_plotly(self, key_word_sep=" ", title=None, **kwargs):
 
-        self._build_chart_sub_tables(x_type='first')
+        self._build_chart_sub_tables(x_type="first")
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
         for tab in self.chart_sub_tables:
             if tab.col_y.name not in ylabel_names:
                 ylabel_names.append(tab.col_y.name)
-        ylabel = ", ".join(ylabel_names)
-        xlabel = self.chart_sub_tables[0].col_x.name
         n_colors = len(self.chart_sub_tables[0])
 
         # number of pies to display
@@ -1076,12 +1071,13 @@ class ResultSet(list, ColumnGuesserMixin):
         palette = self._get_palette(n_colors=n_colors)
         data = [
             go.Pie(
-                labels=list(tab.keys()), 
-                values=list(tab.values()), 
-                domain=domains[idx], 
-                marker=dict(colors=palette), 
-                name=tab.name, 
-                textinfo="label+percent")
+                labels=list(tab.keys()),
+                values=list(tab.values()),
+                domain=domains[idx],
+                marker=dict(colors=palette),
+                name=tab.name,
+                textinfo="label+percent",
+            )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
@@ -1102,7 +1098,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def _render_barchart_plotly(self, key_word_sep=" ", title=None, **kwargs):
 
-        self._build_chart_sub_tables(x_type='first')
+        self._build_chart_sub_tables(x_type="first")
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -1114,11 +1110,13 @@ class ResultSet(list, ColumnGuesserMixin):
         n_colors = len(self.chart_sub_tables)
 
         data = [
-            go.Bar(x=list(tab.values()), 
-                   y=list(tab.keys()), 
-                   marker=dict(color=self.get_color_from_palette(idx, n_colors=n_colors)), 
-                   name=tab.name, 
-                   orientation="h",)
+            go.Bar(
+                x=list(tab.values()),
+                y=list(tab.keys()),
+                marker=dict(color=self.get_color_from_palette(idx, n_colors=n_colors)),
+                name=tab.name,
+                orientation="h",
+            )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
@@ -1138,7 +1136,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def _render_columnchart_plotly(self, key_word_sep=" ", title=None, **kwargs):
 
-        self._build_chart_sub_tables(x_type='first')
+        self._build_chart_sub_tables(x_type="first")
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -1150,11 +1148,7 @@ class ResultSet(list, ColumnGuesserMixin):
         n_colors = len(self.chart_sub_tables)
 
         data = [
-            go.Bar(
-                x=list(tab.keys()), 
-                y=list(tab.values()), 
-                marker=dict(color=self.get_color_from_palette(idx, n_colors=n_colors)), 
-                name=tab.name,)
+            go.Bar(x=list(tab.keys()), y=list(tab.values()), marker=dict(color=self.get_color_from_palette(idx, n_colors=n_colors)), name=tab.name)
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
@@ -1190,7 +1184,7 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.plot``.
         """
 
-        self._build_chart_sub_tables(x_type='quantity')
+        self._build_chart_sub_tables(x_type="quantity")
         if len(self.chart_sub_tables) < 1:
             return None
         ylabel_names = []
@@ -1203,11 +1197,11 @@ class ResultSet(list, ColumnGuesserMixin):
 
         data = [
             go.Scatter(
-                x=list(tab.keys()), 
-                y=list(tab.values()), 
-                name=tab.name, 
-                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=n_colors)), 
-                opacity=0.8
+                x=list(tab.keys()),
+                y=list(tab.values()),
+                name=tab.name,
+                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=n_colors)),
+                opacity=0.8,
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
@@ -1293,7 +1287,7 @@ class PrettyTable(prettytable.PrettyTable):
     def __init__(self, *args, **kwargs):
         self.row_count = 0
         self.display_limit = None
-        return super(PrettyTable, self).__init__(*args, **kwargs)
+        super(PrettyTable, self).__init__(*args, **kwargs)
 
     def add_rows(self, data):
         if self.row_count and (data.options.get("display_limit") == self.display_limit):

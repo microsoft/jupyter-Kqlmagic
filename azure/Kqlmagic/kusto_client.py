@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import six
 from datetime import timedelta, datetime
@@ -18,9 +18,6 @@ from azure.kusto.data._response import WellKnownDataSet
 from Kqlmagic.my_aad_helper import _MyAadHelper
 from Kqlmagic.kql_client import KqlQueryResponse, KqlError
 from Kqlmagic.constants import ConnStrKeys
-
-
-
 
 
 class Kusto_Client(object):
@@ -46,8 +43,8 @@ class Kusto_Client(object):
     >>> client_id = 'e07cf1fb-c6a6-4668-b21a-f74731afa19a'
     >>> kusto_client = KustoClient(kusto_cluster, client_id, username='your_username', password='your_password')"""
 
-    _DEFAULT_CLIENTID = "db662dc1-0cfe-4e1c-a843-19a68e65be58" # kusto client app, don't know app name
-#    _DEFAULT_CLIENTID = "8430759c-5626-4577-b151-d0755f5355d8" # kusto client app, don't know app name
+    _DEFAULT_CLIENTID = "db662dc1-0cfe-4e1c-a843-19a68e65be58"  # kusto client app, don't know app name
+    #    _DEFAULT_CLIENTID = "8430759c-5626-4577-b151-d0755f5355d8" # kusto client app, don't know app name
 
     def __init__(self, conn_kv):
         """
@@ -73,18 +70,28 @@ class Kusto_Client(object):
         kusto_cluster = "https://{0}.kusto.windows.net".format(conn_kv[ConnStrKeys.CLUSTER])
 
         if all([conn_kv.get(ConnStrKeys.USERNAME), conn_kv.get(ConnStrKeys.PASSWORD)]):
-            kcsb = KustoConnectionStringBuilder.with_aad_user_password_authentication(kusto_cluster, conn_kv.get(ConnStrKeys.USERNAME), conn_kv.get(ConnStrKeys.PASSWORD))
-            if conn_kv.get(ConnStrKeys.TENANT) is not None: kcsb.authority_id = conn_kv.get(ConnStrKeys.TENANT)
+            kcsb = KustoConnectionStringBuilder.with_aad_user_password_authentication(
+                kusto_cluster, conn_kv.get(ConnStrKeys.USERNAME), conn_kv.get(ConnStrKeys.PASSWORD)
+            )
+            if conn_kv.get(ConnStrKeys.TENANT) is not None:
+                kcsb.authority_id = conn_kv.get(ConnStrKeys.TENANT)
 
         elif all([conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CLIENTSECRET)]):
             kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(
-                kusto_cluster, conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CLIENTSECRET), conn_kv.get(ConnStrKeys.TENANT))
+                kusto_cluster, conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CLIENTSECRET), conn_kv.get(ConnStrKeys.TENANT)
+            )
         elif all([conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CERTIFICATE), conn_kv.get(ConnStrKeys.CERTIFICATE_THUMBPRINT)]):
             kcsb = KustoConnectionStringBuilder.with_aad_application_certificate_authentication(
-                kusto_cluster, conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CERTIFICATE), conn_kv.get(ConnStrKeys.CERTIFICATE_THUMBPRINT), conn_kv.get(ConnStrKeys.TENANT))
+                kusto_cluster,
+                conn_kv.get(ConnStrKeys.CLIENTID),
+                conn_kv.get(ConnStrKeys.CERTIFICATE),
+                conn_kv.get(ConnStrKeys.CERTIFICATE_THUMBPRINT),
+                conn_kv.get(ConnStrKeys.TENANT),
+            )
         else:
             kcsb = KustoConnectionStringBuilder.with_aad_device_authentication(kusto_cluster)
-            if conn_kv.get(ConnStrKeys.TENANT) is not None: kcsb.authority_id = conn_kv.get(ConnStrKeys.TENANT)
+            if conn_kv.get(ConnStrKeys.TENANT) is not None:
+                kcsb.authority_id = conn_kv.get(ConnStrKeys.TENANT)
 
         self.client = KustoClient(kcsb)
 
@@ -111,6 +118,6 @@ class Kusto_Client(object):
             Optional parameter. Network timeout in seconds. Default is no timeout.
         """
         endpoint_version = self.mgmt_endpoint_version if query.startswith(".") else self.query_endpoint_version
-        get_raw_response=True
+        get_raw_response = True
         response = self.client.execute(kusto_database, query, accept_partial_results, timeout, get_raw_response)
         return KqlQueryResponse(response, endpoint_version)

@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import re
 import os
@@ -13,14 +13,11 @@ from Kqlmagic.kql_proxy import KqlResponse
 from Kqlmagic.constants import ConnStrKeys
 
 
-
 class CacheEngine(KqlEngine):
     _URI_SCHEMA_NAME = "cache"
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "file"]
     _MANDATORY_KEY = ConnStrKeys.DATABASE
-    _VALID_KEYS_COMBINATIONS = [
-            [ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
-    ]
+    _VALID_KEYS_COMBINATIONS = [[ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS]]
 
     @classmethod
     def tell_format(cls):
@@ -42,28 +39,29 @@ class CacheEngine(KqlEngine):
             database_name = self.kql_engine.get_database()
             cluster_name = self.kql_engine.get_cluster()
             conn_str = "{0}://cluster('{1}').database('{2}')".format(self._URI_SCHEMA_NAME, cluster_name, database_name)
-        self._parsed_conn = self._parse_common_connection_str(conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS)
-        self.database_name = self.database_name  + '_at_' + self.cluster_name
+        self._parsed_conn = self._parse_common_connection_str(
+            conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS
+        )
+        self.database_name = self.database_name + "_at_" + self.cluster_name
         self.cluster_name = self._URI_SCHEMA_NAME
         self.client = CacheClient()
 
         database = self.get_database()
-        database_name, cluster_name = database.split('_at_')
+        database_name, cluster_name = database.split("_at_")
         folder_path = self.client._get_folder_path(database_name, cluster_name)
-        validation_file_path = folder_path + '/' + 'validation_file.json'
+        validation_file_path = folder_path + "/" + "validation_file.json"
         if not os.path.exists(validation_file_path):
             outfile = open(validation_file_path, "w")
             outfile.write(self.validate_json_file_content)
             outfile.flush()
             outfile.close()
 
-
     def validate(self, **kwargs):
         client = self.get_client()
         if not client:
             raise KqlEngineError("Client is not defined.")
         # query = "range c from 1 to 10 step 1 | count"
-        filename = 'validation_file.json'
+        filename = "validation_file.json"
         database = self.get_database()
         response = client.execute(database, filename, accept_partial_results=False, timeout=None)
         # print(response.json_response)

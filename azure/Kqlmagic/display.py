@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import uuid
 from IPython.core.display import display, HTML
@@ -16,7 +16,7 @@ import datetime
 
 
 class DateTimeEncoder(json.JSONEncoder):
-    def default(self, obj): # pylint: disable=E0202
+    def default(self, obj):  # pylint: disable=E0202
         if isinstance(obj, datetime.datetime):
             return obj.isoformat()
         elif isinstance(obj, datetime.date):
@@ -121,7 +121,7 @@ class Display(object):
         text_file.write(html_str)
         text_file.close()
         # ipython will delete file at shutdown or by restart
-        ip = get_ipython() # pylint: disable=E0602
+        ip = get_ipython()  # pylint: disable=E0602
         ip.tempfiles.append(full_file_name)
         file_path = Display.showfiles_folder_name + "/" + file_name + ".html"
         return file_path

@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 from Kqlmagic.constants import Constants
 from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse
@@ -15,9 +15,7 @@ class CacheClient(object):
     """
     """
 
-    def __init__(
-        self
-    ):
+    def __init__(self):
         """
         File Client constructor.
 
@@ -26,33 +24,30 @@ class CacheClient(object):
         cluster_folder : str
             folder that contains all the databse_folders that contains the query result files
         """
-        
-        ip = get_ipython() # pylint: disable=E0602
+
+        ip = get_ipython()  # pylint: disable=E0602
         root_path = ip.starting_dir.replace("\\", "/")
         self.files_folder = root_path + "/" + ip.run_line_magic("config", "{0}.cache_folder_name".format(Constants.MAGIC_CLASS_NAME))
 
-
     def _get_query_hash_filename(self, query):
-        lines = [l.replace('\r', '').replace('\t',' ').strip() for l in query.split('\n')]
+        lines = [l.replace("\r", "").replace("\t", " ").strip() for l in query.split("\n")]
         q_lines = []
         for line in lines:
-            if not line.startswith('//'):
-                idx = line.find(' //')
-                q_lines.append(line[:idx if idx >= 0 else len(line)])
-        return 'q_' + hashlib.sha1(bytes(''.join(q_lines), 'utf-8')).hexdigest() + '.json'
-
+            if not line.startswith("//"):
+                idx = line.find(" //")
+                q_lines.append(line[: idx if idx >= 0 else len(line)])
+        return "q_" + hashlib.sha1(bytes("".join(q_lines), "utf-8")).hexdigest() + ".json"
 
     def _get_file_path(self, query, database_at_cluster):
         """ get the file name from the query string.
         if query string ends with the '.json' extension it returns the string
         otherwise it computes it from the query
         """
-        file_name = query if query.strip().endswith('.json') else self._get_query_hash_filename(query)
-        database_name, cluster_name = database_at_cluster.split('_at_')
+        file_name = query if query.strip().endswith(".json") else self._get_query_hash_filename(query)
+        database_name, cluster_name = database_at_cluster.split("_at_")
         folder_path = self._get_folder_path(database_name, cluster_name)
-        filen_path = folder_path + '/' + file_name
-        return filen_path.replace('\\', '/')
-
+        filen_path = folder_path + "/" + file_name
+        return filen_path.replace("\\", "/")
 
     def _get_folder_path(self, database_name, cluster_name, **kwargs):
         if not os.path.exists(self.files_folder):
@@ -65,14 +60,12 @@ class CacheClient(object):
             os.makedirs(database_folder_name)
         return database_folder_name
 
-
     def _get_endpoint_version(self, json_response):
         try:
-            tables_num = json_response["Tables"].__len__() # pylint: disable=W0612
+            tables_num = json_response["Tables"].__len__()  # pylint: disable=W0612
             return "v1"
         except:
             return "v2"
-
 
     def execute(self, database_at_cluster, query, **kwargs):
         """Executes a query or management command.
@@ -80,9 +73,9 @@ class CacheClient(object):
         :param str query: Query to be executed.
         """
         file_path = self._get_file_path(query, database_at_cluster)
-        str_response = open(file_path, 'r').read()
+        str_response = open(file_path, "r").read()
         json_response = json.loads(str_response)
-        if query.startswith('.') and json_response.get('tables') is not None:
+        if query.startswith(".") and json_response.get("tables") is not None:
             return KqlSchemaResponse(json_response)
         else:
             endpoint_version = self._get_endpoint_version(json_response)
@@ -93,11 +86,10 @@ class CacheClient(object):
         :param str database_at_cluster: name of database and cluster that a folder will be derived that contains all the files with the query results for this specific database.
         :param str query: Query to be executed.
         """
-        database_at_cluster = database + '_at_' + cluster
+        database_at_cluster = database + "_at_" + cluster
         file_path = filepath or self._get_file_path(query, database_at_cluster)
         outfile = open(file_path, "w")
         outfile.write(json.dumps(result.json_response))
         outfile.flush()
         outfile.close()
         return file_path
-

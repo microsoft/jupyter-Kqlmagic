@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import uuid
 import six
@@ -11,11 +11,11 @@ import json
 import adal
 import dateutil.parser
 import requests
+
 # import webbrowser
 from Kqlmagic.constants import Constants, ConnStrKeys
 from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse, KqlError
 from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
- 
 
 
 class DraftClient(object):
@@ -40,7 +40,6 @@ class DraftClient(object):
     _API_VERSION = "v1"
     _GET_SCHEMA_QUERY = ".show schema"
 
-
     def __init__(self, conn_kv: dict, domain: str, data_source: str):
         self._domain = domain
         self._data_source = data_source
@@ -48,7 +47,7 @@ class DraftClient(object):
         if self._appkey is None:
             self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID)
 
-    def execute(self, id: str, query: str, accept_partial_results: bool =False, timeout=None) -> object:
+    def execute(self, id: str, query: str, accept_partial_results: bool = False, timeout=None) -> object:
         """ Execute a simple query or a metadata query
         
         Parameters
@@ -82,11 +81,7 @@ class DraftClient(object):
         #
 
         is_metadata = query == self._GET_SCHEMA_QUERY
-        api_url = "{0}/{1}/{2}/{3}/{4}".format(
-            self._data_source,
-            self._API_VERSION,
-            self._domain, id,
-            "metadata" if is_metadata else "query")
+        api_url = "{0}/{1}/{2}/{3}/{4}".format(self._data_source, self._API_VERSION, self._domain, id, "metadata" if is_metadata else "query")
 
         #
         # create Prefer header
@@ -94,7 +89,7 @@ class DraftClient(object):
 
         prefer_list = []
         if self._API_VERSION != "beta":
-            prefer_list.append("ai.response-thinning=false") # returns data as kusto v1
+            prefer_list.append("ai.response-thinning=false")  # returns data as kusto v1
         if timeout is not None:
             prefer_list.append("wait={0}".format(timeout))
 
@@ -127,7 +122,7 @@ class DraftClient(object):
         # handle response
         #
 
-        if response.status_code != requests.codes.ok: # pylint: disable=E1101
+        if response.status_code != requests.codes.ok:  # pylint: disable=E1101
             raise KqlError([response.text], response)
 
         json_response = response.json()
@@ -141,4 +136,3 @@ class DraftClient(object):
             raise KqlError(kql_response.get_exceptions(), response, kql_response)
 
         return kql_response
-

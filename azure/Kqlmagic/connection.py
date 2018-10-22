@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import os
 from Kqlmagic.kql_engine import KqlEngineError
@@ -34,7 +34,7 @@ class Connection(object):
         if connect_str is not None:
             parts = connect_str.split("://", 1)
             if len(parts) == 2:
-                return  cls._ENGINE_MAP.get(parts[0].lower())
+                return cls._ENGINE_MAP.get(parts[0].lower())
 
     @classmethod
     def tell_format(cls, connect_str):
@@ -47,7 +47,7 @@ class Connection(object):
         msg = """connection string, examples:{0}
                or an existing connection: {1}
                    """.format(
-            ''.join(strs), str(lsts)
+            "".join(strs), str(lsts)
         )
         return msg
 
@@ -61,7 +61,7 @@ class Connection(object):
                 engine = KustoEngine
             else:
                 valid_prefixes_str = ", ".join(["{0}://".format(s) for s in self._ENGINE_MAP.keys()])
-                raise KqlEngineError('invalid connection_str, unknown <uri schema name>. valid prefixes are: {0}'.format(valid_prefixes_str))
+                raise KqlEngineError("invalid connection_str, unknown <uri schema name>. valid prefixes are: {0}".format(valid_prefixes_str))
 
         last_current = self.last_current_by_engine.get(engine.__name__)
 
@@ -82,7 +82,7 @@ class Connection(object):
                 alias = None
             conn_engine = Connection._get_kusto_database_engine(database_name, cluster_name, alias)
 
-        if kwargs.get('use_cache') and engine != CacheEngine:
+        if kwargs.get("use_cache") and engine != CacheEngine:
             conn_engine = CacheEngine(conn_engine, last_current)
         Connection._set_current(conn_engine)
 
@@ -98,7 +98,7 @@ class Connection(object):
             raise KqlEngineError(
                 'invalid connection_str, connection_str pattern "database@cluster" can be used only after a previous connection was established to a cluster'
             )
-        details = {ConnStrKeys.DATABASE: database_name, ConnStrKeys.CLUSTER:cluster_name, ConnStrKeys.ALIAS: alias}
+        details = {ConnStrKeys.DATABASE: database_name, ConnStrKeys.CLUSTER: cluster_name, ConnStrKeys.ALIAS: alias}
         return KustoEngine(details, conn_class=Connection)
 
     @classmethod

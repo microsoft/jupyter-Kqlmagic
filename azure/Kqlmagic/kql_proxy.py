@@ -1,8 +1,8 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import six
 import json
@@ -161,12 +161,12 @@ class KqlTableResponse(object):
             elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
                 pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
                 # NA type promotion
-                if pandas_type ==  "int64":
+                if pandas_type == "int64":
                     for i in range(0, len(frame[col_name])):
                         if frame[col_name][i] is None:
                             pandas_type = "float64"
                             break
-                elif pandas_type ==  "bool":
+                elif pandas_type == "bool":
                     for i in range(0, len(frame[col_name])):
                         if frame[col_name][i] is None:
                             pandas_type = "object"
@@ -201,8 +201,6 @@ class KqlTableResponse(object):
         "Guid": "object",
         "TimeSpan": "object",
     }
-
-
 
 
 class FakeResultProxy(object):

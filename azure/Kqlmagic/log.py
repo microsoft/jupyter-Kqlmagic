@@ -1,13 +1,14 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 import logging
 import uuid
 import traceback
 from Kqlmagic.constants import Constants
+
 
 def create_log_context(correlation_id=None):
     return {"correlation_id": correlation_id or str(uuid.uuid4())}

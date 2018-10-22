@@ -33,5 +33,7 @@ class ConnStrKeys(object):
     DATABASE = "database"
     WORKSPACE = "workspace"
     APPID = "appid"
+    FOLDER = "folder"
+
 
     ALIAS = "alias"

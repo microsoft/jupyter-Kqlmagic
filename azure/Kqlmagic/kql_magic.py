@@ -359,7 +359,7 @@ class Kqlmagic(Magics, Configurable):
         logger().debug("To Parsed: \n\rline: {}\n\rcell:\n\r{}".format(line, cell))
         try:
             parsed = None
-            parsed_queries = Parser.parse("%s\n%s" % (line, cell), self)
+            parsed_queries = Parser.parse("%s\n%s" % (line, cell), self, user_ns)
             logger().debug("Parsed: {}".format(parsed_queries))
             result = None
             for parsed in parsed_queries:

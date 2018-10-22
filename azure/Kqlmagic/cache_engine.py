@@ -16,18 +16,14 @@ from Kqlmagic.constants import ConnStrKeys
 class CacheEngine(KqlEngine):
     _URI_SCHEMA_NAME = "cache"
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "file"]
-    _MANDATORY_KEY = ConnStrKeys.DATABASE
-    _VALID_KEYS_COMBINATIONS = [[ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS]]
+    _MANDATORY_KEY = ConnStrKeys.FOLDER
+    _VALID_KEYS_COMBINATIONS = [[ConnStrKeys.FOLDER, ConnStrKeys.ALIAS]]
 
     @classmethod
     def tell_format(cls):
         return """
-               cache://cluster('clustername').database('databasename')
-               cache://database('databasename')
-                     # Note: current cluster is attached
-               cache://cluster('clustername')
-                     # Note: not enough for to submit a query, set current clustername
-               """
+               {0}://{1}='<foldername>'
+               """.format(cls._URI_SCHEMA_NAME, ConnStrKeys.FOLDER)
 
     # Object constructor
     def __init__(self, conn_str, current=None, **kwargs):
@@ -36,19 +32,14 @@ class CacheEngine(KqlEngine):
         self.kql_engine = None
         if isinstance(conn_str, KqlEngine):
             self.kql_engine = conn_str
-            database_name = self.kql_engine.get_database()
-            cluster_name = self.kql_engine.get_cluster()
-            conn_str = "{0}://cluster('{1}').database('{2}')".format(self._URI_SCHEMA_NAME, cluster_name, database_name)
+            folder_name = conn_str.get_database() + "_at_" + conn_str.get_cluster()
+            conn_str = "{0}://{1}='{2}'".format(self._URI_SCHEMA_NAME, ConnStrKeys.FOLDER, folder_name)
         self._parsed_conn = self._parse_common_connection_str(
             conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS
         )
-        self.database_name = self.database_name + "_at_" + self.cluster_name
-        self.cluster_name = self._URI_SCHEMA_NAME
         self.client = CacheClient()
 
-        database = self.get_database()
-        database_name, cluster_name = database.split("_at_")
-        folder_path = self.client._get_folder_path(database_name, cluster_name)
+        folder_path = self.client._get_folder_path(self.get_database())
         validation_file_path = folder_path + "/" + "validation_file.json"
         if not os.path.exists(validation_file_path):
             outfile = open(validation_file_path, "w")

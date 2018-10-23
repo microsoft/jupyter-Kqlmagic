@@ -26,7 +26,7 @@ class CacheEngine(KqlEngine):
                """.format(cls._URI_SCHEMA_NAME, ConnStrKeys.FOLDER)
 
     # Object constructor
-    def __init__(self, conn_str, current=None, **kwargs):
+    def __init__(self, conn_str, user_ns: dict, current=None, **kwargs):
         super().__init__()
         self._parsed_conn = {}
         self.kql_engine = None
@@ -35,7 +35,7 @@ class CacheEngine(KqlEngine):
             folder_name = conn_str.get_database() + "_at_" + conn_str.get_cluster()
             conn_str = "{0}://{1}='{2}'".format(self._URI_SCHEMA_NAME, ConnStrKeys.FOLDER, folder_name)
         self._parsed_conn = self._parse_common_connection_str(
-            conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS
+            conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS, user_ns
         )
         self.client = CacheClient()
 

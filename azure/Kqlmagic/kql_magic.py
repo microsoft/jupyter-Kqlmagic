@@ -34,12 +34,15 @@ from Kqlmagic.display import Display
 from Kqlmagic.database_html import Database_html
 from Kqlmagic.help_html import Help_html
 from Kqlmagic.kusto_engine import KustoEngine
+from Kqlmagic.ai_engine import AppinsightsEngine
+from Kqlmagic.la_engine import LoganalyticsEngine
 from Kqlmagic.kql_engine import KqlEngineError
 from Kqlmagic.palette import Palettes, Palette
 from Kqlmagic.cache_engine import CacheEngine
 from Kqlmagic.cache_client import CacheClient
 
 _MAGIC_NAME = "kql"
+_ENGINES = [KustoEngine, AppinsightsEngine, LoganalyticsEngine, CacheEngine]
 
 
 @magics_class
@@ -116,7 +119,6 @@ class Kqlmagic(Magics, Configurable):
     add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
     cache = Bool(False, config=True, help="Cache query results.")
     use_cache = Bool(False, config=True, help="use cached query results, instead of executing the query.")
-    params_dict = Unicode(None, config=True, allow_none=True, help="paremeters dictionary name, if None, python shell user namespace will be used.")
 
     @validate("palette_name")
     def _valid_value_palette_name(self, proposal):
@@ -230,7 +232,7 @@ class Kqlmagic(Magics, Configurable):
                 pass
 
         _override_default_configuration(ip, load_mode)
-        root_path = ip.starting_dir.replace("\\", "/")
+        root_path = os.path.normpath(ip.starting_dir)
 
         folder_name = ip.run_line_magic("config", "{0}.temp_folder_name".format(Constants.MAGIC_CLASS_NAME))
         showfiles_folder_Full_name = root_path + "/" + folder_name
@@ -359,7 +361,7 @@ class Kqlmagic(Magics, Configurable):
         logger().debug("To Parsed: \n\rline: {}\n\rcell:\n\r{}".format(line, cell))
         try:
             parsed = None
-            parsed_queries = Parser.parse("%s\n%s" % (line, cell), self, user_ns)
+            parsed_queries = Parser.parse("%s\n%s" % (line, cell), self, _ENGINES, user_ns)
             logger().debug("Parsed: {}".format(parsed_queries))
             result = None
             for parsed in parsed_queries:
@@ -392,7 +394,7 @@ class Kqlmagic(Magics, Configurable):
         if self.notebook_app != "jupyterlab":
             display(Javascript("""IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");"""))
 
-    def execute_query(self, parsed, user_ns, result_set=None):
+    def execute_query(self, parsed, user_ns: dict, result_set=None):
         if Help_html.showfiles_base_url is None:
             window_location = user_ns.get("NOTEBOOK_URL")
             if window_location is not None:
@@ -455,7 +457,7 @@ class Kqlmagic(Magics, Configurable):
             #
             # set connection
             #
-            conn = Connection.get_connection(connection_string, **options)
+            conn = Connection.get_connection(connection_string, user_ns, **options)
 
         # parse error
         except KqlEngineError as e:
@@ -497,7 +499,7 @@ class Kqlmagic(Magics, Configurable):
                     cluster_name = conn.get_cluster()
                     uri_schema_name = conn._URI_SCHEMA_NAME
                     connection_string = "{0}://code().cluster('{1}').database('{2}')".format(uri_schema_name, cluster_name, database_name)
-                    conn = Connection.get_connection(connection_string, **options)
+                    conn = Connection.get_connection(connection_string, user_ns, **options)
                     conn.validate(**options)
                     conn.set_validation_result(True)
 
@@ -528,8 +530,8 @@ class Kqlmagic(Magics, Configurable):
             #
             start_time = time.time()
 
-            params_dict_name = options.get("params_dict")
-            dictionary = user_ns.get(params_dict_name) if params_dict_name is not None and len(params_dict_name) > 0 else user_ns
+            params_dict_str = options.get("params_dict")
+            dictionary = eval(params_dict_str) if params_dict_str is not None and len(params_dict_str) > 0 else user_ns
             parametrized_query = Parameterizer(dictionary).expand(query) if result_set is None else result_set.parametrized_query
             raw_query_result = conn.execute(parametrized_query, user_ns, **options)
 

@@ -26,7 +26,7 @@ class CacheClient(object):
         """
 
         ip = get_ipython()  # pylint: disable=E0602
-        root_path = ip.starting_dir.replace("\\", "/")
+        root_path = os.path.normpath(ip.starting_dir)
         self.files_folder = root_path + "/" + ip.run_line_magic("config", "{0}.cache_folder_name".format(Constants.MAGIC_CLASS_NAME))
 
     def _get_query_hash_filename(self, query):
@@ -46,7 +46,7 @@ class CacheClient(object):
         file_name = query if query.strip().endswith(".json") else self._get_query_hash_filename(query)
         folder_path = self._get_folder_path(database_at_cluster)
         file_path = folder_path + "/" + file_name
-        return file_path.replace("\\", "/")
+        return os.path.normpath(file_path)
 
     def _get_folder_path(self, database_at_cluster, **kwargs):
         if "_at_" in database_at_cluster:
@@ -58,7 +58,7 @@ class CacheClient(object):
                 os.makedirs(cluster_folder_name)
             database_folder_name = cluster_folder_name + "/" + database_name
         else:
-            database_folder_name = database_at_cluster.replace("\\", "/")
+            database_folder_name = os.path.normpath(database_at_cluster)
 
         if not os.path.exists(database_folder_name):
             os.makedirs(database_folder_name)
@@ -91,7 +91,7 @@ class CacheClient(object):
         :param str query: Query to be executed.
         """
         if filepath is not None:
-            file_path = filepath.replace("\\", "/")
+            file_path = os.path.normpath(filepath)
             parts = file_path.split("/")
             folder_parts = []
             for part in parts[:-1]:

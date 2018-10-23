@@ -8,6 +8,7 @@ import getpass
 from Kqlmagic.kql_proxy import KqlResponse
 import functools
 from Kqlmagic.constants import ConnStrKeys
+from Kqlmagic.parser import Parser
 
 
 class KqlEngine(object):
@@ -97,10 +98,17 @@ class KqlEngine(object):
     _SHOULD_BE_NULL_KEYS = {ConnStrKeys.CODE}
 
     def _parse_common_connection_str(
-        self, conn_str: str, current, uri_schema_name, mandatory_key: str, alt_names: list, valid_keys_combinations: list
+        self, conn_str: str, current, uri_schema_name, mandatory_key: str, alt_names: list, valid_keys_combinations: list, user_ns: dict
     ):
+        # parse schema part
+        parts = conn_str.split("://",1)
+        if len(parts) != 2 or parts[0] not in alt_names:
+            raise KqlEngineError('invalid connection string, must be prefixed by a valid "<uri schema name>://"')
+
+        rest = conn_str[len(parts[0])+3:].strip()
+
         # get key/values in connection string
-        parsed_conn_kv = self._parse_and_get_connection_keys(conn_str, uri_schema_name, alt_names)
+        parsed_conn_kv = Parser.parse_and_get_kv_string(rest, user_ns)
 
         # In case certificate_pem_file was specified instead of certificate.
         pem_file_name = parsed_conn_kv.get(ConnStrKeys.CERTIFICATE_PEM_FILE)
@@ -175,10 +183,10 @@ class KqlEngine(object):
         # make sure that all required keys are with proper value
         for key in matched_keys_set:  # .difference(secret_key_set).difference(self._SHOULD_BE_NULL_KEYS):
             if key in self._SHOULD_BE_NULL_KEYS:
-                if parsed_conn_kv[key] != "<{0}>".format(key):
+                if parsed_conn_kv[key] != "":
                     raise KqlEngineError("invalid connection string, key {0} must be empty.".format(key))
             elif key not in self._SECRET_KEYS:
-                if parsed_conn_kv[key] == "<{0}>".format(key):
+                if parsed_conn_kv[key] == "<{0}>".format(key) or parsed_conn_kv[key] =="":
                     raise KqlEngineError("invalid connection string, key {0} cannot be empty or set to <{1}>.".format(key, key))
 
         # in case secret is missing, get it from user
@@ -198,103 +206,6 @@ class KqlEngine(object):
                 bind_url.append("{0}('{1}')".format(key, parsed_conn_kv.get(key)))
         self.bind_url = "{0}://".format(uri_schema_name) + ".".join(bind_url)
         return parsed_conn_kv
-
-    def _parse_and_get_connection_keys(self, conn_str: str, uri_schema_name, alt_names: list):
-        prefix = "{0}://".format(uri_schema_name)
-        for n in alt_names:
-            if conn_str.startswith(n):
-                prefix = "{0}://".format(n)
-
-        if not conn_str.startswith(prefix):
-            raise KqlEngineError('invalid connection string, must be prefixed by a valid "<uri schema name>://"')
-
-        matched_kv = {}
-        rest = conn_str[len(prefix) :].strip()
-        delimiter_required = False
-        lp_idx = rest.find("(")
-        eq_idx = rest.find("=")
-        sc_idx = rest.find(";")
-        l_char = "(" if eq_idx < 0 and sc_idx < 0 else "=" if lp_idx < 0 else "(" if lp_idx < eq_idx and lp_idx < sc_idx else "="
-        r_char = ")" if l_char == "(" else ";"
-        extra_delimiter = None if r_char == ";" else "."
-
-        while len(rest) > 0:
-            l_idx = rest.find(l_char)
-            r_idx = rest.find(r_char)
-            if l_idx < 0:
-                if l_char == "(":
-                    # string ends with delimiter
-                    if extra_delimiter is not None and extra_delimiter == rest:
-                        break
-                    else:
-                        raise KqlEngineError("invalid connection string, missing left parethesis.")
-                # key only at end of string
-                elif r_idx < 0:
-                    key = rest
-                    val = ""
-                    rest = ""
-                # key only
-                else:
-                    key = rest[:r_idx].strip()
-                    val = ""
-                    rest = rest[r_idx + 1 :].strip()
-            # key only
-            elif r_idx >= 0 and r_idx < l_idx:
-                if l_char == "(":
-                    raise KqlEngineError("invalid connection string, missing left parethesis.")
-                else:
-                    key = rest[:r_idx].strip()
-                    val = ""
-                    rest = rest[r_idx + 1 :].strip()
-            # key and value
-            else:
-                key = rest[:l_idx].strip()
-                rest = rest[l_idx + 1 :].strip()
-                r_idx = rest.find(r_char)
-                if r_idx < 0:
-                    if l_char == "(":
-                        raise KqlEngineError("invalid connection string, missing right parethesis.")
-                    else:
-                        val = rest
-                        rest = ""
-                else:
-                    val = rest[:r_idx].strip()
-                    rest = rest[r_idx + 1 :].strip()
-                if extra_delimiter is not None:
-                    if key.startswith(extra_delimiter):
-                        key = key[1:].strip()
-                    elif delimiter_required:
-                        raise KqlEngineError("invalid connection string, missing delimiter.")
-                    delimiter_required = True
-
-            # key exist
-            if len(key) > 0:
-                if val == "":
-                    val = "<{0}>".format(key)
-                elif val.startswith("'"):
-                    if len(val) >= 2 and val.endswith("'"):
-                        val = val[1:-1]
-                    else:
-                        raise KqlEngineError("invalid connection string.")
-                elif val.startswith('"'):
-                    if len(val) >= 2 and val.endswith('"'):
-                        val = val[1:-1]
-                    else:
-                        raise KqlEngineError("invalid connection string.")
-                elif val.startswith('"""'):
-                    if len(val) >= 6 and val.endswith('"""'):
-                        val = val[3:-3]
-                    else:
-                        raise KqlEngineError("invalid connection string.")
-                matched_kv[key] = val
-            # no key but value exist
-            elif len(val) > 0:
-                raise KqlEngineError("invalid connection string, missing key.")
-            # no key, no value in parenthesis mode
-            elif l_char == "(":
-                raise KqlEngineError("invalid connection string, missing key.")
-
-        return matched_kv
 
     def _validate_connection_delimiter(self, require_delimiter, delimiter):
         # delimiter '.' should separate between tokens

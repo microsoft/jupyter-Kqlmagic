@@ -5,27 +5,17 @@
 # --------------------------------------------------------------------------
 
 import itertools
-from os.path import expandvars
+import os
 import six
 from six.moves import configparser as CP
 from Kqlmagic.log import Logger, logger
-from Kqlmagic.kql_engine import KqlEngineError
-from Kqlmagic.kusto_engine import KustoEngine
-from Kqlmagic.ai_engine import AppinsightsEngine
-from Kqlmagic.la_engine import LoganalyticsEngine
-from Kqlmagic.cache_engine import CacheEngine
-
 from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
 
 
 class Parser(object):
-    _ENGINES = [KustoEngine, AppinsightsEngine, LoganalyticsEngine, CacheEngine]
-    _ENGINES_NAME = []
-    for e in _ENGINES:
-        _ENGINES_NAME.extend(e._ALT_URI_SCHEMA_NAMES)
 
     @classmethod
-    def parse(cls, cell, config, user_ns):
+    def parse(cls, cell, config, engines: list, user_ns: dict):
         """Separate input into (connection info, KQL statements, options)"""
 
         parsed_queries = []
@@ -39,7 +29,7 @@ class Parser(object):
         #
         # replace substring of the form $name or ${name}, in windows also %name% if found in env variabes
         #
-        parts[0] = expandvars(parts[0])  # for environment variables
+        # parts[0] = os.path.expandvars(parts[0])  # for environment variables
         sub_parts = parts[0].split("://", 1)
 
         connection = None
@@ -60,7 +50,7 @@ class Parser(object):
             cfg_dict = dict(parser.items(section))
 
             cfg_dict_lower = {k.lower(): v for (k, v) in cfg_dict.items()}
-            for e in cls._ENGINES:
+            for e in engines:
                 if e._MANDATORY_KEY in cfg_dict_lower.keys():
                     all_keys = set(itertools.chain(*e._VALID_KEYS_COMBINATIONS))
                     connection_kv = ["{0}('{1}')".format(k, v) for k, v in cfg_dict_lower.items() if v and k in all_keys]
@@ -70,7 +60,8 @@ class Parser(object):
         #
         # connection specified starting with one of the supported prefixes
         #
-        elif len(sub_parts) == 2 and sub_parts[0] in cls._ENGINES_NAME:
+        elif len(sub_parts) == 2 and sub_parts[0] in list(itertools.chain(*[e._ALT_URI_SCHEMA_NAMES for e in engines])):
+
             connection = parts[0]
         #
         # connection specified as database@cluster
@@ -113,9 +104,11 @@ class Parser(object):
         #
         for query in queries:
             kql, options = cls._parse_kql_options(query.strip(), config, user_ns)
+            kql = options.pop("query", None) or kql
+            conn = options.pop("conn", None) or connection.strip()
             if suppress_results:
                 options["suppress_results"] = True
-            parsed_queries.append({"connection": connection.strip(), "query": kql, "options": options})
+            parsed_queries.append({"connection": conn, "query": kql, "options": options})
 
         return parsed_queries
 
@@ -167,7 +160,7 @@ class Parser(object):
         "pd": {"abbreviation": "palette_desaturation"},
         "palette_desaturation": {"flag": "palette_desaturation", "type": "float", "config": "config.palette_desaturation"},
         "pn": {"abbreviation": "palette_name"},
-        "params_dict": {"flag": "params_dict", "type": "str", "config": "config.params_dict"},
+        "params_dict": {"flag": "params_dict", "type": "str", "init": "None"},
         "palette_name": {"flag": "palette_name", "type": "str", "config": "config.palette_name"},
         "temp_folder_name": {"flag": "temp_folder_name", "readonly": "True", "config": "config.temp_folder_name"},
         "cache_folder_name": {"flag": "cache_folder_name", "readonly": "True", "config": "config.cache_folder_name"},
@@ -183,9 +176,11 @@ class Parser(object):
         "pr": {"abbreviation": "palette_reverse"},
         "palette_reverse": {"flag": "palette_reverse", "type": "bool", "init": "False"},
         "save_as": {"flag": "save_as", "type": "str", "init": "None"},
+        "query": {"flag": "query", "type": "str", "init": "None"},
+        "conn": {"flag": "conn", "type": "str", "init": "None"},
     }    
     @classmethod
-    def _parse_kql_options(cls, code, config, user_ns):
+    def _parse_kql_options(cls, code, config, user_ns: dict):
         words = code.split()
         options = {}
 
@@ -207,9 +202,9 @@ class Parser(object):
             trimmed_kql = trimmed_kql[trimmed_kql.find("<<") + 2 :]
             first_word += 2
 
-        state = "bool"
+        key_state = True
         for word in words[first_word:]:
-            if state == "bool":
+            if key_state:
                 if not word[0].startswith("-"):
                     break
                 word = word[1:]
@@ -225,43 +220,32 @@ class Parser(object):
                         raise ValueError("option {0} is readony, cannot be set".format(word))
                     if obj.get("abbreviation"):
                         obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
-                    type = obj.get("type")
+                    _type = obj.get("type")
                     key = obj.get("flag")
                     option_config = obj.get("config")
-                    if type == "bool":
+                    if _type == "bool":
                         options[key] = bool_value
                         trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
-                    state = type
+                    else:
+                        if not bool_value:
+                            raise ValueError("option {0} cannot be negated".format(key))
+                        key_state = False
                 else:
                     raise ValueError("unknown option")
-            elif state == "int":
-                if not bool_value:
-                    raise ValueError("option {0} cannot be negated".format(word))
+            else:
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
-                options[key] = int(eval(word, None, user_ns))
-                state = "bool"
-            elif state == "float":
-                if not bool_value:
-                    raise ValueError("option {0} cannot be negated".format(word))
-                trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
-                options[key] = float(eval(word, None, user_ns))
-                state = "bool"
-            elif state == "str":
-                trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
-                if not bool_value:
-                    word = "!" + word
-                options[key] = eval(word, None, user_ns)
-                state = "bool"
+                options[key] = cls.parse_value(word, key, _type, user_ns)
+                key_state = True
             first_word += 1
 
             # validate using config traits
-            if state == "bool" and option_config is not None:
-                template = "'{0}'" if type == "str" else "{0}"
+            if key_state and option_config is not None:
+                template = "'{0}'" if _type == "str" else "{0}"
                 saved = eval(option_config)
                 exec(option_config + "=" + (template.format(str(options[key]).replace("'", "\\'")) if options[key] is not None else "None"))
                 exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else "None"))
 
-        if state != "bool":
+        if not key_state:
             raise ValueError("bad options syntax")
 
         if num_words - first_word > 0:
@@ -270,3 +254,103 @@ class Parser(object):
                 options["suppress_results"] = True
                 trimmed_kql = trimmed_kql[: trimmed_kql.rfind(";")]
         return (trimmed_kql.strip(), options)
+
+    @classmethod
+    def parse_and_get_kv_string(cls, conn_str: str, user_ns: dict):
+
+        matched_kv = {}
+        rest = conn_str
+        delimiter_required = False
+        lp_idx = rest.find("(")
+        eq_idx = rest.find("=")
+        sc_idx = rest.find(";")
+        l_char = "(" if eq_idx < 0 and sc_idx < 0 else "=" if lp_idx < 0 else "(" if lp_idx < eq_idx and lp_idx < sc_idx else "="
+        r_char = ")" if l_char == "(" else ";"
+        extra_delimiter = None if r_char == ";" else "."
+
+        while len(rest) > 0:
+            l_idx = rest.find(l_char)
+            r_idx = rest.find(r_char)
+            if l_idx < 0:
+                if l_char == "(":
+                    # string ends with delimiter
+                    if extra_delimiter is not None and extra_delimiter == rest:
+                        break
+                    else:
+                        raise ValueError("invalid key/value string, missing left parethesis.")
+                # key only at end of string
+                elif r_idx < 0:
+                    key = rest
+                    val = ""
+                    rest = ""
+                # key only
+                else:
+                    key = rest[:r_idx].strip()
+                    val = ""
+                    rest = rest[r_idx + 1 :].strip()
+            # key only
+            elif r_idx >= 0 and r_idx < l_idx:
+                if l_char == "(":
+                    raise ValueError("invalid key/value string, missing left parethesis.")
+                else:
+                    key = rest[:r_idx].strip()
+                    val = ""
+                    rest = rest[r_idx + 1 :].strip()
+            # key and value
+            else:
+                key = rest[:l_idx].strip()
+                rest = rest[l_idx + 1 :].strip()
+                r_idx = rest.find(r_char)
+                if r_idx < 0:
+                    if l_char == "(":
+                        raise ValueError("invalid key/value string, missing right parethesis.")
+                    else:
+                        val = rest
+                        rest = ""
+                else:
+                    val = rest[:r_idx].strip()
+                    rest = rest[r_idx + 1 :].strip()
+                if extra_delimiter is not None:
+                    if key.startswith(extra_delimiter):
+                        key = key[1:].strip()
+                    elif delimiter_required:
+                        raise ValueError("invalid key/value string, missing delimiter.")
+                    delimiter_required = True
+
+            # key exist
+            if len(key) > 0:
+                val = cls.parse_value(val, key, "str", user_ns)
+                matched_kv[key] = val
+            # no key but value exist
+            elif len(val) > 0:
+                raise ValueError("invalid key/value string, missing key.")
+            # no key, no value in parenthesis mode
+            elif l_char == "(":
+                raise ValueError("invalid key/value string, missing key.")
+
+        return matched_kv
+
+    @classmethod
+    def parse_value(cls, value: str, key: str, _type: str, user_ns: dict):
+        try:
+            if value == "" and _type == "str":
+                return value
+            if value.startswith('$'):
+                val = os.getenv(value[1:])
+            else:
+                val = eval(value, None, user_ns)
+
+            # check value if of the right type
+            if _type == "int":
+                if float(val) != int(val):
+                    raise ValueError
+                return int(val)                 
+            elif _type == "float":
+                return float(val)
+            elif _type == "bool":
+                if bool(val) != int(val):
+                    raise ValueError
+                return bool(val)
+            return str(val)
+        except:
+            raise ValueError("failed to set {0}, due to invalid {1} value {2}.".format(key, _type, value))

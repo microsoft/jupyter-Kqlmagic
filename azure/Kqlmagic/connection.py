@@ -52,7 +52,7 @@ class Connection(object):
         return msg
 
     # Object constructor
-    def __init__(self, connect_str, **kwargs):
+    def __init__(self, connect_str, user_ns:dict, **kwargs):
 
         engine = self._get_engine(connect_str)
         # wasn't found in connection list, but maybe a kusto database connection
@@ -66,13 +66,13 @@ class Connection(object):
         last_current = self.last_current_by_engine.get(engine.__name__)
 
         if engine != KustoEngine:
-            conn_engine = engine(connect_str, last_current)
+            conn_engine = engine(connect_str, user_ns, last_current)
         else:
             if "://" in connect_str:
                 if last_current:
                     last_cluster_name = last_current.get_cluster()
                     last_current = self.connections.get("@" + last_cluster_name)
-                cluster_conn_engine = engine(connect_str, last_current)
+                cluster_conn_engine = engine(connect_str, user_ns, last_current)
                 cluster_name = cluster_conn_engine.get_cluster()
                 Connection._set_current(cluster_conn_engine, conn_name="@" + cluster_name)
                 database_name = cluster_conn_engine.get_database()
@@ -80,14 +80,14 @@ class Connection(object):
             else:
                 database_name, cluster_name = connect_str.split("@")
                 alias = None
-            conn_engine = Connection._get_kusto_database_engine(database_name, cluster_name, alias)
+            conn_engine = Connection._get_kusto_database_engine(database_name, cluster_name, alias, user_ns)
 
         if kwargs.get("use_cache") and engine != CacheEngine:
-            conn_engine = CacheEngine(conn_engine, last_current)
+            conn_engine = CacheEngine(conn_engine, user_ns, last_current)
         Connection._set_current(conn_engine)
 
     @classmethod
-    def _get_kusto_database_engine(cls, database_name, cluster_name, alias):
+    def _get_kusto_database_engine(cls, database_name, cluster_name, alias, user_ns: dict):
         if cluster_name in cls._ENGINE_MAP.keys():
             raise KqlEngineError(
                 'invalid connection_str, connection_str pattern "database@cluster" cannot be used for "appinsights", "loganalytics" and "cache"'
@@ -99,7 +99,7 @@ class Connection(object):
                 'invalid connection_str, connection_str pattern "database@cluster" can be used only after a previous connection was established to a cluster'
             )
         details = {ConnStrKeys.DATABASE: database_name, ConnStrKeys.CLUSTER: cluster_name, ConnStrKeys.ALIAS: alias}
-        return KustoEngine(details, conn_class=Connection)
+        return KustoEngine(details, user_ns, conn_class=Connection)
 
     @classmethod
     def _set_current(cls, conn_engine, conn_name=None):
@@ -118,14 +118,14 @@ class Connection(object):
         return cls.connections.get(name)
 
     @classmethod
-    def get_connection(cls, descriptor, **kwargs):
+    def get_connection(cls, descriptor, user_ns, **kwargs):
         "Sets the current database connection"
         if descriptor:
             if isinstance(descriptor, Connection):
                 cls.current = descriptor
             else:
                 # either exist or create a new one
-                cls.current = cls.connections.get(descriptor) or Connection(descriptor, **kwargs).current
+                cls.current = cls.connections.get(descriptor) or Connection(descriptor, user_ns, **kwargs).current
         elif not cls.current:
             raise ConnectionError("No current connection set yet.")
         cls.last_current_by_engine[cls.current.__class__.__name__] = cls.current

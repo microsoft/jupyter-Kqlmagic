@@ -9,7 +9,8 @@ import time
 import logging
 
 
-from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version
+from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version, execute_version_command
+from Kqlmagic.help import execute_usage_command, execute_help_command, execute_faq_command
 from Kqlmagic.constants import Constants
 
 logging.getLogger(Constants.LOGGER_NAME).addHandler(logging.NullHandler())
@@ -365,7 +366,21 @@ class Kqlmagic(Magics, Configurable):
             logger().debug("Parsed: {}".format(parsed_queries))
             result = None
             for parsed in parsed_queries:
-                result = self.execute_query(parsed, user_ns)
+                command = parsed["command"].get("command")
+                if command is None or command == "submit":
+                    result = self.execute_query(parsed, user_ns)
+                elif command == "version":
+                    result = execute_version_command()
+                elif command == "usage":
+                    result = execute_usage_command()
+                elif command == "faq":
+                    result = execute_faq_command()
+                elif command == "help":
+                    param = parsed["command"].get("param")
+                    result = execute_help_command(param)
+                else:
+                    raise ValueError("command {0} not implemented".format(command))
+                   
             return result
         except Exception as e:
             if parsed:
@@ -567,6 +582,9 @@ class Kqlmagic(Magics, Configurable):
 
             saved_result.metadata["start_time"] = start_time
             saved_result.metadata["end_time"] = end_time
+
+            if saved_result.is_partial_table and not suppress_results:
+                Display.showWarningMessage("partial results, query had errors (see {0}.dataSetCompletion)".format(options.get("last_raw_result_var")))
 
             if options.get("feedback", self.feedback):
                 minutes, seconds = divmod(end_time - start_time, 60)

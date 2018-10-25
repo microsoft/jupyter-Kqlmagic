@@ -19,12 +19,21 @@ class Parser(object):
         """Separate input into (connection info, KQL statements, options)"""
 
         parsed_queries = []
-        # split to max 2 parts. First part, parts[0], is the first string.
+        cell, command = cls._parse_kql_command(cell, user_ns)
+        if len(command) > 0 and command.get("command") != "submit":
+            if cell: 
+                raise ValueError("command {0} has too many parameters".format(command.get("command")))
+            parsed_queries.append({"connection": "", "query": "", "options": {}, "command": command})
+            return parsed_queries
+
+         # split to max 2 parts. First part, parts[0], is the first string.
         parts = [part.strip() for part in cell.split(None, 1)]
+
         # print(parts)
         if not parts:
-            parsed_queries.append({"connection": "", "query": "", "options": {}})
+            parsed_queries.append({"connection": "", "query": "", "options": {}, "command": {}})
             return parsed_queries
+        
 
         #
         # replace substring of the form $name or ${name}, in windows also %name% if found in env variabes
@@ -108,9 +117,40 @@ class Parser(object):
             conn = options.pop("conn", None) or connection.strip()
             if suppress_results:
                 options["suppress_results"] = True
-            parsed_queries.append({"connection": conn, "query": kql, "options": options})
+            parsed_queries.append({"connection": conn, "query": kql, "options": options, "command": {}})
 
         return parsed_queries
+
+    _COMMANDS_TABLE = {
+        "version" : {"flag": "version", "type": "bool", "init": "False"},
+        "usage" : {"flag": "usage", "type": "bool", "init": "False"},
+        "submit" : {"flag": "submit", "type": "bool", "init": "False"}, # default
+        "help" : {"flag": "usage", "type": "str", "init": "None"},
+        "faq": {"flag": "faq", "type": "bool", "init": "False"},
+    }
+    @classmethod
+    def _parse_kql_command(cls, code, user_ns: dict):
+        if not code.strip().startswith("--"):
+            return (code.strip(), {})
+        words = code.split()
+        command = words[0][2:]
+        obj = cls._COMMANDS_TABLE.get(command)
+        if obj is None:
+            raise ValueError("unknown command")
+
+        trimmed_code = code
+        trimmed_code = trimmed_code[trimmed_code.find(words[0]) + len(words[0]) :]
+
+        _type = obj.get("type")
+        if _type == "bool":
+            param = True 
+        elif len(words) >= 2:
+            param = cls.parse_value(words[1], command, _type, user_ns)
+            trimmed_code = trimmed_code[trimmed_code.find(words[1]) + len(words[1]) :]
+        else:
+            raise ValueError("command {0} is missing parameter".format(command))
+
+        return (trimmed_code.strip(), {"command": command, "param": param})
 
     _OPTIONS_TABLE = {
         "ad": {"abbreviation": "auto_dataframe"},
@@ -151,12 +191,6 @@ class Parser(object):
         "auto_popup_schema": {"flag": "auto_popup_schema", "type": "bool", "config": "config.auto_popup_schema"},
         "jd": {"abbreviation": "json_display"},
         "json_display": {"flag": "json_display", "type": "str", "config": "config.json_display"},
-        "ph": {"abbreviation": "popup_help"},
-        "popup_help": {"flag": "popup_help", "type": "bool", "init": "False"},
-        "ps": {"abbreviation": "popup_schema"},
-        "popup_schema": {"flag": "popup_schema", "type": "bool", "init": "False"},
-        "pc": {"abbreviation": "palette_colors"},
-        "palette_colors": {"flag": "palette_colors", "type": "int", "config": "config.palette_colors"},
         "pd": {"abbreviation": "palette_desaturation"},
         "palette_desaturation": {"flag": "palette_desaturation", "type": "float", "config": "config.palette_desaturation"},
         "pn": {"abbreviation": "palette_name"},
@@ -170,20 +204,28 @@ class Parser(object):
         "add_schema_to_help": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
         "cache": {"flag": "cache", "readonly": "True", "config": "config.cache"},
         "use_cache": {"flag": "use_cache", "readonly": "True", "config": "config.use_cache"},
-        "version": {"flag": "version", "type": "bool", "init": "False"},
-        "palette": {"flag": "palette", "type": "bool", "init": "False"},
-        "popup_palettes": {"flag": "popup_palettes", "type": "bool", "init": "False"},
-        "pr": {"abbreviation": "palette_reverse"},
-        "palette_reverse": {"flag": "palette_reverse", "type": "bool", "init": "False"},
         "save_as": {"flag": "save_as", "type": "str", "init": "None"},
         "query": {"flag": "query", "type": "str", "init": "None"},
         "conn": {"flag": "conn", "type": "str", "init": "None"},
+
+        "pc": {"abbreviation": "palette_colors"},
+        "palette_colors": {"flag": "palette_colors", "type": "int", "config": "config.palette_colors"},
+
+        "version": {"flag": "version", "type": "bool", "init": "False"},
+        "palette": {"flag": "palette", "type": "bool", "init": "False"},
+
+        "ph": {"abbreviation": "popup_help"},
+        "popup_help": {"flag": "popup_help", "type": "bool", "init": "False"},
+        "ps": {"abbreviation": "popup_schema"},
+        "popup_schema": {"flag": "popup_schema", "type": "bool", "init": "False"},
+        "popup_palettes": {"flag": "popup_palettes", "type": "bool", "init": "False"},
+        "pr": {"abbreviation": "palette_reverse"},
+        "palette_reverse": {"flag": "palette_reverse", "type": "bool", "init": "False"},
     }    
     @classmethod
     def _parse_kql_options(cls, code, config, user_ns: dict):
         words = code.split()
         options = {}
-
 
         for value in cls._OPTIONS_TABLE.values():
             if value.get("config"):
@@ -246,7 +288,7 @@ class Parser(object):
                 exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else "None"))
 
         if not key_state:
-            raise ValueError("bad options syntax")
+            raise ValueError("last option is missing parameter")
 
         if num_words - first_word > 0:
             last_word = words[-1].strip()

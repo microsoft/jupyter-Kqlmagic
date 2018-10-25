@@ -30,10 +30,10 @@ INSTALL_REQUIRES    = [
                         'ipython>=7.0.1',
                         'plotly>=3.3.0',
                         'prettytable>=0.7.2',
-                        'matplotlib>=3.0.0',
+                        'matplotlib',
                         'pandas>=0.23.4',
-                        'azure-kusto-data>=0.0.15',
-                        'azure-kusto-ingest>=0.0.15',
+                        'azure-kusto-data==0.0.15',
+                        'azure-kusto-ingest==0.0.15',
                         'adal>=1.1.0',
                         'Pygments>=2.2.0',
                         'seaborn>=0.9.0',
@@ -43,6 +43,8 @@ INSTALL_REQUIRES    = [
                         'psutil',
                         'six>=1.11.0',
                         'setuptools>=40.4.3',
+                        'Markdown',
+                        'beautifulsoup4',
 ]
 
 

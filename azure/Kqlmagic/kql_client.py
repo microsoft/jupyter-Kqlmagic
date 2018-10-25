@@ -55,7 +55,7 @@ class KqlResponseTable(six.Iterator):
             ctype = c["ColumnType"] if "ColumnType" in c else c["DataType"]
             self.index2type_mapping.append(ctype)
         self.row_index = 0
-        self._rows_count = len(self.rows)
+        self._rows_count = sum([1 for r in self.rows if isinstance(r,list)]) # len(self.rows)
         # Here we keep converter functions for each type that we need to take special care (e.g. convert)
         self.converters_lambda_mappings = {
             "datetime": self.to_datetime,
@@ -119,6 +119,10 @@ class KqlResponseTable(six.Iterator):
         return self.index2column_mapping
 
     @property
+    def is_partial(self):
+        return len(self.rows) > self._rows_count
+
+    @property
     def columns_type(self):
         return self.index2type_mapping
 
@@ -164,11 +168,13 @@ class KqlQueryResponse(object):
             self.all_tables = [t for t in json_response if t["FrameType"] == "DataTable"]
             self.tables = [t for t in json_response if t["FrameType"] == "DataTable" and t["TableKind"] == "PrimaryResult"]
             self.primary_results = [KqlResponseTable(t["TableId"], t) for t in self.tables]
+            self.dataSetCompletion = [f for f in json_response if f["FrameType"] == "DataSetCompletion"]
         else:
             self.all_tables = self.json_response["Tables"]
             tables_num = self.json_response["Tables"].__len__()
             last_table = self.json_response["Tables"][tables_num - 1]
             self.tables = [self.json_response["Tables"][r[0]] for r in last_table["Rows"] if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
+            self.dataSetCompletion = []
             if len(self.tables) == 0:
                 self.tables = self.all_tables[:1]
             self.primary_results = [KqlResponseTable(idx, t) for idx, t in enumerate(self.tables)]
@@ -242,6 +248,31 @@ class KqlQueryResponse(object):
         return {}
 
     @property
+    def completion_query_info_results(self):
+        if self.endpoint_version == "v2":
+            for table in self.all_tables:
+                if table["TableName"] == "QueryCompletionInformation":
+                    cols_idx_map = self._map_columns_to_index(table["Columns"])
+                    event_type_name_idx = cols_idx_map.get("EventTypeName")
+                    payload_idx = cols_idx_map.get("Payload")
+                    if event_type_name_idx is not None and payload_idx is not None:
+                        for row in table["Rows"]:
+                            if row[event_type_name_idx] == "QueryInfo":
+                                return json.loads(row[payload_idx])
+        else:
+            tables_num = self.json_response["Tables"].__len__()
+            last_table = self.json_response["Tables"][tables_num - 1]
+            for r in last_table["Rows"]:
+                if r[2] == "QueryStatus":
+                    t = self.json_response["Tables"][r[0]]
+                    for sr in t["Rows"]:
+                        if sr[2] == "Info":
+                            info = {"StatusCode": sr[3], "StatusDescription": sr[4], "Count": sr[5]}
+                            # print('Info: {}'.format(info))
+                            return info
+        return {}
+
+    @property
     def completion_query_resource_consumption_results(self):
         if self.endpoint_version == "v2":
             for table in self.all_tables:
@@ -265,6 +296,10 @@ class KqlQueryResponse(object):
                             # print('stats: {}'.format(stats))
                             return json.loads(stats)
         return {}
+
+    @property
+    def dataSetCompletion_results(self):
+        return self.dataSetCompletion
 
     def _map_columns_to_index(self, columns: list):
         map = {}

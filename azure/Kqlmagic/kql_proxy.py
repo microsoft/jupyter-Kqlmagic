@@ -86,6 +86,7 @@ class KqlResponse(object):
         self.kwargs = kwargs
         self.completion_query_info = response.completion_query_info_results
         self.completion_query_resource_consumption = response.completion_query_resource_consumption_results
+        self.dataSetCompletion = response.dataSetCompletion_results
         self.tables = [KqlTableResponse(t, response.visualization_results.get(t.id, {})) for t in response.primary_results]
 
 
@@ -110,6 +111,9 @@ class KqlTableResponse(object):
 
     def recordscount(self):
         return self.data_table.rows_count
+
+    def ispartial(self):
+        return self.data_table.is_partial
 
     def keys(self):
         return self.data_table.columns_name

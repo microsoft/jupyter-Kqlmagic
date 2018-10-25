@@ -256,6 +256,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self._queryResult = queryResult
         self._completion_query_info = queryResult.completion_query_info
         self._completion_query_resource_consumption = queryResult.completion_query_resource_consumption
+        self._dataSetCompletion = queryResult.dataSetCompletion
         self._json_response = queryResult.json_response
         queryResultTable = queryResult.tables[self.fork_table_id]
         self._dataframe = None
@@ -266,6 +267,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self.field_names = _unduplicate_field_names(self.columns_name)
         self.pretty = PrettyTable(self.field_names, style=self.prettytable_style) if len(self.field_names) > 0 else None
         self.records_count = queryResultTable.recordscount()
+        self.is_partial_table = queryResultTable.ispartial()
         self.visualization = queryResultTable.visualization_property("Visualization")
         self.title = queryResultTable.visualization_property("Title")
         # table
@@ -317,6 +319,10 @@ class ResultSet(list, ColumnGuesserMixin):
     @property
     def completion_query_resource_consumption(self):
         return Display.to_styled_class(self._completion_query_resource_consumption, **self.options)
+
+    @property
+    def dataSetCompletion(self):
+        return Display.to_styled_class(self._dataSetCompletion, **self.options)
 
     # IPython html presentation of the object
     def _repr_html_(self):

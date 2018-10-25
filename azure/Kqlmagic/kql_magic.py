@@ -545,9 +545,8 @@ class Kqlmagic(Magics, Configurable):
             #
             start_time = time.time()
 
-            params_dict_str = options.get("params_dict")
-            dictionary = eval(params_dict_str) if params_dict_str is not None and len(params_dict_str) > 0 else user_ns
-            parametrized_query = Parameterizer(dictionary).expand(query) if result_set is None else result_set.parametrized_query
+            params_dict = options.get("params_dict") or user_ns
+            parametrized_query = Parameterizer(params_dict).expand(query) if result_set is None else result_set.parametrized_query
             raw_query_result = conn.execute(parametrized_query, user_ns, **options)
 
             end_time = time.time()

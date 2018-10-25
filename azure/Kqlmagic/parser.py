@@ -194,7 +194,7 @@ class Parser(object):
         "pd": {"abbreviation": "palette_desaturation"},
         "palette_desaturation": {"flag": "palette_desaturation", "type": "float", "config": "config.palette_desaturation"},
         "pn": {"abbreviation": "palette_name"},
-        "params_dict": {"flag": "params_dict", "type": "str", "init": "None"},
+        "params_dict": {"flag": "params_dict", "type": "dict", "init": "None"},
         "palette_name": {"flag": "palette_name", "type": "str", "config": "config.palette_name"},
         "temp_folder_name": {"flag": "temp_folder_name", "readonly": "True", "config": "config.temp_folder_name"},
         "cache_folder_name": {"flag": "cache_folder_name", "readonly": "True", "config": "config.cache_folder_name"},
@@ -249,34 +249,43 @@ class Parser(object):
             if key_state:
                 if not word[0].startswith("-"):
                     break
+                trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
                 word = word[1:]
-                trimmed_kql = trimmed_kql[trimmed_kql.find("-") + 1 :]
                 bool_value = True
                 if word[0].startswith("!"):
                     bool_value = False
                     word = word[1:]
-                    trimmed_kql = trimmed_kql[trimmed_kql.find("!") + 1 :]
-                if word in cls._OPTIONS_TABLE.keys():
-                    obj = cls._OPTIONS_TABLE.get(word)
-                    if obj.get("readonly"):
-                        raise ValueError("option {0} is readony, cannot be set".format(word))
+                if "=" in word:
+                    parts = word.split("=", 1)
+                    key = parts[0]
+                    value = parts[1]
+                else:
+                    key = word
+                    value = None
+                if key in cls._OPTIONS_TABLE.keys():
+                    obj = cls._OPTIONS_TABLE.get(key)
                     if obj.get("abbreviation"):
                         obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
+                    if obj.get("readonly"):
+                        raise ValueError("option {0} is readony, cannot be set".format(key))
+
                     _type = obj.get("type")
-                    key = obj.get("flag")
+                    opt_key = obj.get("flag")
                     option_config = obj.get("config")
-                    if _type == "bool":
-                        options[key] = bool_value
-                        trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
+                    if _type == "bool" and value is None:
+                        options[opt_key] = bool_value
                     else:
                         if not bool_value:
                             raise ValueError("option {0} cannot be negated".format(key))
-                        key_state = False
+                        if value is not None:
+                            options[opt_key] = cls.parse_value(value, key, _type, user_ns)
+                        else:
+                            key_state = False
                 else:
                     raise ValueError("unknown option")
             else:
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
-                options[key] = cls.parse_value(word, key, _type, user_ns)
+                options[opt_key] = cls.parse_value(word, key, _type, user_ns)
                 key_state = True
             first_word += 1
 
@@ -284,7 +293,7 @@ class Parser(object):
             if key_state and option_config is not None:
                 template = "'{0}'" if _type == "str" else "{0}"
                 saved = eval(option_config)
-                exec(option_config + "=" + (template.format(str(options[key]).replace("'", "\\'")) if options[key] is not None else "None"))
+                exec(option_config + "=" + (template.format(str(options[opt_key]).replace("'", "\\'")) if options[opt_key] is not None else "None"))
                 exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else "None"))
 
         if not key_state:
@@ -374,15 +383,8 @@ class Parser(object):
 
     @classmethod
     def parse_value(cls, value: str, key: str, _type: str, user_ns: dict):
-        try:
-            if value == "" and _type == "str":
-                return value
-            if value.startswith('$'):
-                val = os.getenv(value[1:])
-            else:
-                val = eval(value, None, user_ns)
 
-            # check value if of the right type
+        def _convert(val, _type):
             if _type == "int":
                 if float(val) != int(val):
                     raise ValueError
@@ -393,6 +395,23 @@ class Parser(object):
                 if bool(val) != int(val):
                     raise ValueError
                 return bool(val)
+            elif _type == "dict":
+                return dict(val)
             return str(val)
+
+
+        try:
+            if value == "" and _type == "str":
+                return value
+            if value.startswith('$'):
+                val = os.getenv(value[1:])
+            else:
+                val = eval(value, None, user_ns)
+
+            # check value if of the right type
+            try:
+                return _convert(val, _type)
+            except:
+                return _convert(eval(val), _type)
         except:
             raise ValueError("failed to set {0}, due to invalid {1} value {2}.".format(key, _type, value))

@@ -8,13 +8,25 @@
 """
 
 from Kqlmagic.constants import Constants
-from Kqlmagic.display import Display
 from bs4 import BeautifulSoup
 from markdown import markdown
 
-_HELP_QUERY = ""
-_HELP_CONN = ""
+_KQL_URL = "http://aka.ms/kdocs"
+_APPINSIGHTS_URL= "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-overview?toc=/azure/azure-monitor/toc.json"
+_LOGANALYTICS_URL = "https://docs.microsoft.com/en-us/azure/log-analytics/log-analytics-queries?toc=/azure/azure-monitor/toc.json"
+_AZUREMONITOR_URL = "https://docs.microsoft.com/en-us/azure/azure-monitor/"
+_KUSTO_URL = "https://docs.microsoft.com/en-us/azure/data-explorer/"
+
+_NEED_SUPPORT_SECTION = """## Need Support?
+- **Have a feature request for Kqlmagic?** Please post it on [User Voice](https://feedback.azure.com/forums/913690-azure-monitor) to help us prioritize
+- **Have a technical question?** Ask on [Stack Overflow with tag "Kqlmagic"](https://stackoverflow.com/questions/tagged/Kqlmagic)
+- **Need Support?** Every customer with an active Azure subscription has access to [support](https://docs.microsoft.com/en-us/azure/azure-supportability/how-to-create-azure-support-request) with guaranteed response time.  Consider submitting a ticket and get assistance from Microsoft support team
+- **Found a bug?** Please help us fix it by thoroughly documenting it and [filing an issue](https://github.com/Microsoft/jupyter-Kqlmagic/issues/new).
+"""
+
+
 _HELP_OPTIONS = ""
+
 _HELP_COMMANDS = """## Overview
 Except submitting kql queries, few other commands are included that may help using the Kqlmagic.<br>
 - Only one command can be executed per magic transaction.<br>
@@ -109,23 +121,21 @@ _USAGE = """## Usage:
 
 * [Choose colors palette for your Kqlmagic query chart result](https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FColorYourCharts.ipynb)
 
-## Need Support?
-- **Have a feature request for Kqlmagic?** Please post it on [User Voice](https://feedback.azure.com/forums/913690-azure-monitor) to help us prioritize
-- **Have a technical question?** Ask on [Stack Overflow with tag "Kqlmagic"](https://stackoverflow.com/questions/tagged/Kqlmagic)
-- **Need Support?** Every customer with an active Azure subscription has access to [support](https://docs.microsoft.com/en-us/azure/azure-supportability/how-to-create-azure-support-request) with guaranteed response time.  Consider submitting a ticket and get assistance from Microsoft support team
-- **Found a bug?** Please help us fix it by thoroughly documenting it and [filing an issue](https://github.com/Microsoft/jupyter-Kqlmagic/issues/new).
-"""
+""" +_NEED_SUPPORT_SECTION
 
 _HELP_HELP = """## Overview
-provides help information on a list of topics.
-The folowing topics are supported:
-- **query** - Reference to resources on how to compose kql queries, and more.<br>
-<br>
+Help command is a tool to get more information on a topics that are relevant to Kqlmagic.
+t
+usage: ```%kql --help "topic"```<br>
 
-- **kql** - Reference to resources on how to compose kql queries, and more.<br>
+## Topics
+- **usage** - How to use the Kqlmagic.<br>
 <br>
 
 - **conn** - Lists the available connection string variation, and how their are used to authenticatie to data sources.<br>
+<br>
+
+- **query** / **kql** - [Reference to resources Kusto Queru language, aka kql, documentation](""" +_KQL_URL+ """)<br>
 <br>
 
 - **options** - Lists the available options, and their behavior impact on the submit query command.<br>
@@ -134,21 +144,31 @@ The folowing topics are supported:
 - **commands** - Lists the available commands, and what they do.<br>
 <br>
 
-- **usage** - How to use the Kqlmagic.<br>
-<br>
-
 - **faq** - Lists frequently asked quetions and answers.<br>
 <br>
 
 - **help** - This help.<br>
 <br>
 
-## Need Support?
-- **Have a feature request for Kqlmagic?** Please post it on [User Voice](https://feedback.azure.com/forums/913690-azure-monitor) to help us prioritize
-- **Have a technical question?** Ask on [Stack Overflow with tag "Kqlmagic"](https://stackoverflow.com/questions/tagged/Kqlmagic)
-- **Need Support?** Every customer with an active Azure subscription has access to [support](https://docs.microsoft.com/en-us/azure/azure-supportability/how-to-create-azure-support-request) with guaranteed response time.  Consider submitting a ticket and get assistance from Microsoft support team
-- **Found a bug?** Please help us fix it by thoroughly documenting it and [filing an issue](https://github.com/Microsoft/jupyter-Kqlmagic/issues/new).
-"""
+- **AzureMonitor**- [Reference to resources Azure Monitor tools](""" +_AZUREMONITOR_URL+ """)<br>
+Azure Monitor, which now includes Log Analytics and Application Insights, provides sophisticated tools for collecting and analyzing telemetry that allow you to maximize the performance and availability of your cloud and on-premises resources and applications. It helps you understand how your applications are performing and proactively identifies issues affecting them and the resources they depend on.
+<br>
+
+- **AzureDataExplorer** / **kusto**- [Reference to resources Azure Data Explorer (kusto) service](""" +_KUSTO_URL+ """)<br>
+Azure Data Explorer is a fast and highly scalable data exploration service for log and telemetry data. It helps you handle the many data streams emitted by modern software, so you can collect, store, and analyze data. Azure Data Explorer is ideal for analyzing large volumes of diverse data from any data source, such as websites, applications, IoT devices, and more.
+<br>
+
+- **LogAnalytics**- [Reference to resources Log Analytics service](""" +_LOGANALYTICS_URL+ """)<br>
+Log data collected by Azure Monitor is stored in Log Analytics which collects telemetry and other data from a variety of sources and provides a query language for advanced analytics.
+<br>
+
+- **ApplicationInsights** / **AppInsights**- [Reference to resources Application Insights service](""" +_APPINSIGHTS_URL+ """)<br>
+Application Insights is an extensible Application Performance Management (APM) service for web developers on multiple platforms. Use it to monitor your live web application. It will automatically detect performance anomalies. It includes powerful analytics tools to help you diagnose issues and to understand what users actually do with your app. It's designed to help you continuously improve performance and usability. It works for apps on a wide variety of platforms including .NET, Node.js and J2EE, hosted on-premises or in the cloud. It integrates with your DevOps process, and has connection points to a variety of development tools. It can monitor and analyze telemetry from mobile apps by integrating with Visual Studio App Center.
+<br>
+
+
+""" +_NEED_SUPPORT_SECTION
+
 _HELP_CONN = """## Overview
 - To get data from Azure Monitor data resources, the user need to authenticate itself, and if it has the right permission, 
 he would be able to query that data resource.
@@ -226,11 +246,19 @@ Notes:<br>
 - if secret (password / clientsecret / appkey) is missing, user will be prompted to provide it.<br>
 - if tenant is missing, and a previous connection was established the tenant will be inherited.<br>
 - **a not quoted value, is a python expression, that is evaluated and its result is used as the value. This is how you can parametrize the connection string**
-"""
+
+
+""" +_NEED_SUPPORT_SECTION
 
 _HELP = {
-    "query" : "", # done by url
-    "kql": "",  # done by url
+    "query" : _KQL_URL,
+    "kql": _KQL_URL,
+    "appinsights": _APPINSIGHTS_URL, 
+    "applicationinsights": _APPINSIGHTS_URL,
+    "loganalytics": _LOGANALYTICS_URL,
+    "azuremonitor": _AZUREMONITOR_URL,
+    "kusto": _KUSTO_URL,
+    "azuredataexplorer": _KUSTO_URL,
     "conn" : _HELP_CONN,
     "options" : "",
     "help" : _HELP_HELP,
@@ -239,6 +267,24 @@ _HELP = {
     "cache" : "",
     "faq" : "",
 }
+
+class UrlReference(object):
+    """ A wrapper class that holds a url reference.
+    
+    Parameters
+    ----------
+    name : str
+        Name of the url.
+    url : str
+        Reference url.
+    button : str
+        A string to be presented on a button, that on click will open the url
+
+     """
+    def __init__(self, name: str, url: str, button_text: str):
+        self.name = name
+        self.url = url 
+        self.button_text = button_text
 
 class MarkdownString(object):
     """ A class that holds a markdown string.
@@ -251,10 +297,10 @@ class MarkdownString(object):
 
     # Printable unambiguous presentation of the object
     def __repr__(self):
-        html = self.__repr_html_()
+        html = self._repr_html_()
         return ''.join(BeautifulSoup(html, features="lxml").findAll(text=True))
 
-    def __repr_html_(self):
+    def _repr_html_(self):
         return markdown(self.markdown_string)
 
     def _repr_markdown_(self):
@@ -294,21 +340,12 @@ def execute_help_command(topic: str) -> MarkdownString:
     MarkdownString object
         The help topic string wrapped by an object that enable markdown, html or text display of the topic.
     """
-    if topic in ["query", "kql"]:          
-        help_url = "http://aka.ms/kdocs"
-        # 'https://docs.loganalytics.io/docs/Language-Reference/Tabular-operators'
-        # 'http://aka.ms/kdocs'
-        # 'https://kusdoc2.azurewebsites.net/docs/queryLanguage/query-essentials/readme.html'
-        # import requests
-        # f = requests.get(help_url)
-        # html = f.text.replace('width=device-width','width=500')
-        # Display.show(html, **{"popup_window" : True, 'name': 'KustoQueryLanguage'})
-        button_text = "popup {0} help ".format(topic)
-        Display.show_window(topic, help_url, button_text, onclick_visibility="visible")
-    else:
-        help_topic_string = _HELP.get(topic)
-        if help_topic_string is None:
-            raise ValueError("{0} unknown help topic".format(topic))
-        elif help_topic_string == '':
-            help_topic_string = "Sorry, not implemented yet."
-        return MarkdownString(help_topic_string)
+    help_topic_string = _HELP.get(topic.strip().lower())
+    if help_topic_string is None:
+        raise ValueError("{0} unknown help topic".format(topic))
+    if help_topic_string.startswith("http"):
+        button_text = "popup {0} reference ".format(topic)
+        return UrlReference(topic, help_topic_string, button_text)
+    elif help_topic_string == '':
+        help_topic_string = "Sorry, not implemented yet."
+    return MarkdownString(help_topic_string)

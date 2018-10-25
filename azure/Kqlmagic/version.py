@@ -7,30 +7,11 @@
 """A module that manage package version.
 """
 
-VERSION = "0.1.67"
+VERSION = "0.1.68"
 
 import requests
 from Kqlmagic.constants import Constants
-
-class VersionString(object):
-    """ A class that holds the version string for the user.
-    command just return a string with the version that will be displayed to the user
-
-    Returns
-    -------
-    str
-        A string with the current version
-    """
-        # Printable unambiguous presentation of the object
-    def __repr__(self):
-        return "{0} version: {1}".format(Constants.MAGIC_PACKAGE_NAME, VERSION)
-
-    def _repr_markdown_(self):
-       return "**{0} version: {1}**".format(Constants.MAGIC_PACKAGE_NAME, VERSION)
-    
-    def __str__(self):
-        return "{0} version: {1}".format(Constants.MAGIC_PACKAGE_NAME, VERSION)
-
+from Kqlmagic.help import MarkdownString
 
 
 def execute_version_command():
@@ -42,8 +23,7 @@ def execute_version_command():
     str
         A string with the current version
     """
-    return VersionString()
-    # print ("{0} version: {1}".format(Constants.MAGIC_PACKAGE_NAME, VERSION))
+    return MarkdownString("{0} version: {1}".format(Constants.MAGIC_PACKAGE_NAME, VERSION))
 
 def get_pypi_latest_version(package_name: str) -> str:
     """ Retreives latest package version string for PyPI.

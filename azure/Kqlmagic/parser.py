@@ -21,9 +21,10 @@ class Parser(object):
         parsed_queries = []
         cell, command = cls._parse_kql_command(cell, user_ns)
         if len(command) > 0 and command.get("command") != "submit":
+            cell, options = cls._parse_kql_options(cell.strip(), config, user_ns)
             if cell: 
                 raise ValueError("command {0} has too many parameters".format(command.get("command")))
-            parsed_queries.append({"connection": "", "query": "", "options": {}, "command": command})
+            parsed_queries.append({"connection": "", "query": "", "options": options, "command": command})
             return parsed_queries
 
          # split to max 2 parts. First part, parts[0], is the first string.
@@ -199,9 +200,9 @@ class Parser(object):
         "temp_folder_name": {"flag": "temp_folder_name", "readonly": "True", "config": "config.temp_folder_name"},
         "cache_folder_name": {"flag": "cache_folder_name", "readonly": "True", "config": "config.cache_folder_name"},
         "export_folder_name": {"flag": "export_folder_name", "readonly": "True", "config": "config.export_folder_name"},
-        "notebook_app": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
         "add_kql_ref_to_help": {"flag": "add_kql_ref_to_help", "readonly": "True", "config": "config.add_kql_ref_to_help"},
         "add_schema_to_help": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
+        "notebook_app": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
         "cache": {"flag": "cache", "readonly": "True", "config": "config.cache"},
         "use_cache": {"flag": "use_cache", "readonly": "True", "config": "config.use_cache"},
         "save_as": {"flag": "save_as", "type": "str", "init": "None"},
@@ -211,7 +212,6 @@ class Parser(object):
         "pc": {"abbreviation": "palette_colors"},
         "palette_colors": {"flag": "palette_colors", "type": "int", "config": "config.palette_colors"},
 
-        "version": {"flag": "version", "type": "bool", "init": "False"},
         "palette": {"flag": "palette", "type": "bool", "init": "False"},
 
         "ph": {"abbreviation": "popup_help"},

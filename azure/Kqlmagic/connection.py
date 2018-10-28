@@ -30,15 +30,16 @@ class Connection(object):
             _ENGINE_MAP[n] = e
 
     @classmethod
-    def _get_engine(cls, connect_str):
+    def _find_engine(cls, connect_str):
         if connect_str is not None:
             parts = connect_str.split("://", 1)
             if len(parts) == 2:
-                return cls._ENGINE_MAP.get(parts[0].lower())
+                uri_schema = parts[0].lower().replace("_", "").replace("-", "")
+                return cls._ENGINE_MAP.get(uri_schema)
 
     @classmethod
     def tell_format(cls, connect_str):
-        engine = cls._get_engine(connect_str)
+        engine = cls._find_engine(connect_str)
         engines = [engine] if engine is not None else cls._ENGINES
         strs = [e.tell_format() for e in engines]
         lsts = []
@@ -54,14 +55,14 @@ class Connection(object):
     # Object constructor
     def __init__(self, connect_str, user_ns:dict, **kwargs):
 
-        engine = self._get_engine(connect_str)
+        engine = self._find_engine(connect_str)
         # wasn't found in connection list, but maybe a kusto database connection
         if engine is None:
             if "@" in connect_str:
                 engine = KustoEngine
             else:
                 valid_prefixes_str = ", ".join(["{0}://".format(s) for s in self._ENGINE_MAP.keys()])
-                raise KqlEngineError("invalid connection_str, unknown <uri schema name>. valid prefixes are: {0}".format(valid_prefixes_str))
+                raise KqlEngineError("invalid connection_str, unknown <uri schema name>. valid uri schemas are: {0}".format(valid_prefixes_str))
 
         last_current = self.last_current_by_engine.get(engine.__name__)
 

@@ -81,32 +81,38 @@ class Palette(list):
         reverse = name.endswith("_r")
         base_name = name[:-2] if reverse else name
 
+        rgb_palette = None
         range = None
+
         if base_name.endswith("]"):
             start = base_name.rfind("[")
+            # slice
             if start > 0:
                 se_parts = [value.strip() for value in base_name[start + 1 : -1].split(":")]
                 if len(se_parts) == 2:
                     try:
                         range = slice(*[int(value) if value else None for value in se_parts])
                         base_name = base_name[:start]
-                    except Exception as e:
+                    except:
                         pass
 
-        rgb_palette = None
+        # custom
         if base_name.startswith("[") and base_name.endswith("]"):
-            rgb_palette = eval(base_name)
+            rgb_palette = eval(base_name.lower().replace("-", "").replace("_", ""))
             if not isinstance(rgb_palette, list) or len(rgb_palette) == 0:
-                return {}
+                raise ValueError("invlaid custom palette syntax, should be a comma separate list.'[\"rgb(r,g,b)\",...]'")
 
             for rgb in rgb_palette:
                 if not isinstance(rgb, str) or not rgb.startswith("rgb"):
-                    return {}
+                    raise ValueError("invlaid custom palette syntax, each item must have a 'rgb' prefix.'[\"rgb(r,g,b)\",\"rgb(...)\",...]'")
                 color_list = eval(rgb[3:])
+                if len(color_list) != 3:
+                    raise ValueError("invlaid custom palette syntax, each color must be composed of a list of 3 number: \"rgb(r,g,b)\"")
+
                 for color in color_list:
                     if not isinstance(color, six.integer_types) or color < 0 or color > 255:
-                        return {}
-            name = name.replace(" ", "")
+                        raise ValueError("invlaid custom palette syntax, each basic color (r,g,b) must between 0 to 255")
+            name = name.lower().replace("-", "").replace("_", "").replace(" ", "")
             base_name = None
 
         return {"name": name, "base_name": base_name, "rgb_palette": rgb_palette, "reversed": reverse, "slice": range}
@@ -115,19 +121,19 @@ class Palette(list):
     def validate_palette_name(cls, name):
         parsed = cls.parse(name)
         if parsed.get("rgb_palette") is None and parsed.get("base_name") not in Palettes.BASE_PALETTE_NAMES:
-            raise AttributeError(
+            raise ValueError(
                 "must be a known palette name or custom palette (see option -popup_palettes) , but a value of {0} was specified.".format(name)
             )
 
     @classmethod
     def validate_palette_desaturation(cls, desaturation):
         if desaturation > 1 or desaturation < 0:
-            raise AttributeError("must be between 0 and 1, but a value of {0} was specified.".format(str(desaturation)))
+            raise ValueError("must be between 0 and 1, but a value of {0} was specified.".format(str(desaturation)))
 
     @classmethod
     def validate_palette_colors(cls, n_colors):
         if n_colors < 1:
-            raise AttributeError("must be greater or equal than 1, but a value of {0} was specified.".format(str(n_colors)))
+            raise ValueError("must be greater or equal than 1, but a value of {0} was specified.".format(str(n_colors)))
 
 
 class Palettes(list):

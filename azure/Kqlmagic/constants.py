@@ -11,6 +11,8 @@ class Constants(object):
     MAGIC_SOURCE_REPOSITORY_NAME = "https://github.com/Microsoft/jupyter-Kqlmagic"
     MAGIC_PIP_REFERENCE_NAME = "Kqlmagic"  # 'git+git://github.com/Microsoft/jupyter-Kqlmagic.git'
     MAGIC_PACKAGE_NAME = "Kqlmagic"
+    
+    # class must be uppercase, because %config can't find it if it is lowercase?
     MAGIC_CLASS_NAME = "Kqlmagic"
     MAGIC_NAME = "kql"
     MAGIC_ALIASES = []
@@ -18,14 +20,16 @@ class Constants(object):
 
 
 class ConnStrKeys(object):
+    # make sure all keys as lowercase, without spaces, underscores, and hyphen-minus
+    # because they are ignored
     TENANT = "tenant"
     USERNAME = "username"
     PASSWORD = "password"
     CLIENTID = "clientid"
     CLIENTSECRET = "clientsecret"
     CERTIFICATE = "certificate"
-    CERTIFICATE_PEM_FILE = "certificate_pem_file"
-    CERTIFICATE_THUMBPRINT = "certificate_thumbprint"
+    CERTIFICATE_PEM_FILE = "certificatepemfile"
+    CERTIFICATE_THUMBPRINT = "certificatethumbprint"
     APPKEY = "appkey"
     CODE = "code"
 

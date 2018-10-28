@@ -16,9 +16,12 @@ class AppinsightsEngine(KqlEngine):
 
     # Constants
     # ---------
-    _URI_SCHEMA_NAME = "appinsights"
-    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "app_insights", "applicationinsights", "application_insights"]
+    _URI_SCHEMA_NAME = "applicationinsights" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
+    _ALT_URI_SCHEMA_NAME = "appinsights" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
     _DOMAIN = "apps"
+    _DATA_SOURCE = "https://api.applicationinsights.io"
+ 
+    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, _ALT_URI_SCHEMA_NAME]
     _MANDATORY_KEY = ConnStrKeys.APPID
     _VALID_KEYS_COMBINATIONS = [
         [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
@@ -26,17 +29,15 @@ class AppinsightsEngine(KqlEngine):
         [ConnStrKeys.APPID, ConnStrKeys.APPKEY, ConnStrKeys.ALIAS],
     ]
 
-    _DATA_SOURCE = "https://api.applicationinsights.io"
-
     # Class methods
     # -------------
 
     @classmethod
     def tell_format(cls):
         return """
-               appinsights://appid('appid').appkey('appkey')
+               {0}://appid('appid').appkey('appkey')
 
-               ## Note: if appkey is missing, user will be prompted to enter appkey"""
+               ## Note: if appkey is missing, user will be prompted to enter appkey""".format(cls._URI_SCHEMA_NAME)
 
     # Instance methods
     # ----------------
@@ -44,6 +45,6 @@ class AppinsightsEngine(KqlEngine):
     def __init__(self, conn_str, user_ns: dict, current=None):
         super().__init__()
         self._parsed_conn = self._parse_common_connection_str(
-            conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS, user_ns
+            conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
         )
         self.client = DraftClient(self._parsed_conn, self._DOMAIN, self._DATA_SOURCE)

@@ -59,18 +59,19 @@ class Parser(object):
             parser.read(options.get("dsn_filename", config.dsn_filename))
             cfg_dict = dict(parser.items(section))
 
-            cfg_dict_lower = {k.lower(): v for (k, v) in cfg_dict.items()}
+            cfg_dict_lower = {k.lower().replace("_", "").replace("-", ""): v for (k, v) in cfg_dict.items()}
             for e in engines:
                 if e._MANDATORY_KEY in cfg_dict_lower.keys():
                     all_keys = set(itertools.chain(*e._VALID_KEYS_COMBINATIONS))
-                    connection_kv = ["{0}('{1}')".format(k, v) for k, v in cfg_dict_lower.items() if v and k in all_keys]
-                    connection = "{0}://{1}".format(e._URI_SCHEMA_NAME, ".".join(connection_kv))
+                    connection_kv = ["{0}='{1}'".format(k, v) for k, v in cfg_dict_lower.items() if v and k in all_keys]
+                    connection = "{0}://{1}".format(e._URI_SCHEMA_NAME, ";".join(connection_kv))
                     break
 
         #
         # connection specified starting with one of the supported prefixes
         #
-        elif len(sub_parts) == 2 and sub_parts[0] in list(itertools.chain(*[e._ALT_URI_SCHEMA_NAMES for e in engines])):
+        elif (len(sub_parts) == 2 and not sub_parts[0].startswith("-") and 
+        sub_parts[0].lower().replace("_", "").replace("-", "") in list(itertools.chain(*[e._ALT_URI_SCHEMA_NAMES for e in engines]))):
 
             connection = parts[0]
         #
@@ -126,18 +127,23 @@ class Parser(object):
         "version" : {"flag": "version", "type": "bool", "init": "False"},
         "usage" : {"flag": "usage", "type": "bool", "init": "False"},
         "submit" : {"flag": "submit", "type": "bool", "init": "False"}, # default
-        "help" : {"flag": "usage", "type": "str", "init": "None"},
+        "help" : {"flag": "help", "type": "str", "init": "None"},
         "faq": {"flag": "faq", "type": "bool", "init": "False"},
+        "palette": {"flag": "palette", "type": "bool", "init": "False"},
+        "palettes": {"flag": "palettes", "type": "bool", "init": "False"},
     }
     @classmethod
     def _parse_kql_command(cls, code, user_ns: dict):
         if not code.strip().startswith("--"):
             return (code.strip(), {})
         words = code.split()
-        command = words[0][2:]
-        obj = cls._COMMANDS_TABLE.get(command)
+        word = words[0][2:]
+        if word.startswith("-"):
+            raise ValueError("unknown command {0}, commands' prefix is a double hyphen-minus, not a triple hyphen-minus".format(words[0]))
+        lookup_key = word.lower().replace("_", "").replace("-", "")
+        obj = cls._COMMANDS_TABLE.get(lookup_key)
         if obj is None:
-            raise ValueError("unknown command")
+            raise ValueError("unknown command {0}".format(words[0]))
 
         trimmed_code = code
         trimmed_code = trimmed_code[trimmed_code.find(words[0]) + len(words[0]) :]
@@ -146,81 +152,77 @@ class Parser(object):
         if _type == "bool":
             param = True 
         elif len(words) >= 2:
-            param = cls.parse_value(words[1], command, _type, user_ns)
+            param = cls.parse_value(words[1], words[0], _type, user_ns)
             trimmed_code = trimmed_code[trimmed_code.find(words[1]) + len(words[1]) :]
         else:
-            raise ValueError("command {0} is missing parameter".format(command))
+            raise ValueError("command {0} is missing parameter".format(word[0]))
 
-        return (trimmed_code.strip(), {"command": command, "param": param})
+        return (trimmed_code.strip(), {"command":  obj.get("flag"), "param": param})
 
+    # all lookup keys in table, must be without spaces, underscores and hypthen-minus, because parser ignores them
     _OPTIONS_TABLE = {
-        "ad": {"abbreviation": "auto_dataframe"},
-        "auto_dataframe": {"flag": "auto_dataframe", "type": "bool", "config": "config.auto_dataframe"},
-        "se": {"abbreviation": "short_errors"},
-        "short_errors": {"flag": "short_errors", "type": "bool", "config": "config.short_errors"},
+        "ad": {"abbreviation": "autodataframe"},
+        "autodataframe": {"flag": "auto_dataframe", "type": "bool", "config": "config.auto_dataframe"},
+        "se": {"abbreviation": "shorterrors"},
+        "shorterrors": {"flag": "short_errors", "type": "bool", "config": "config.short_errors"},
         "f": {"abbreviation": "feedback"},
         "feedback": {"flag": "feedback", "type": "bool", "config": "config.feedback"},
-        "sci": {"abbreviation": "show_conn_info"},
-        "show_conn_info": {"flag": "show_conn_info", "type": "str", "config": "config.show_conn_info"},
-        "c2lv": {"abbreviation": "columns_to_local_vars"},
-        "columns_to_local_vars": {"flag": "columns_to_local_vars", "type": "bool", "config": "config.columns_to_local_vars"},
-        "sqt": {"abbreviation": "show_query_time"},
-        "show_query_time": {"flag": "show_query_time", "type": "bool", "config": "config.show_query_time"},
-        "esr": {"abbreviation": "enable_suppress_result"},
-        "enable_suppress_result": {"flag": "enable_suppress_result", "type": "bool", "config": "config.enable_suppress_result"},
-        "pfi": {"abbreviation": "plotly_fs_includejs"},
-        "plotly_fs_includejs": {"flag": "plotly_fs_includejs", "type": "bool", "config": "config.plotly_fs_includejs"},
-        "pw": {"abbreviation": "popup_window"},
-        "popup_window": {"flag": "popup_window", "type": "bool", "init": "False"},
-        "al": {"abbreviation": "auto_limit"},
-        "auto_limit": {"flag": "auto_limit", "type": "int", "config": "config.auto_limit"},
-        "dl": {"abbreviation": "display_limit"},
-        "display_limit": {"flag": "display_limit", "type": "int", "config": "config.display_limit"},
-        "ptst": {"abbreviation": "prettytable_style"},
-        "prettytable_style": {"flag": "prettytable_style", "type": "str", "config": "config.prettytable_style"},
-        "var": {"abbreviation": "last_raw_result_var"},
-        "last_raw_result_var": {"flag": "last_raw_result_var", "type": "str", "config": "config.last_raw_result_var"},
-        "tp": {"abbreviation": "table_package"},
-        "table_package": {"flag": "table_package", "type": "str", "config": "config.table_package"},
-        "pp": {"abbreviation": "plot_package"},
-        "plot_package": {"flag": "plot_package", "type": "str", "config": "config.plot_package"},
-        "df": {"abbreviation": "dsn_filename"},
-        "dsn_filename": {"flag": "dsn_filename", "type": "str", "config": "config.dsn_filename"},
-        "vc": {"abbreviation": "validate_connection_string"},
-        "validate_connection_string": {"flag": "validate_connection_string", "type": "bool", "config": "config.validate_connection_string"},
-        "aps": {"abbreviation": "auto_popup_schema"},
-        "auto_popup_schema": {"flag": "auto_popup_schema", "type": "bool", "config": "config.auto_popup_schema"},
-        "jd": {"abbreviation": "json_display"},
-        "json_display": {"flag": "json_display", "type": "str", "config": "config.json_display"},
-        "pd": {"abbreviation": "palette_desaturation"},
-        "palette_desaturation": {"flag": "palette_desaturation", "type": "float", "config": "config.palette_desaturation"},
-        "pn": {"abbreviation": "palette_name"},
-        "params_dict": {"flag": "params_dict", "type": "dict", "init": "None"},
-        "palette_name": {"flag": "palette_name", "type": "str", "config": "config.palette_name"},
-        "temp_folder_name": {"flag": "temp_folder_name", "readonly": "True", "config": "config.temp_folder_name"},
-        "cache_folder_name": {"flag": "cache_folder_name", "readonly": "True", "config": "config.cache_folder_name"},
-        "export_folder_name": {"flag": "export_folder_name", "readonly": "True", "config": "config.export_folder_name"},
-        "add_kql_ref_to_help": {"flag": "add_kql_ref_to_help", "readonly": "True", "config": "config.add_kql_ref_to_help"},
-        "add_schema_to_help": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
-        "notebook_app": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
+        "sci": {"abbreviation": "showconninfo"},
+        "showconninfo": {"flag": "show_conn_info", "type": "str", "config": "config.show_conn_info"},
+        "c2lv": {"abbreviation": "columnstolocalvars"},
+        "columnstolocalvars": {"flag": "columns_to_local_vars", "type": "bool", "config": "config.columns_to_local_vars"},
+        "sqt": {"abbreviation": "showquerytime"},
+        "showquerytime": {"flag": "show_query_time", "type": "bool", "config": "config.show_query_time"},
+        "esr": {"abbreviation": "enablesuppressresult"},
+        "enablesuppressresult": {"flag": "enable_suppress_result", "type": "bool", "config": "config.enable_suppress_result"},
+        "pfi": {"abbreviation": "plotlyfsincludejs"},
+        "plotlyfsincludejs": {"flag": "plotly_fs_includejs", "type": "bool", "config": "config.plotly_fs_includejs"},
+        "pw": {"abbreviation": "popupwindow"},
+        "popupwindow": {"flag": "popup_window", "type": "bool", "init": "False"},
+        "al": {"abbreviation": "autolimit"},
+        "autolimit": {"flag": "auto_limit", "type": "int", "config": "config.auto_limit"},
+        "dl": {"abbreviation": "displaylimit"},
+        "displaylimit": {"flag": "display_limit", "type": "int", "config": "config.display_limit"},
+        "ptst": {"abbreviation": "prettytablestyle"},
+        "prettytablestyle": {"flag": "prettytable_style", "type": "str", "config": "config.prettytable_style"},
+        "var": {"abbreviation": "lastrawresultvar"},
+        "lastrawresultvar": {"flag": "last_raw_result_var", "type": "str", "config": "config.last_raw_result_var"},
+        "tp": {"abbreviation": "tablepackage"},
+        "tablepackage": {"flag": "table_package", "type": "str", "config": "config.table_package"},
+        "pp": {"abbreviation": "plotpackage"},
+        "plotpackage": {"flag": "plot_package", "type": "str", "config": "config.plot_package"},
+        "df": {"abbreviation": "dsnfilename"},
+        "dsnfilename": {"flag": "dsn_filename", "type": "str", "config": "config.dsn_filename"},
+        "vc": {"abbreviation": "validateconnectionstring"},
+        "validateconnectionstring": {"flag": "validate_connection_string", "type": "bool", "config": "config.validate_connection_string"},
+        "aps": {"abbreviation": "autopopupschema"},
+        "autopopupschema": {"flag": "auto_popup_schema", "type": "bool", "config": "config.auto_popup_schema"},
+        "jd": {"abbreviation": "jsondisplay"},
+        "jsondisplay": {"flag": "json_display", "type": "str", "config": "config.json_display"},
+        "pd": {"abbreviation": "palettedesaturation"},
+        "palettedesaturation": {"flag": "palette_desaturation", "type": "float", "config": "config.palette_desaturation"},
+        "pn": {"abbreviation": "palettename"},
+        "paramsdict": {"flag": "params_dict", "type": "dict", "init": "None"},
+        "palettename": {"flag": "palette_name", "type": "str", "config": "config.palette_name"},
+        "tempfoldername": {"flag": "temp_folder_name", "readonly": "True", "config": "config.temp_folder_name"},
+        "cachefoldername": {"flag": "cache_folder_name", "readonly": "True", "config": "config.cache_folder_name"},
+        "exportfoldername": {"flag": "export_folder_name", "readonly": "True", "config": "config.export_folder_name"},
+        "addkqlreftohelp": {"flag": "add_kql_ref_to_help", "readonly": "True", "config": "config.add_kql_ref_to_help"},
+        "addschematohelp": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
+        "notebookapp": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
         "cache": {"flag": "cache", "readonly": "True", "config": "config.cache"},
-        "use_cache": {"flag": "use_cache", "readonly": "True", "config": "config.use_cache"},
-        "save_as": {"flag": "save_as", "type": "str", "init": "None"},
+        "usecache": {"flag": "use_cache", "readonly": "True", "config": "config.use_cache"},
+        "saveas": {"flag": "save_as", "type": "str", "init": "None"},
         "query": {"flag": "query", "type": "str", "init": "None"},
         "conn": {"flag": "conn", "type": "str", "init": "None"},
 
-        "pc": {"abbreviation": "palette_colors"},
-        "palette_colors": {"flag": "palette_colors", "type": "int", "config": "config.palette_colors"},
+        "pc": {"abbreviation": "palettecolors"},
+        "palettecolors": {"flag": "palette_colors", "type": "int", "config": "config.palette_colors"},
+        "pr": {"abbreviation": "palettereverse"},
+        "palettereverse": {"flag": "palette_reverse", "type": "bool", "init": "False"},
 
-        "palette": {"flag": "palette", "type": "bool", "init": "False"},
-
-        "ph": {"abbreviation": "popup_help"},
-        "popup_help": {"flag": "popup_help", "type": "bool", "init": "False"},
-        "ps": {"abbreviation": "popup_schema"},
-        "popup_schema": {"flag": "popup_schema", "type": "bool", "init": "False"},
-        "popup_palettes": {"flag": "popup_palettes", "type": "bool", "init": "False"},
-        "pr": {"abbreviation": "palette_reverse"},
-        "palette_reverse": {"flag": "palette_reverse", "type": "bool", "init": "False"},
+        "ps": {"abbreviation": "popupschema"},
+        "popupschema": {"flag": "popup_schema", "type": "bool", "init": "False"},
     }    
     @classmethod
     def _parse_kql_options(cls, code, config, user_ns: dict):
@@ -249,6 +251,10 @@ class Parser(object):
             if key_state:
                 if not word[0].startswith("-"):
                     break
+                # validate it is not a command
+                if word[0].startswith("--"):
+                    raise ValueError("invalid option {0}, cannot start with a bouble hyphen-minus".format(word[0]))
+
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
                 word = word[1:]
                 bool_value = True
@@ -262,8 +268,9 @@ class Parser(object):
                 else:
                     key = word
                     value = None
-                if key in cls._OPTIONS_TABLE.keys():
-                    obj = cls._OPTIONS_TABLE.get(key)
+                lookup_key = key.lower().replace("-", "").replace("_", "")
+                obj = cls._OPTIONS_TABLE.get(lookup_key)
+                if obj is not None:
                     if obj.get("abbreviation"):
                         obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
                     if obj.get("readonly"):
@@ -371,7 +378,8 @@ class Parser(object):
             # key exist
             if len(key) > 0:
                 val = cls.parse_value(val, key, "str", user_ns)
-                matched_kv[key] = val
+                lookup_key = key.lower().replace("-", "").replace("_", "")
+                matched_kv[lookup_key] = val
             # no key but value exist
             elif len(val) > 0:
                 raise ValueError("invalid key/value string, missing key.")

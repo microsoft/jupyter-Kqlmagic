@@ -340,7 +340,7 @@ def execute_help_command(topic: str) -> MarkdownString:
     MarkdownString object
         The help topic string wrapped by an object that enable markdown, html or text display of the topic.
     """
-    help_topic_string = _HELP.get(topic.strip().lower())
+    help_topic_string = _HELP.get(topic.strip().lower().replace("_", "").replace("-", ""))
     if help_topic_string is None:
         raise ValueError("{0} unknown help topic".format(topic))
     if help_topic_string.startswith("http"):

@@ -98,14 +98,9 @@ class KqlEngine(object):
     _SHOULD_BE_NULL_KEYS = {ConnStrKeys.CODE}
 
     def _parse_common_connection_str(
-        self, conn_str: str, current, uri_schema_name, mandatory_key: str, alt_names: list, valid_keys_combinations: list, user_ns: dict
+        self, conn_str: str, current, uri_schema_name, mandatory_key: str, valid_keys_combinations: list, user_ns: dict
     ):
-        # parse schema part
-        parts = conn_str.split("://",1)
-        if len(parts) != 2 or parts[0] not in alt_names:
-            raise KqlEngineError('invalid connection string, must be prefixed by a valid "<uri schema name>://"')
-
-        rest = conn_str[len(parts[0])+3:].strip()
+        rest = conn_str[conn_str.find("://")+3:].strip()
 
         # get key/values in connection string
         parsed_conn_kv = Parser.parse_and_get_kv_string(rest, user_ns)
@@ -123,11 +118,11 @@ class KqlEngine(object):
         all_keys = set(itertools.chain(*valid_keys_combinations))
         unknonw_keys_set = matched_keys_set.difference(all_keys)
         if len(unknonw_keys_set) > 0:
-            raise KqlEngineError("invalid connection string, detected unknown keys: {0}.".format(unknonw_keys_set))
+            raise ValueError("invalid connection string, detected unknown keys: {0}.".format(unknonw_keys_set))
 
         # check that mandatory key in matched set
         if mandatory_key not in matched_keys_set:
-            raise KqlEngineError("invalid connection strin, mandatory key {0} is missing.".format(mandatory_key))
+            raise KqlEngineError("invalid connection string, mandatory key {0} is missing.".format(mandatory_key))
 
         # find a valid combination for the set
         valid_combinations = [c for c in valid_keys_combinations if matched_keys_set.issubset(c)]
@@ -140,7 +135,7 @@ class KqlEngine(object):
                         matched_keys_set.add(k)
                 for k in self._CREDENTIAL_KEYS.intersection(matched_keys_set):
                     if parsed_conn_kv[k] != current._parsed_conn.get(k):
-                        raise KqlEngineError("invalid connection string, not a valid keys set, missing keys.")
+                        raise KqlEngineError("invalid connection string, missing keys.")
         valid_combinations = [c for c in valid_combinations if matched_keys_set.issubset(c)]
 
         # only one combination can be accepted

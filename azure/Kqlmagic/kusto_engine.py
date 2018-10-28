@@ -14,8 +14,12 @@ class KustoEngine(KqlEngine):
     # Constants
     # ---------
 
-    _URI_SCHEMA_NAME = "kusto"
-    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "adx", "ade", "azuredataexplorer", "azure_data_explorer"]
+    _URI_SCHEMA_NAME = "azuredataexplorer" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
+    _ALT_URI_SCHEMA1_NAME = "adx" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
+    _ALT_URI_SCHEMA2_NAME = "ade" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
+    _ALT_URI_SCHEMA3_NAME = "kusto" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
+
+    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, _ALT_URI_SCHEMA1_NAME, _ALT_URI_SCHEMA2_NAME, _ALT_URI_SCHEMA3_NAME]
     _MANDATORY_KEY = ConnStrKeys.DATABASE
     _VALID_KEYS_COMBINATIONS = [
         [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
@@ -38,19 +42,19 @@ class KustoEngine(KqlEngine):
     @classmethod
     def tell_format(cls):
         return """
-               kusto://username('username').password('password').cluster('clustername').database('databasename')
-               kusto://cluster('clustername').database('databasename')
+               {0}://username('username').password('password').cluster('clustername').database('databasename')
+               {0}://cluster('clustername').database('databasename')
                      # Note: current username and password are attached
-               kusto://database('databasename')
+               {0}://database('databasename')
                      # Note: current username, password and cluster are attached
-               kusto://username('username').password('password').cluster('clustername')
+               {0}://username('username').password('password').cluster('clustername')
                      # Note: not enough for to submit a query, set current username, passsword and clustername, 
-               kusto://username('username').password('password')
+               {0}://username('username').password('password')
                      # Note: not enough for to submit a query, set current username and password 
-               kusto://cluster('clustername')
+               {0}://cluster('clustername')
                      # Note: not enough for to submit a query, set current clustername, current username and password are attached
 
-               ## Note: if password is missing, user will be prompted to enter password"""
+               ## Note: if password is missing, user will be prompted to enter password""".format(cls._URI_SCHEMA_NAME)
 
     # Instance methods
     # ----------------
@@ -67,7 +71,7 @@ class KustoEngine(KqlEngine):
             )
         else:
             self._parsed_conn = self._parse_common_connection_str(
-                conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS, user_ns
+                conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
             )
             self.client = Kusto_Client(self._parsed_conn)
 

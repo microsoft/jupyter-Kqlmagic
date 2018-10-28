@@ -14,10 +14,14 @@ from Kqlmagic.constants import ConnStrKeys
 
 
 class CacheEngine(KqlEngine):
-    _URI_SCHEMA_NAME = "cache"
-    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, "file"]
+    _URI_SCHEMA_NAME = "cache" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
+    _ALT_URI_SCHEMA_NAME = "file" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
+
+    _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, _ALT_URI_SCHEMA_NAME]
     _MANDATORY_KEY = ConnStrKeys.FOLDER
     _VALID_KEYS_COMBINATIONS = [[ConnStrKeys.FOLDER, ConnStrKeys.ALIAS]]
+
+    _VALIDATION_FILE_NAME = "validation_file.json"
 
     @classmethod
     def tell_format(cls):
@@ -35,12 +39,12 @@ class CacheEngine(KqlEngine):
             folder_name = conn_str.get_database() + "_at_" + conn_str.get_cluster()
             conn_str = "{0}://{1}='{2}'".format(self._URI_SCHEMA_NAME, ConnStrKeys.FOLDER, folder_name)
         self._parsed_conn = self._parse_common_connection_str(
-            conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._ALT_URI_SCHEMA_NAMES, self._VALID_KEYS_COMBINATIONS, user_ns
+            conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
         )
         self.client = CacheClient()
 
         folder_path = self.client._get_folder_path(self.get_database())
-        validation_file_path = folder_path + "/" + "validation_file.json"
+        validation_file_path = folder_path + "/" + self._VALIDATION_FILE_NAME
         if not os.path.exists(validation_file_path):
             outfile = open(validation_file_path, "w")
             outfile.write(self.validate_json_file_content)
@@ -52,7 +56,7 @@ class CacheEngine(KqlEngine):
         if not client:
             raise KqlEngineError("Client is not defined.")
         # query = "range c from 1 to 10 step 1 | count"
-        filename = "validation_file.json"
+        filename = self._VALIDATION_FILE_NAME
         database = self.get_database()
         response = client.execute(database, filename, accept_partial_results=False, timeout=None)
         # print(response.json_response)

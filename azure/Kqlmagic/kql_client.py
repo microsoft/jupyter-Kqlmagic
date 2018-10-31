@@ -248,31 +248,6 @@ class KqlQueryResponse(object):
         return {}
 
     @property
-    def completion_query_info_results(self):
-        if self.endpoint_version == "v2":
-            for table in self.all_tables:
-                if table["TableName"] == "QueryCompletionInformation":
-                    cols_idx_map = self._map_columns_to_index(table["Columns"])
-                    event_type_name_idx = cols_idx_map.get("EventTypeName")
-                    payload_idx = cols_idx_map.get("Payload")
-                    if event_type_name_idx is not None and payload_idx is not None:
-                        for row in table["Rows"]:
-                            if row[event_type_name_idx] == "QueryInfo":
-                                return json.loads(row[payload_idx])
-        else:
-            tables_num = self.json_response["Tables"].__len__()
-            last_table = self.json_response["Tables"][tables_num - 1]
-            for r in last_table["Rows"]:
-                if r[2] == "QueryStatus":
-                    t = self.json_response["Tables"][r[0]]
-                    for sr in t["Rows"]:
-                        if sr[2] == "Info":
-                            info = {"StatusCode": sr[3], "StatusDescription": sr[4], "Count": sr[5]}
-                            # print('Info: {}'.format(info))
-                            return info
-        return {}
-
-    @property
     def completion_query_resource_consumption_results(self):
         if self.endpoint_version == "v2":
             for table in self.all_tables:

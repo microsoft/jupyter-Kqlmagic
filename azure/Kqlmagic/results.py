@@ -1306,5 +1306,7 @@ class PrettyTable(prettytable.PrettyTable):
             self.row_count = len(data)
         else:
             self.row_count = min(len(data), self.display_limit)
+
         for row in data[: self.display_limit]:
-            self.add_row(row)
+            r = [list(c) if isinstance(c, list) else dict(c) if isinstance(c, dict) else c for c in row]
+            self.add_row(r)

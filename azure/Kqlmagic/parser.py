@@ -116,10 +116,10 @@ class Parser(object):
         for query in queries:
             kql, options = cls._parse_kql_options(query.strip(), config, user_ns)
             kql = options.pop("query", None) or kql
-            conn = options.pop("conn", None) or connection.strip()
+            conn = options.pop("conn", None) or connection
             if suppress_results:
                 options["suppress_results"] = True
-            parsed_queries.append({"connection": conn, "query": kql, "options": options, "command": {}})
+            parsed_queries.append({"connection": conn.strip(), "query": kql, "options": options, "command": {}})
 
         return parsed_queries
 

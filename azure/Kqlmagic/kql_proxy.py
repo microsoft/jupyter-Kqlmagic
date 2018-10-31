@@ -167,11 +167,11 @@ class KqlTableResponse(object):
                 # NA type promotion
                 if pandas_type == "int64":
                     for i in range(0, len(frame[col_name])):
-                        if frame[col_name][i] is None:
+                        if frame[col_name][i] is None or str( frame[col_name][i]) == "nan":
                             pandas_type = "float64"
                             break
                 elif pandas_type == "bool":
-                    for i in range(0, len(frame[col_name])):
+                    for i in range(0, len(frame[col_name])) or str( frame[col_name][i]) == "nan":
                         if frame[col_name][i] is None:
                             pandas_type = "object"
                             break

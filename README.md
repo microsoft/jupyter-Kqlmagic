@@ -1,7 +1,11 @@
 # Kqlmagic: Microsoft Azure Monitor magic extension to Jupyter notebook.
 
+[![PyPi Version](https://img.shields.io/pypi/v/Kqlmagic.svg)](https://pypi.org/project/Kqlmagic/)
+![Python Versions](https://img.shields.io/pypi/pyversions/Kqlmagic.svg)
+[![License](https://img.shields.io/pypi/l/Kqlmagic.svg)](https://github.com/Microsoft/jupyter-Kqlmagic/blob/master/LICENSE)
+
 [*Kqlmagic*](https://github.com/Microsoft/jupyter-Kqlmagic/tree/master) magic extension enables notebook experience, exploring Microsoft Azure Monitor data: Azure Data Explorer (Kusto), 
-ApplicationInsights, and LogAnalytics data, from Jupyter notebook (Python3 kernel),, using kql (Kusto Query language).
+ApplicationInsights, and LogAnalytics data, from Jupyter notebook (Python3 kernel), using kql (Kusto Query language).
 
 
 

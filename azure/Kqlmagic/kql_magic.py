@@ -198,8 +198,8 @@ class Kqlmagic(Magics, Configurable):
                 <div class='kql-magic-banner'>
                     <div><img src='"""+logo+"""'></div>
                     <div>
-                        <p>Kql Query Language, aka kql, is the query langauge for advanced analytics on Azure Monitor resources. The current supported data sources are 
-                        Azure Data Explorer (kusto), Log Analytics and Application Insights. To get more information execute '%kql --help "kql"'</p>
+                        <p>Kql Query Language, aka kql, is the query language for advanced analytics on Azure Monitor resources. The current supported data sources are 
+                        Azure Data Explorer (Kusto), Log Analytics and Application Insights. To get more information execute '%kql --help "kql"'</p>
                         <p>   &bull; kql reference: Click on 'Help' tab > and Select 'kql referece' or execute '%kql --help "kql"'<br>
                           &bull; """
                 + Constants.MAGIC_CLASS_NAME

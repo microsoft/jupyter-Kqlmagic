@@ -51,6 +51,16 @@ The following commands are supported:<br>
     - To get the list of all the topics, execute ```%kql --help "help"```<br>
 <br>
 
+- **palette - Display information about the current or other named color palette.<br>
+    - The behaviour of this command will change based on the specified option:
+    - palette_name, -palette_colors, palette_reverse, -palette_desaturation, execute ```%kql --palette -palette_name "Reds"```<br>
+<br>
+
+- **palettes - Display information about all available palettes.<br>
+    - The behaviour of this command will change based on the specified option:
+    - -palette_colors, palette_reverse, -palette_desaturation, execute ```%kql --palettes -palette_desaturation 0.75```<br>
+<br>
+
 ## Examples:
 ```%kql --version```<br><br>
 ```%kql --usage```<br><br>

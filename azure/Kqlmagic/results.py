@@ -14,6 +14,7 @@ import os.path
 import re
 import uuid
 import prettytable
+from Kqlmagic.constants import VisualizationKeys, VisualizationValues
 from Kqlmagic.column_guesser import ColumnGuesserMixin
 
 from Kqlmagic.display import Display
@@ -251,6 +252,13 @@ class ResultSet(list, ColumnGuesserMixin):
     @property
     def elapsed_timespan(self):
         return self.end_time - self.start_time
+    @property
+    def visualization(self):
+        return self.visualization_properties.get(VisualizationKeys.VISUALIZATION)
+
+    @property
+    def title(self):
+        return self.visualization_properties.get(VisualizationKeys.TITLE)
 
     def _update(self, queryResult):
         self._queryResult = queryResult
@@ -268,8 +276,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self.pretty = PrettyTable(self.field_names, style=self.prettytable_style) if len(self.field_names) > 0 else None
         self.records_count = queryResultTable.recordscount()
         self.is_partial_table = queryResultTable.ispartial()
-        self.visualization = queryResultTable.visualization_property("Visualization")
-        self.title = queryResultTable.visualization_property("Title")
+        self.visualization_properties = queryResultTable.visualization_properties
         # table
         auto_limit = 0 if not self.options.get("auto_limit") else self.options.get("auto_limit")
         if queryResultTable.returns_rows():
@@ -498,7 +505,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return self.show_chart(**{"popup_window": False, **kwargs})
 
     def is_chart(self):
-        return self.visualization and not self.visualization == "table"
+        return self.visualization and self.visualization != VisualizationValues.TABLE
 
     def _getChartHtml(self, window_mode=False):
         "get query result in a char format as an HTML string"
@@ -525,48 +532,48 @@ class ResultSet(list, ColumnGuesserMixin):
 
         figure_or_data = None
         # First column is color-axis, second column is numeric
-        if self.visualization == "piechart":
-            figure_or_data = self._render_piechart_plotly(" ", self.title)
-            # chart = self._render_pie(" ", self.title)
+        if self.visualization == VisualizationValues.PIE_CHART:
+            figure_or_data = self._render_piechart_plotly(self.visualization_properties, " ")
+            # chart = self._render_pie(self.visualization_properties, " ")
         # First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
         # kind = default, unstacked, stacked, stacked100 (Default, same as unstacked; unstacked - Each "area" to its own; stacked - "Areas" are stacked to the right; stacked100 - "Areas" are stacked to the right, and stretched to the same width)
-        elif self.visualization == "barchart":
-            figure_or_data = self._render_barchart_plotly(" ", self.title)
-            # chart = self._render_barh(" ", self.title)
+        elif self.visualization == VisualizationValues.BAR_CHART:
+            figure_or_data = self._render_barchart_plotly(self.visualization_properties, " ")
+            # chart = self._render_barh(self.visualization_properties, " ")
         # Like barchart, with vertical strips instead of horizontal strips.
         # kind = default, unstacked, stacked, stacked100
-        elif self.visualization == "columnchart":
-            figure_or_data = self._render_columnchart_plotly(" ", self.title)
-            # chart = self._render_bar(" ", self.title)
+        elif self.visualization == VisualizationValues.COLUMN_CHART:
+            figure_or_data = self._render_columnchart_plotly(self.visualization_properties, " ")
+            # chart = self._render_bar(self.visualization_properties, " ")
         # Area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         # kind = default, unstacked, stacked, stacked100
-        elif self.visualization == "areachart":
-            figure_or_data = self._render_areachart_plotly(" ", self.title)
-            # chart = self._render_areachart(" ", self.title)
+        elif self.visualization == VisualizationValues.AREA_CHART:
+            figure_or_data = self._render_areachart_plotly(self.visualization_properties, " ")
+            # chart = self._render_areachart(self.visualization_properties, " ")
         # Line graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
-        elif self.visualization == "linechart":
-            figure_or_data = self._render_linechart_plotly(" ", self.title)
+        elif self.visualization == VisualizationValues.LINE_CHART:
+            figure_or_data = self._render_linechart_plotly(self.visualization_properties, " ")
         # Line graph. First column is x-axis, and should be datetime. Other columns are y-axes.
-        elif self.visualization == "timechart":
-            figure_or_data = self._render_timechart_plotly(" ", self.title)
+        elif self.visualization == VisualizationValues.TIME_CHART:
+            figure_or_data = self._render_timechart_plotly(self.visualization_properties, " ")
         # Similar to timechart, but highlights anomalies using an external machine-learning service.
-        elif self.visualization == "anomalychart":
-            figure_or_data = self._render_anomalychart_plotly(" ", self.title)
+        elif self.visualization == VisualizationValues.ANOMALY_CHART:
+            figure_or_data = self._render_anomalychart_plotly(self.visualization_properties, " ")
         # Stacked area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
-        elif self.visualization == "stackedareachart":
-            figure_or_data = self._render_stackedareachart_plotly(" ", self.title)
+        elif self.visualization == VisualizationValues.STACKED_AREA_CHART:
+            figure_or_data = self._render_stackedareachart_plotly(self.visualization_properties, " ")
         # Last two columns are the x-axis, other columns are y-axis.
-        elif self.visualization == "ladderchart":
-            figure_or_data = self.pie(" ", self.title)
+        elif self.visualization == VisualizationValues.LADDER_CHART:
+            figure_or_data = self.pie(self.visualization_properties, " ")
         # Interactive navigation over the events time-line (pivoting on time axis)
-        elif self.visualization == "timepivot":
-            figure_or_data = self.pie(" ", self.title)
+        elif self.visualization == VisualizationValues.TIME_PIVOT:
+            figure_or_data = self.pie(self.visualization_properties, " ")
         # Displays a pivot table and chart. User can interactively select data, columns, rows and various chart types.
-        elif self.visualization == "pivotchart":
-            figure_or_data = self.pie(" ", self.title)
+        elif self.visualization == VisualizationValues.PIVOT_CHART:
+            figure_or_data = self.pie(self.visualization_properties, " ")
         # Points graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes
-        elif self.visualization == "scatterchart":
-            figure_or_data = self._render_scatterchart_plotly(" ", self.title)
+        elif self.visualization == VisualizationValues.SCATTER_CHART:
+            figure_or_data = self._render_scatterchart_plotly(self.visualization_properties, " ")
 
         if figure_or_data is not None:
             self.metadata["figure_or_data"] = figure_or_data
@@ -585,7 +592,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 return {"fig": figure_or_data}
         return {}
 
-    def pie(self, key_word_sep=" ", title=None, **kwargs):
+    def pie(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab pie chart from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -611,11 +618,11 @@ class ResultSet(list, ColumnGuesserMixin):
         import matplotlib.pyplot as plt
 
         pie = plt.pie(self.columns[1], labels=self.columns[0], **kwargs)
-        plt.title(title or self.columns[1].name)
+        plt.title(properties.get(VisualizationKeys.TITLE, self.columns[1].name))
         plt.show()
         return pie
 
-    def plot(self, title=None, **kwargs):
+    def plot(self, properties:dict, **kwargs):
         """Generates a pylab plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -642,11 +649,11 @@ class ResultSet(list, ColumnGuesserMixin):
         if hasattr(self.x, "name"):
             plt.xlabel(self.x.name)
         ylabel = ", ".join(y.name for y in self.ys)
-        plt.title(title or ylabel)
+        plt.title(properties.get(VisualizationKeys.TITLE, ylabel))
         plt.ylabel(ylabel)
         return plot
 
-    def bar(self, key_word_sep=" ", title=None, **kwargs):
+    def bar(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab bar plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -701,7 +708,7 @@ class ResultSet(list, ColumnGuesserMixin):
         else:
             return outfile.getvalue()
 
-    def _render_pie(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_pie(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab pie chart from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -724,11 +731,11 @@ class ResultSet(list, ColumnGuesserMixin):
         import matplotlib.pylab as plt
 
         pie = plt.pie(self.columns[1], labels=self.columns[0], **kwargs)
-        plt.title(title or self.columns[1].name)
+        plt.title(properties.get(VisualizationKeys.TITLE, self.columns[1].name))
         plt.show()
         return pie
 
-    def _render_barh(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_barh(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab horizaontal barchart from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -769,12 +776,12 @@ class ResultSet(list, ColumnGuesserMixin):
         plt.yticks(range(len(self.columns[0])), self.columns[0], rotation=0)
         plt.ylabel(xlabel)
         plt.xlabel(ylabel)
-        plt.title(title or ylabel)
+        plt.title(properties.get(VisualizationKeys.TITLE, ylabel))
 
         plt.show()
         return barchart
 
-    def _render_bar(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_bar(self,properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab horizaontal barchart from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -816,12 +823,12 @@ class ResultSet(list, ColumnGuesserMixin):
         plt.xticks(range(len(self.columns[0])), self.columns[0], rotation=45)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.title(title or ylabel)
+        plt.title(properties.get(VisualizationKeys.TITLE, ylabel))
 
         plt.show()
         return columnchart
 
-    def _render_linechart(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_linechart(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -852,13 +859,13 @@ class ResultSet(list, ColumnGuesserMixin):
 
         coords = functools.reduce(operator.add, [(x, y) for y in ys])
         plot = plt.plot(*coords, **kwargs)
-        plt.title(title or ylabel)
+        plt.title(properties.get(VisualizationKeys.TITLE, ylabel))
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         plt.show()
         return plot
 
-    def _render_areachart_plotly(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_areachart_plotly(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -900,7 +907,7 @@ class ResultSet(list, ColumnGuesserMixin):
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=title or "areachart",
+            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.AREA_CHART),
             showlegend=True,
             xaxis=dict(title=xlabel, type="category"),
             yaxis=dict(
@@ -914,7 +921,7 @@ class ResultSet(list, ColumnGuesserMixin):
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
 
-    def _render_stackedareachart_plotly(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_stackedareachart_plotly(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -961,7 +968,7 @@ class ResultSet(list, ColumnGuesserMixin):
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=title or "stackedareachart",
+            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.STACKED_AREA_CHART),
             showlegend=True,
             xaxis=dict(title=xlabel, type="date"),
             yaxis=dict(
@@ -975,7 +982,7 @@ class ResultSet(list, ColumnGuesserMixin):
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
 
-    def _render_timechart_plotly(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_timechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -1016,7 +1023,7 @@ class ResultSet(list, ColumnGuesserMixin):
         ]
 
         layout = go.Layout(
-            title=title or "timechart",
+            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.TIME_CHART),
             showlegend=True,
             xaxis=dict(
                 rangeselector=dict(
@@ -1043,7 +1050,7 @@ class ResultSet(list, ColumnGuesserMixin):
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
 
-    def _render_piechart_plotly(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_piechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
 
         self._build_chart_sub_tables(x_type="first")
         if len(self.chart_sub_tables) < 1:
@@ -1087,7 +1094,7 @@ class ResultSet(list, ColumnGuesserMixin):
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=title or "piechart",
+            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.PIE_CHART),
             showlegend=True,
             annotations=[
                 dict(
@@ -1102,7 +1109,7 @@ class ResultSet(list, ColumnGuesserMixin):
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
 
-    def _render_barchart_plotly(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_barchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
 
         self._build_chart_sub_tables(x_type="first")
         if len(self.chart_sub_tables) < 1:
@@ -1126,7 +1133,7 @@ class ResultSet(list, ColumnGuesserMixin):
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=title or "barchart",
+            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.BAR_CHART),
             showlegend=True,
             xaxis=dict(
                 title=ylabel,
@@ -1140,7 +1147,7 @@ class ResultSet(list, ColumnGuesserMixin):
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
 
-    def _render_columnchart_plotly(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_columnchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
 
         self._build_chart_sub_tables(x_type="first")
         if len(self.chart_sub_tables) < 1:
@@ -1158,7 +1165,7 @@ class ResultSet(list, ColumnGuesserMixin):
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=title or "columnchart",
+            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.COLUMN_CHART),
             showlegend=True,
             xaxis=dict(title=xlabel, type="category"),
             yaxis=dict(
@@ -1172,7 +1179,7 @@ class ResultSet(list, ColumnGuesserMixin):
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
 
-    def _render_linechart_plotly(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_linechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -1212,7 +1219,7 @@ class ResultSet(list, ColumnGuesserMixin):
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=title or "linechart",
+            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.LINE_CHART),
             showlegend=True,
             xaxis=dict(
                 title=xlabel,
@@ -1229,7 +1236,7 @@ class ResultSet(list, ColumnGuesserMixin):
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
 
-    def _render_scatterchart_plotly(self, key_word_sep=" ", title=None, **kwargs):
+    def _render_scatterchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -1269,7 +1276,7 @@ class ResultSet(list, ColumnGuesserMixin):
             for idx, yticks in enumerate(ys)
         ]
         layout = go.Layout(
-            title=title or "scatterchart",
+            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.SCATTER_CHART),
             showlegend=True,
             xaxis=dict(title=xlabel, type="category"),
             yaxis=dict(
@@ -1283,8 +1290,10 @@ class ResultSet(list, ColumnGuesserMixin):
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
 
-    def _render_anomalychart_plotly(self, key_word_sep=" ", title=None, **kwargs):
-        return self._render_timechart_plotly(key_word_sep, title or "anomalychart", fieldnames="kql-anomalychart-plot", **kwargs)
+    def _render_anomalychart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
+        props = dict(properties)
+        props[VisualizationKeys.TITLE] = props.get(VisualizationKeys.TITLE, VisualizationValues.ANOMALY_CHART)
+        return self._render_timechart_plotly(props, key_word_sep, fieldnames="kql-anomalychart-plot", **kwargs)
 
 
 class PrettyTable(prettytable.PrettyTable):

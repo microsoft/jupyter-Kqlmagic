@@ -7,7 +7,7 @@
 """A module that manage package version.
 """
 
-VERSION = "0.1.70"
+VERSION = "0.1.71"
 
 import requests
 from Kqlmagic.constants import Constants

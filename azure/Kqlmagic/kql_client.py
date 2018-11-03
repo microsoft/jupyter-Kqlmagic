@@ -208,7 +208,7 @@ class KqlQueryResponse(object):
                         ):
                             for row in table["Rows"]:
                                 if row[key_idx] == "Visualization":
-                                    # print('visualization_properties for table {0}: {1}'.format(id_idx, row[value_idx]))
+                                    # print('visualization raw properties for table {0}: {1}'.format(id_idx, row[value_idx]))
                                     self.visualization[row[id_idx]] = json.loads(row[value_idx])
                                     # return json.loads(row[value_idx])
             else:
@@ -217,7 +217,7 @@ class KqlQueryResponse(object):
                 for row in last_table["Rows"]:
                     if row[2] == "@ExtendedProperties" and row[1] == "QueryProperties":
                         table = self.json_response["Tables"][row[0]]
-                        # print('visualization_properties for first table: {}'.format(table['Rows'][0][0]))
+                        # print('visualization raw properties for first table: {}'.format(table['Rows'][0][0]))
                         self.visualization[0] = json.loads(table["Rows"][0][0])
                         # return json.loads(table["Rows"][0][0])
         return self.visualization

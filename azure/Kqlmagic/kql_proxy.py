@@ -91,9 +91,9 @@ class KqlResponse(object):
 
 
 class KqlTableResponse(object):
-    def __init__(self, data_table, visualization_results, **kwargs):
+    def __init__(self, data_table, visualization_results: dict, **kwargs):
         self.kwargs = kwargs
-        self.visualization_properties = visualization_results
+        self.visualization_results = visualization_results
         self.data_table = data_table
         self.columns_count = self.data_table.columns_count
 
@@ -120,20 +120,15 @@ class KqlTableResponse(object):
 
     def types(self):
         return self.data_table.columns_type
+    
+    @property
+    def visualization_properties(self):
+        " returns all Visualization in result set, such as, Title, Accumulate, IsQuerySorted, Kind, Annotation, By"
+        return self.visualization_results   
 
     @property
     def datafarme_types(self):
         return [self.KQL_TO_DATAFRAME_DATA_TYPES.get(t) for t in self.data_table.columns_type]
-
-    def visualization_property(self, name):
-        " returns value of attribute: Visualization, Title, Accumulate, IsQuerySorted, Kind, Annotation, By"
-        if not self.visualization_properties:
-            return None
-        try:
-            value = self.visualization_properties[name]
-            return value if value != "" else None
-        except:
-            return None
 
     def _map_columns_to_index(self, columns: list):
         map = {}

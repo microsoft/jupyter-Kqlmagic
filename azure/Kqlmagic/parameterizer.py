@@ -68,6 +68,8 @@ class Parameterizer(object):
                 if str(v) == "nat" # does not exist
                 else "real(null)"
                 if str(v) == "nan" # missing na for long(null)
+                else "'{0}'".format(v.decode("utf-8"))
+                if isinstance(v, bytes)
                 else str(v)
             )
         except:
@@ -117,7 +119,9 @@ class Parameterizer(object):
     def dataframe_to_kql_value(self, val, pair_type:list) -> str:
         pd_type, kql_type = pair_type
         s = str(val)
-        if kql_type == "string": 
+        if kql_type == "string":
+            if pd_type == "bytes":
+                s = val.decode("utf-8")
             return "" if s is None else "'{0}'".format(s)
         if kql_type == "long": 
             return 'long(null)' if s == 'nan' else s
@@ -176,6 +180,8 @@ class Parameterizer(object):
                     new_pairs_type[col] = [pair[0], "datetime"]
                 elif str(ty).split(".")[-1].startswith("timedelta"):
                     new_pairs_type[col] = [pair[0], "timespan"]
+                elif ty == bytes:
+                    new_pairs_type[col] = ["bytes", "string"]
                 else:
                     new_pairs_type[col] = [pair[0], "string"]
             else:

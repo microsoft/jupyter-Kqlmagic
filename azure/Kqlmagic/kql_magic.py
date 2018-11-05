@@ -252,7 +252,7 @@ class Kqlmagic(Magics, Configurable):
         if add_kql_ref_to_help:
             Help_html.add_menu_item("kql Reference", "http://aka.ms/kdocs", notebook_app=app)
         if app is None or app != "jupyterlab":
-            display(Javascript("""IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");"""))
+            display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
             time.sleep(5)
         _set_default_connections()
 
@@ -455,7 +455,7 @@ class Kqlmagic(Magics, Configurable):
 
     def submit_get_notebook_url(self):
         if self.notebook_app != "jupyterlab":
-            display(Javascript("""IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");"""))
+            display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
 
     def execute_query(self, parsed, user_ns: dict, result_set=None):
         if Help_html.showfiles_base_url is None:

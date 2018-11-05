@@ -25,12 +25,19 @@ class Parameterizer(object):
 
     def expand(self, query: str, **kwargs):
         """expand query to include resolution of python parameters"""
-        q = self._normalize(query)
+        query_management_prefix = ""
+        query_body = query
+        if query.startswith("."):
+            parts = query.split("<|")  
+            if len(parts) == 2:
+                query_management_prefix = parts[0] + "<| "
+                query_body = parts[1]
+        q = self._normalize(query_body)
         query_let_statments = [s.strip()[4:].strip() for s in q.split(";") if s.strip().startswith("let ")]
         parameters = self._detect_parameters(query_let_statments)
         statements = self._build_let_statements(parameters)
-        statements.append(query)
-        return ";".join(statements)
+        statements.append(query_body)
+        return query_management_prefix + ";".join(statements)
 
     def _object_to_kql(self, v) -> str:
         try:

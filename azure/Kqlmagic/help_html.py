@@ -92,5 +92,5 @@ class Help_html(object):
     @staticmethod
     def _reconnect(**kwargs):
         if kwargs is None or kwargs.get("notebook_app") != "jupyterlab":
-            display(Javascript("""IPython.notebook.kernel.reconnect();"""))
+            display(Javascript("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}"""))
             time.sleep(1)

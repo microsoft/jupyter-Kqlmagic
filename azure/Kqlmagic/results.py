@@ -373,7 +373,10 @@ class ResultSet(list, ColumnGuesserMixin):
     def show_table(self, **kwargs):
         "display the table"
         options = {**self.options, **kwargs}
-        if options.get("table_package", "").upper() == "PANDAS":
+        if len(self) == 1 and len(self[0]) == 1  and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
+            Display.show(Display.to_styled_class(self[0][0]))
+            return None
+        elif options.get("table_package", "").upper() == "PANDAS":
             t = self.to_dataframe()._repr_html_()
             html = Display.toHtml(body=t)
         else:

@@ -109,6 +109,8 @@ class KqlResponseTable(six.Iterator):
             data_type = self.index2type_mapping[index]
             if data_type in self.converters_lambda_mappings:
                 result_dict[self.index2column_mapping[index]] = self.converters_lambda_mappings[data_type](value)
+            elif self.rows_count == 1 and self.columns_count == 1 and self.index2column_mapping[index] == "DatabaseSchema" and data_type == "String":
+                result_dict[self.index2column_mapping[index]] = self.to_object(value)
             else:
                 result_dict[self.index2column_mapping[index]] = value
         self.row_index = self.row_index + 1
@@ -173,12 +175,15 @@ class KqlQueryResponse(object):
             self.all_tables = self.json_response["Tables"]
             tables_num = self.json_response["Tables"].__len__()
             last_table = self.json_response["Tables"][tables_num - 1]
-            self.tables = [self.json_response["Tables"][r[0]] for r in last_table["Rows"] if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
-            self.dataSetCompletion = []
+            if tables_num < 2:
+                self.tables = []
+            else:
+                self.tables = [self.json_response["Tables"][r[0]] for r in last_table["Rows"] if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
             if len(self.tables) == 0:
                 self.tables = self.all_tables[:1]
             self.primary_results = [KqlResponseTable(idx, t) for idx, t in enumerate(self.tables)]
-
+            self.dataSetCompletion = []
+ 
     def _get_endpoint_version(self, json_response):
         try:
             tables_num = json_response["Tables"].__len__()  # pylint: disable=W0612
@@ -213,13 +218,14 @@ class KqlQueryResponse(object):
                                     # return json.loads(row[value_idx])
             else:
                 tables_num = self.json_response["Tables"].__len__()
-                last_table = self.json_response["Tables"][tables_num - 1]
-                for row in last_table["Rows"]:
-                    if row[2] == "@ExtendedProperties" and row[1] == "QueryProperties":
-                        table = self.json_response["Tables"][row[0]]
-                        # print('visualization raw properties for first table: {}'.format(table['Rows'][0][0]))
-                        self.visualization[0] = json.loads(table["Rows"][0][0])
-                        # return json.loads(table["Rows"][0][0])
+                if tables_num > 1:
+                    last_table = self.json_response["Tables"][tables_num - 1]
+                    for row in last_table["Rows"]:
+                        if row[2] == "@ExtendedProperties" and row[1] == "QueryProperties":
+                            table = self.json_response["Tables"][row[0]]
+                            # print('visualization raw properties for first table: {}'.format(table['Rows'][0][0]))
+                            self.visualization[0] = json.loads(table["Rows"][0][0])
+                            # return json.loads(table["Rows"][0][0])
         return self.visualization
 
     @property
@@ -236,15 +242,16 @@ class KqlQueryResponse(object):
                                 return json.loads(row[payload_idx])
         else:
             tables_num = self.json_response["Tables"].__len__()
-            last_table = self.json_response["Tables"][tables_num - 1]
-            for r in last_table["Rows"]:
-                if r[2] == "QueryStatus":
-                    t = self.json_response["Tables"][r[0]]
-                    for sr in t["Rows"]:
-                        if sr[2] == "Info":
-                            info = {"StatusCode": sr[3], "StatusDescription": sr[4], "Count": sr[5]}
-                            # print('Info: {}'.format(info))
-                            return info
+            if tables_num > 1:
+                last_table = self.json_response["Tables"][tables_num - 1]
+                for r in last_table["Rows"]:
+                    if r[2] == "QueryStatus":
+                        t = self.json_response["Tables"][r[0]]
+                        for sr in t["Rows"]:
+                            if sr[2] == "Info":
+                                info = {"StatusCode": sr[3], "StatusDescription": sr[4], "Count": sr[5]}
+                                # print('Info: {}'.format(info))
+                                return info
         return {}
 
     @property
@@ -261,15 +268,16 @@ class KqlQueryResponse(object):
                                 return json.loads(row[payload_idx])
         else:
             tables_num = self.json_response["Tables"].__len__()
-            last_table = self.json_response["Tables"][tables_num - 1]
-            for r in last_table["Rows"]:
-                if r[2] == "QueryStatus":
-                    t = self.json_response["Tables"][r[0]]
-                    for sr in t["Rows"]:
-                        if sr[2] == "Stats":
-                            stats = sr[4]
-                            # print('stats: {}'.format(stats))
-                            return json.loads(stats)
+            if tables_num > 1:
+                last_table = self.json_response["Tables"][tables_num - 1]
+                for r in last_table["Rows"]:
+                    if r[2] == "QueryStatus":
+                        t = self.json_response["Tables"][r[0]]
+                        for sr in t["Rows"]:
+                            if sr[2] == "Stats":
+                                stats = sr[4]
+                                # print('stats: {}'.format(stats))
+                                return json.loads(stats)
         return {}
 
     @property

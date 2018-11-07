@@ -10,7 +10,7 @@ import logging
 import hashlib
 
 
-from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version, execute_version_command
+from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
 from Kqlmagic.help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
 from Kqlmagic.constants import Constants
 
@@ -52,6 +52,9 @@ class Kqlmagic(Magics, Configurable):
     """Runs KQL statement on a repository as specified by a connect string.
 
     Provides the %%kql magic."""
+
+    # make sure the right python version is used
+    validate_required_python_version_running(Constants.MINIMAL_PYTHON_VERSION_REQUIRED)
 
     auto_limit = Int(0, config=True, allow_none=True, help="Automatically limit the size of the returned result sets. Abbreviation: al")
     prettytable_style = Enum(

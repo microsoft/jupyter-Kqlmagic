@@ -8,6 +8,7 @@
 
 
 class Constants(object):
+    MINIMAL_PYTHON_VERSION_REQUIRED = "3.6"
     MAGIC_SOURCE_REPOSITORY_NAME = "https://github.com/Microsoft/jupyter-Kqlmagic"
     MAGIC_PIP_REFERENCE_NAME = "Kqlmagic"  # 'git+git://github.com/Microsoft/jupyter-Kqlmagic.git'
     MAGIC_PACKAGE_NAME = "Kqlmagic"

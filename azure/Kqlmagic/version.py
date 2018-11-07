@@ -7,8 +7,9 @@
 """A module that manage package version.
 """
 
-VERSION = "0.1.75"
+VERSION = "0.1.76"
 
+import sys
 import requests
 from Kqlmagic.constants import Constants
 from Kqlmagic.help import MarkdownString
@@ -140,3 +141,36 @@ def to_int(str_val: str):
     """
 
     return int(str_val) if is_int(str_val) else None
+
+def validate_required_python_version_running(minimal_required_version: str) -> None:
+    """ Validate whether the running python version meets minimal required python version 
+    
+    Parameters
+    ----------
+    minimal_required_version : str
+        Minimal required python version, in the following format: major.minor.micro
+
+    Returns
+    -------
+    None
+
+    Exceptions
+    ----------
+    Raise RunTime exception, if sys.version_info does not support attributes: major, minor, micro (old python versions)
+    Raise RunTime exception, if running python version is lower than required python version 
+
+    """
+    try:
+        parts = minimal_required_version.split(".")
+        min_py_version = 1000000*int(parts[0]) + 1000*(int(parts[1]) if len(parts) > 1 else 0) + (int(parts[2]) if len(parts) > 2 else 0)
+        running_py_version = 1000000*sys.version_info.major + 1000*sys.version_info.minor + sys.version_info.micro
+        if running_py_version < min_py_version:
+            raise RuntimeError("Kqlmagic requires python >= {0}, you use python {1}.{2}.{3}".format(
+                Constants.MINIMAL_PYTHON_VERSION_REQUIRED, 
+                sys.version_info.major, 
+                sys.version_info.minor,
+                sys.version_info.micro))
+    except:
+        raise RuntimeError("Kqlmagic requires python >= {0}, you use python {1}".format(
+            Constants.MINIMAL_PYTHON_VERSION_REQUIRED, 
+            sys.version))

@@ -127,7 +127,7 @@ class Parser(object):
         "version" : {"flag": "version", "type": "bool", "init": "False"},
         "usage" : {"flag": "usage", "type": "bool", "init": "False"},
         "submit" : {"flag": "submit", "type": "bool", "init": "False"}, # default
-        "help" : {"flag": "help", "type": "str", "init": "None"},
+        "help" : {"flag": "help", "type": "str", "init": "None", "default": "help"},
         "faq": {"flag": "faq", "type": "bool", "init": "False"},
         "palette": {"flag": "palette", "type": "bool", "init": "False"},
         "palettes": {"flag": "palettes", "type": "bool", "init": "False"},
@@ -151,9 +151,11 @@ class Parser(object):
         _type = obj.get("type")
         if _type == "bool":
             param = True 
-        elif len(words) >= 2:
+        elif len(words) >= 2 and not words[1].startswith("-"):
             param = cls.parse_value(words[1], words[0], _type, user_ns)
             trimmed_code = trimmed_code[trimmed_code.find(words[1]) + len(words[1]) :]
+        elif obj.get("default") is not None:
+            param = obj.get("default")
         else:
             raise ValueError("command {0} is missing parameter".format(word[0]))
 

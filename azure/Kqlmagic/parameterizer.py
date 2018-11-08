@@ -31,7 +31,7 @@ class Parameterizer(object):
             parts = query.split("<|")  
             if len(parts) == 2:
                 query_management_prefix = parts[0] + "<| "
-                query_body = parts[1]
+                query_body = parts[1].strip()
         q = self._normalize(query_body)
         query_let_statments = [s.strip()[4:].strip() for s in q.split(";") if s.strip().startswith("let ")]
         parameters = self._detect_parameters(query_let_statments)

@@ -139,6 +139,9 @@ class Display(object):
         notebooks_host = Display.notebooks_host or ""
         onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
         button_text = button_text or "popup window"
+        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_")
+        if window_name[0] in "0123456789":
+            window_name = "w_" + window_name
         window_params = "fullscreen=no,directories=no,location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,titlebar=no,toolbar=no,"
         html_str = (
             """<!DOCTYPE html>

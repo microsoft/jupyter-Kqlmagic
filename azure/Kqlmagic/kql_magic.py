@@ -88,6 +88,7 @@ class Kqlmagic(Magics, Configurable):
         "a kql connection string is formed from the "
         "matching section in the DSN file. Abbreviation: dl",
     )
+    timeout = Int(None, config=True, allow_none=True, help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait")
     plot_package = Enum(["matplotlib", "plotly"], "plotly", config=True, help="Set the plot package. Abbreviation: pp")
     table_package = Enum(
         ["prettytable", "pandas", "plotly", "qgrid"], "prettytable", config=True, help="Set the table display package. Abbreviation: tp"

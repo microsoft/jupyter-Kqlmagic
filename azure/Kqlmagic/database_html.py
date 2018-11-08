@@ -166,7 +166,7 @@ class Database_html(object):
         return """<a href="#" class="list-group-item">""" + item + """</a>"""
 
     @staticmethod
-    def get_schema_file_path(conn, **kwargs):
+    def get_schema_file_path(conn, **options):
         engine_type = (
             KustoEngine
             if isinstance(conn, KustoEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, KustoEngine))
@@ -187,23 +187,23 @@ class Database_html(object):
 
             if engine_type == KustoEngine:
                 query = ".show schema"
-                raw_query_result = conn.execute(query)
+                raw_query_result = conn.execute(query, **options)
                 raw_schema_table = raw_query_result.tables[0]
                 database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
-                if kwargs.get("cache") and not kwargs.get("use_cache") and not isinstance(conn, CacheEngine):
-                    CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
+                if options.get("cache") and not options.get("use_cache") and not isinstance(conn, CacheEngine):
+                    CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), query, **options)
 
             elif engine_type == AppinsightsEngine or LoganalyticsEngine:
                 query = ".show schema"
-                metadata_result = conn.client_execute(query)
+                metadata_result = conn.client_execute(query, **options)
                 metadata_schema_table = metadata_result.table
                 database_metadata_tree = Database_html._create_database_draft_metadata_tree(metadata_schema_table)
-                if kwargs.get("cache") and not kwargs.get("use_cache") and not isinstance(conn, CacheEngine):
-                    CacheClient().save(metadata_result, conn.get_database(), conn.get_cluster(), query, **kwargs)
+                if options.get("cache") and not options.get("use_cache") and not isinstance(conn, CacheEngine):
+                    CacheClient().save(metadata_result, conn.get_database(), conn.get_cluster(), query, **options)
 
             html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)
             window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
-            return Display._html_to_file_path(html_str, window_name, **kwargs)
+            return Display._html_to_file_path(html_str, window_name, **options)
         else:
             return None
 

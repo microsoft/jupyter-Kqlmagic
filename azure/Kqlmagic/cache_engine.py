@@ -51,16 +51,16 @@ class CacheEngine(KqlEngine):
             outfile.flush()
             outfile.close()
 
-    def validate(self, **kwargs):
+    def validate(self, **options):
         client = self.get_client()
         if not client:
             raise KqlEngineError("Client is not defined.")
         # query = "range c from 1 to 10 step 1 | count"
         filename = self._VALIDATION_FILE_NAME
         database = self.get_database()
-        response = client.execute(database, filename, accept_partial_results=False, timeout=None)
+        response = client.execute(database, filename, accept_partial_results=False, timeout=options.get("timeout"))
         # print(response.json_response)
-        table = KqlResponse(response, **kwargs).tables[0]
+        table = KqlResponse(response, **options).tables[0]
         if table.rowcount() != 1 or table.colcount() != 1 or [r for r in table.fetchall()][0][0] != 10:
             raise KqlEngineError("Client failed to validate connection.")
 

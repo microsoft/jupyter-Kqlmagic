@@ -56,27 +56,27 @@ class KqlEngine(object):
     def get_client(self):
         return self.client
 
-    def client_execute(self, query, user_namespace=None, **kwargs):
+    def client_execute(self, query, user_namespace=None, **options):
         if query.strip():
             client = self.get_client()
             if not client:
                 raise KqlEngineError("Client is not defined.")
-            return client.execute(self.get_database(), query, accept_partial_results=False, timeout=None)
+            return client.execute(self.get_database(), query, accept_partial_results=False, timeout=options.get("timeout"))
 
-    def execute(self, query, user_namespace=None, **kwargs):
+    def execute(self, query, user_namespace=None, **options):
         if query.strip():
-            response = self.client_execute(query, user_namespace, **kwargs)
+            response = self.client_execute(query, user_namespace, **options)
             # print(response.json_response)
-            return KqlResponse(response, **kwargs)
+            return KqlResponse(response, **options)
 
-    def validate(self, **kwargs):
+    def validate(self, **options):
         client = self.get_client()
         if not client:
             raise KqlEngineError("Client is not defined.")
         query = "range c from 1 to 10 step 1 | count"
-        response = client.execute(self.get_database(), query, accept_partial_results=False, timeout=None)
+        response = client.execute(self.get_database(), query, accept_partial_results=False, timeout=options.get("timeout"))
         # print(response.json_response)
-        table = KqlResponse(response, **kwargs).tables[0]
+        table = KqlResponse(response, **options).tables[0]
         if table.rowcount() != 1 or table.colcount() != 1 or [r for r in table.fetchall()][0][0] != 10:
             raise KqlEngineError("Client failed to validate connection.")
 

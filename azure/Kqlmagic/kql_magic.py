@@ -123,8 +123,8 @@ class Kqlmagic(Magics, Configurable):
 
     add_kql_ref_to_help = Bool(True, config=True, help="On {} load auto add kql reference to Help menu.".format(Constants.MAGIC_CLASS_NAME))
     add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
-    cache = Bool(False, config=True, help="Cache query results.")
-    use_cache = Bool(False, config=True, help="use cached query results, instead of executing the query.")
+    cache = Unicode(None, config=True, allow_none=True, help="Cache query results to the specified folder.")
+    use_cache = Unicode(None, config=True, allow_none=True, help="Use cached query results from the specified folder, instead of executing the query.")
 
     @validate("palette_name")
     def _valid_value_palette_name(self, proposal):
@@ -152,6 +152,38 @@ class Kqlmagic(Magics, Configurable):
             message = "The 'palette_color' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
             raise TraitError(message)
         return proposal["value"]
+
+    def execute_cache_command(self, cache_name:str) -> str:
+        """ execute the cache command.
+        command enables or disables caching, and returns a status string
+
+        Returns
+        -------
+        str
+            A string with the new cache name, if None caching is diabled
+        """
+        if cache_name is not None and cache_name != "None" and len(cache_name) > 0:
+            self.cache = cache_name
+            return MarkdownString("{0} caching to folder **{1}** was enabled.".format(Constants.MAGIC_PACKAGE_NAME, self.cache))
+        else:
+            self.cache = None
+            return MarkdownString("{0} caching was disabled.".format(Constants.MAGIC_PACKAGE_NAME))
+
+    def execute_use_cache_command(self, cache_name:str) -> str:
+        """ execute the use_cache command.
+        command enables or disables use of cache, and returns a status string
+
+        Returns
+        -------
+        str
+            A string with the cache name, if None cache is diabled
+        """
+        if cache_name is not None and cache_name != "None" and len(cache_name) > 0:
+            self.cache = cache_name
+            return MarkdownString("{0} cache in folder **{1}** was enabled.".format(Constants.MAGIC_PACKAGE_NAME, self.use_cache))
+        else:
+            self.cache = None
+            return MarkdownString("{0} cache was disabled.".format(Constants.MAGIC_PACKAGE_NAME))
 
     # [KUSTO]
     # Driver          = Easysoft ODBC-SQL Server
@@ -386,6 +418,10 @@ class Kqlmagic(Magics, Configurable):
                         result = execute_faq_command()
                     elif command == "help":
                         result = execute_help_command(param)
+                    elif command == "cache":
+                        result = self.execute_cache_command(param)
+                    elif command == "use_cache":
+                        result = self.execute_use_cache_command(param)
                     elif command == "palette":
                         result = Palette(
                             palette_name=options.get("palette_name", self.palette_name),
@@ -564,6 +600,10 @@ class Kqlmagic(Magics, Configurable):
                 save_as_file_path = CacheClient().save(
                     raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, filepath=options.get("save_as"), **options
                 )
+            if options.get("save_to") is not None:
+                save_as_file_path = CacheClient().save(
+                    raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, filefolder=options.get("save_to"), **options
+                )
             #
             # model query results
             #
@@ -620,7 +660,7 @@ class Kqlmagic(Magics, Configurable):
                 self.shell.user_ns.update({result_var: result if result is not None else saved_result})
                 result = None
 
-            if options.get("cache") and not options.get("use_cache") and not isinstance(conn, CacheEngine):
+            if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
                 file_path = CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, **options)
                 if options.get("feedback", self.feedback):
                     saved_result.feedback_info.append("query results cached")
@@ -628,6 +668,10 @@ class Kqlmagic(Magics, Configurable):
             if options.get("save_as") is not None:
                 if options.get("feedback", self.feedback):
                     saved_result.feedback_info.append("query results saved as {0}".format(save_as_file_path))
+            if options.get("save_to") is not None:
+                if options.get("feedback", self.feedback):
+                    path = "/".join(save_as_file_path.split("/")[:-1])
+                    saved_result.feedback_info.append("query results saved to {0}".format(path))
 
             saved_result.suppress_result = False
             saved_result.display_info = False

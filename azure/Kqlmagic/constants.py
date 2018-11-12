@@ -6,7 +6,6 @@
 
 """ Constants file. """
 
-
 class Constants(object):
     MINIMAL_PYTHON_VERSION_REQUIRED = "3.6"
     MAGIC_SOURCE_REPOSITORY_NAME = "https://github.com/Microsoft/jupyter-Kqlmagic"
@@ -18,6 +17,15 @@ class Constants(object):
     MAGIC_NAME = "kql"
     MAGIC_ALIASES = []
     LOGGER_NAME = "{0}-py".format(MAGIC_CLASS_NAME)
+
+    # conversion constants
+    MINUTE_SECS = 60
+    HOUR_SECS = 60 * MINUTE_SECS 
+    DAY_SECS = 24 * HOUR_SECS
+    SEC_NANOS = 1000000000
+    TICK_NANOS = 100 # 1 tick is 100ns
+    TICK_TO_INT_FACTOR = int(SEC_NANOS // TICK_NANOS)
+
 
 
 class ConnStrKeys(object):
@@ -45,22 +53,91 @@ class ConnStrKeys(object):
 
 class VisualizationKeys(object):
     "list of keys as they appear in response from kusto or draft"
-    VISUALIZATION = "Visualization"
-    TITLE = "Title"
-    X_COLUMN = "XColumn"
-    SERIES = "Series"
-    Y_COLUMN = "YColumns"
-    ANOMALY_COLUMNS = "AnomalyColumns"
-    X_TITLE = "XTitle"
-    Y_TITLE = "YTitle"
-    X_AXIX = "XAxis"
-    Y_AXIX = "YAxis"
-    LEGEND = "Legend"
-    Y_SPLIT = "YSplit"
-    ACCUMULATE = "Accumulate"
-    IS_QUERY_SORTED = "IsQuerySorted"
-    KIND = "Kind"
 
+    VISUALIZATION = "Visualization"
+    """Visualization indicates the kind of visualization to use. The supported values are:
+        anomalychart	Similar to timechart, but highlights anomalies using an external machine-learning service.
+        areachart	    Area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
+        barchart	    First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
+        columnchart	    Like barchart, with vertical strips instead of horizontal strips.
+        ladderchart	    Last two columns are the x-axis, other columns are y-axis.
+        linechart	    Line graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
+        piechart	    First column is color-axis, second column is numeric.
+        pivotchart	    Displays a pivot table and chart. User can interactively select data, columns, rows and various chart types.
+        scatterchart	Points graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
+        stackedareachart	Stacked area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
+        table	        Default - results are shown as a table.
+        timechart	    Line graph. First column is x-axis, and should be datetime. Other columns are y-axes.
+        timepivot	    Interactive navigation over the events time-line (pivoting on time axis)    
+    """
+
+    TITLE = "Title"
+    "The title of the visualization (of type string)."
+
+    X_TITLE = "XTitle"
+    "The title of the x-axis (of type string)."
+
+    Y_TITLE = "YTitle"
+    "The title of the y-axis (of type string)."
+
+    X_COLUMN = "XColumn"
+    "Which column in the result is used for the x-axis."
+
+    SERIES = "Series"
+    "Comma-delimited list of columns whose combined per-record values define the series that record belongs to."
+
+    Y_COLUMNS = "YColumns"
+    "Comma-delimited list of columns that consist of the values provided per value of the x column."
+
+    X_AXIS = "XAxis"
+    "How to scale the x-axis (linear or log)."
+
+    Y_AXIS = "YAxis"
+    "How to scale the y-axis (linear or log)."
+    
+    LEGEND = "Legend"
+    "Whether to display a legend or not (visible or hidden)."
+
+    # TODO: implement it
+    Y_SPLIT = "YSplit"
+    """How to split multiple the visualization.
+
+       Some visualizations support splitting into multiple y-axis values:
+            none	A single y-axis is displayed for all series data. (Default)
+            axes	A single chart is displayed with multiple y-axis (one per series).
+            panels	One chart is rendered for each ycolumn value (up to some limit).
+    """
+
+    # TODO: implement it
+    ACCUMULATE = "Accumulate"
+    "Whether the value of each measure gets added to all its predecessors. (true or false)"
+
+    IS_QUERY_SORTED = "IsQuerySorted"
+    "Tips: Sort the data to define the order of the x-axis."
+
+    # TODO: implement it
+    KIND = "Kind"
+    """Some visualizations can be further elaborated by providing the kind property.
+    
+    Visualization	kind	        Description
+
+    areachart	    default	        Each "area" stands on its own.
+                    unstacked	    Same as default.
+                    stacked	        Stack "areas" to the right.
+                    stacked100	    Stack "areas" to the right and stretch each one to the same width as the others.
+    barchart	    default	        Each "bar" stands on its own.
+                    unstacked	    Same as default.
+                    stacked	        Stack "bars".
+                    stacked100	    Stack "bard" and stretch each one to the same width as the others.
+    columnchart	    default	        Each "column" stands on its own.
+                    unstacked	    Same as default.
+                    stacked	        Stack "columns" one atop the other.
+                    stacked100	    Stack "columns" and stretch each one to the same height as the others.
+    """
+   
+    # TODO: find out what it means
+    ANOMALY_COLUMNS = "AnomalyColumns"
+ 
 class VisualizationValues(object):
     TABLE = "table"
     PIE_CHART = "piechart"
@@ -75,4 +152,37 @@ class VisualizationValues(object):
     TIME_PIVOT = "timepivot"
     PIVOT_CHART = "pivotchart"
     SCATTER_CHART = "scatterchart"
+
+class VisualizationKinds(object):
+    DEFAULT = "default"
+    "Each y-value stands on its own."
+
+    UNSTACKED = "unstacked"
+    "Same as default, each y-value stands on its own."
+
+    STACKED = "stacked"
+    "Stack y-values one atop the other."
+
+    STACKED_100 = "stacked100"
+    "Stack y-values and stretch each one to the same height as the others."
+
+class VisualizationSplits(object):
+    NONE = "none"
+    "A single y-axis is displayed for all series data. (Default)"
+
+    AXES = "axes"
+    "A single chart is displayed with multiple y-axis (one per series)."
+
+    PANELS = "panels"
+    "One chart is rendered for each ycolumn value (up to some limit)."
+
+class VisualizationScales(object):
+    LINEAR = "linear"
+    LOG = "log"
+
+class VisualizationLegends(object):
+    HIDDEN = "hidden"
+    VISIBLE = "visible"
+
+
 

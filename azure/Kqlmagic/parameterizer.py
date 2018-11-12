@@ -8,6 +8,7 @@ import six
 import json
 from datetime import timedelta, datetime
 from pandas import DataFrame
+from Kqlmagic.constants import Constants
 
 class ExtendedJSONEncoder(json.JSONEncoder):
     def defaultt(self, o):
@@ -238,26 +239,18 @@ class Parameterizer(object):
                 lines.append(line)
         return " ".join([line.replace("\r", "").replace("\t", " ") for line in lines])
     
-    _MINUTE_SECS = 60
-    _HOUR_SECS = 60 * _MINUTE_SECS 
-    _DAY_SECS = 24 * _HOUR_SECS
-    _SEC_NANOS = 1000000000
-    _TICK_NANOS = 100 # 1 tick is 100ns
-    _TICK_TO_INT_FACTOR = int(_SEC_NANOS // _TICK_NANOS)
-
-
     def _timedelta_to_timespan(self, total_seconds:float):
-        days = total_seconds // self._DAY_SECS
-        rest_secs = total_seconds - (days * self._DAY_SECS)
+        days = total_seconds // Constants.DAY_SECS
+        rest_secs = total_seconds - (days * Constants.DAY_SECS)
 
-        hours = rest_secs // self._HOUR_SECS
-        rest_secs = rest_secs - (hours * self._HOUR_SECS)
+        hours = rest_secs // Constants.HOUR_SECS
+        rest_secs = rest_secs - (hours * Constants.HOUR_SECS)
 
-        minutes = rest_secs // self._MINUTE_SECS
-        rest_secs = rest_secs - (minutes * self._MINUTE_SECS)
+        minutes = rest_secs // Constants.MINUTE_SECS
+        rest_secs = rest_secs - (minutes * Constants.MINUTE_SECS)
 
         seconds = rest_secs // 1
         rest_secs = rest_secs - seconds
 
-        ticks = rest_secs * self._TICK_TO_INT_FACTOR
+        ticks = rest_secs * Constants.TICK_TO_INT_FACTOR
         return "time({0:01}.{1:02}:{2:02}:{3:02}.{4:07})".format(int(days), int(hours), int(minutes), int(seconds), int(ticks))

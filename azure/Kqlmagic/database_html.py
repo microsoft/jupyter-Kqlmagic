@@ -190,7 +190,7 @@ class Database_html(object):
                 raw_query_result = conn.execute(query, **options)
                 raw_schema_table = raw_query_result.tables[0]
                 database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
-                if options.get("cache") and not options.get("use_cache") and not isinstance(conn, CacheEngine):
+                if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
                     CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), query, **options)
 
             elif engine_type == AppinsightsEngine or LoganalyticsEngine:
@@ -198,7 +198,7 @@ class Database_html(object):
                 metadata_result = conn.client_execute(query, **options)
                 metadata_schema_table = metadata_result.table
                 database_metadata_tree = Database_html._create_database_draft_metadata_tree(metadata_schema_table)
-                if options.get("cache") and not options.get("use_cache") and not isinstance(conn, CacheEngine):
+                if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
                     CacheClient().save(metadata_result, conn.get_database(), conn.get_cluster(), query, **options)
 
             html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)

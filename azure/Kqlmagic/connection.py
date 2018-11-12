@@ -84,7 +84,7 @@ class Connection(object):
             conn_engine = Connection._get_kusto_database_engine(database_name, cluster_name, alias, user_ns)
 
         if kwargs.get("use_cache") and engine != CacheEngine:
-            conn_engine = CacheEngine(conn_engine, user_ns, last_current)
+            conn_engine = CacheEngine(conn_engine, user_ns, last_current, cache_name=kwargs.get("use_cache"))
         Connection._set_current(conn_engine)
 
     @classmethod
@@ -129,7 +129,7 @@ class Connection(object):
                 cls.current = cls.connections.get(descriptor) or Connection(descriptor, user_ns, **kwargs).current
         elif not cls.current:
             raise ConnectionError("No current connection set yet.")
-        cls.last_current_by_engine[cls.current.__class__.__name__] = cls.current
+        cls.last_current_by_engine[cls.current.__class__.__name__] = cls.current        
         return cls.current
 
     @classmethod

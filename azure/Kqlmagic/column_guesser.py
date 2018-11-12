@@ -5,6 +5,8 @@
 # --------------------------------------------------------------------------
 
 from datetime import timedelta, datetime
+import pytz
+from Kqlmagic.constants import Constants, VisualizationKeys
 
 
 """
@@ -32,7 +34,8 @@ class Column(list):
 
 
 class ChartSubTable(dict):
-    def __init__(self, col_x=None, col_y=None, name=None, mapping=None, **kwargs):
+    def __init__(self, col_x=None, col_y=None, name=None, mapping=None, is_descending_sorted=None,  **kwargs):
+        self.is_descending_sorted = is_descending_sorted
         self.col_x = col_x
         self.col_y = col_y
         self.name = name
@@ -41,12 +44,15 @@ class ChartSubTable(dict):
             self.update(mapping)
 
 
-def is_quantity(val):
+def is_quantity(val) -> bool:
     """Is ``val`` a quantity (int, float, datetime, etc) (not str, bool)?
     
     Relies on presence of __sub__.
     """
     return hasattr(val, "__sub__")
+
+def datetime_to_linear_ticks(t: datetime) -> int:
+    return (t-datetime(1,1,1,0,0,0,0, pytz.UTC)).total_seconds() * Constants.TICK_TO_INT_FACTOR
 
 
 class ColumnGuesserMixin(object):
@@ -58,43 +64,97 @@ class ColumnGuesserMixin(object):
     DATAFRAME_QUNATITY_TYPES = ["int64", "float64", "datetime64[ns]", "timedelta64[ns]", "int32"]
     DATAFRAME_TIME_TYPES = ["datetime64[ns]", "timedelta64[ns]"]
 
-    def _build_chart_sub_tables(self, name=None, x_type="first"):
+    def _build_chart_sub_tables(self, properties:dict, name=None, x_type="first") -> list:
         self.chart_sub_tables = []
         self._build_columns(name, without_data=True)
 
+        #
+        # discover column X index
+        #
         x_col_idx = None
-        if x_type == "first":
-            x_col_idx = 0
-        elif x_type == "quantity":
+        x_col_name = properties.get(VisualizationKeys.X_COLUMN)
+        if x_col_name is not None:
             for idx, c in enumerate(self.columns):
-                if c.is_quantity:
+                if c.name == x_col_name:
                     x_col_idx = idx
                     break
+        elif x_type == "first":
+            x_col_idx = 0
+        elif x_type == "quantity":
+            x_col_datetime_idx = None
+            for idx, c in enumerate(self.columns):
+                if c.is_quantity:
+                    if not c.is_datetime: 
+                        x_col_idx = idx
+                        break
+                    else:
+                        x_col_datetime_idx = x_col_datetime_idx or idx
+            x_col_idx = x_col_idx or x_col_datetime_idx
         elif x_type == "datetime":
+            # find first of type datetime
             for idx, c in enumerate(self.columns):
                 if c.is_datetime:
                     x_col_idx = idx
                     break
         if x_col_idx is None:
-            return
-
-        quantity_columns = [c for idx, c in enumerate(self.columns) if idx != x_col_idx and c.is_quantity]
-        non_quantity_columns = [c for idx, c in enumerate(self.columns) if idx != x_col_idx and not c.is_quantity]
+            print("No valid xcolumn")
+            return []
 
         rows = self
-        if self.columns[x_col_idx].is_quantity:
-            rows = sorted(self, key=lambda row: row[x_col_idx])
 
+        #
+        # discover x direction, and always sort ascending
+        #
+        is_descending_sorted = None
+        if self.columns[x_col_idx].is_quantity and len(rows) >= 2:
+            if  properties.get(VisualizationKeys.IS_QUERY_SORTED) == True:
+                previous_col_value = rows[0][x_col_idx]
+                is_descending_sorted = True
+                for r in rows[1:]:
+                    current_col_value = r[x_col_idx]
+                    if previous_col_value < current_col_value:
+                        is_descending_sorted = False
+                        break
+                    previous_col_value = current_col_value
+
+            rows = list(reversed(list(self))) if is_descending_sorted else sorted(self, key=lambda row: row[x_col_idx])
+
+        #
+        # create a new unique list of col_x values (keep same order)
+        #
         col_x = Column(col=self.columns[x_col_idx])
         for row in rows:
             if row[x_col_idx] not in col_x:
                 col_x.append(row[x_col_idx])
 
+        #
+        # discover series columns (each combination of values in this columns, is a serie)
+        #
+        specified_series_columns = properties.get(VisualizationKeys.SERIES) or []
+        series_columns = [c for idx, c in enumerate(self.columns) if c.name in specified_series_columns or (idx != x_col_idx and not c.is_quantity)]
+
+        #
+        # discover y columns
+        #
+        y_cols_name = properties.get(VisualizationKeys.Y_COLUMNS)
+        if y_cols_name is not None:
+            quantity_columns = [c for c in self.columns if c.name in y_cols_name and c.is_quantity]
+        else:
+            quantity_columns = [c for idx, c in enumerate(self.columns) if idx != x_col_idx and c.is_quantity and c.name not in [s.name for s in series_columns]] 
+        if len(quantity_columns) < 1:
+            print("No valid ycolumns")
+            return []
+
+
+        #
+        # create chart sub-tables
+        # a sub-table for each serie X y-col
+        #
         chart_sub_tables_dict = {}
         for row in rows:
             for qcol in quantity_columns:
-                if len(non_quantity_columns) > 0:
-                    sub_table_name = ":".join([row[col.idx] for col in non_quantity_columns]) + ":" + qcol.name
+                if len(series_columns) > 0:
+                    sub_table_name = ":".join([str(row[col.idx]) for col in series_columns]) + ":" + qcol.name
                 else:
                     sub_table_name = qcol.name
                 chart_sub_table = chart_sub_tables_dict.get(sub_table_name)
@@ -104,9 +164,11 @@ class ColumnGuesserMixin(object):
                         col_x=Column(col=self.columns[x_col_idx]),
                         col_y=Column(col=qcol),
                         mapping=dict(zip(col_x, [None for i in range(len(col_x))])),
+                        is_descending_sorted=is_descending_sorted,
                     )
-                chart_sub_table[row[x_col_idx]] = row[qcol.idx]
+                chart_sub_table[row[x_col_idx]] = datetime_to_linear_ticks(row[qcol.idx]) if qcol.is_datetime else row[qcol.idx]
         self.chart_sub_tables = list(chart_sub_tables_dict.values())
+        return self.chart_sub_tables
 
     def _build_columns(self, name=None, without_data=False):
         self.x = Column()

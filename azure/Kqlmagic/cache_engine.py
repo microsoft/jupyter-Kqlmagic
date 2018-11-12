@@ -30,7 +30,7 @@ class CacheEngine(KqlEngine):
                """.format(cls._URI_SCHEMA_NAME, ConnStrKeys.FOLDER)
 
     # Object constructor
-    def __init__(self, conn_str, user_ns: dict, current=None, **kwargs):
+    def __init__(self, conn_str, user_ns: dict, current=None, cache_name=None, **kwargs):
         super().__init__()
         self._parsed_conn = {}
         self.kql_engine = None
@@ -43,7 +43,7 @@ class CacheEngine(KqlEngine):
         )
         self.client = CacheClient()
 
-        folder_path = self.client._get_folder_path(self.get_database())
+        folder_path = self.client._get_folder_path(self.get_database(), cache_name)
         validation_file_path = folder_path + "/" + self._VALIDATION_FILE_NAME
         if not os.path.exists(validation_file_path):
             outfile = open(validation_file_path, "w")

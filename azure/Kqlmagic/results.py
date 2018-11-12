@@ -14,7 +14,8 @@ import os.path
 import re
 import uuid
 import prettytable
-from Kqlmagic.constants import VisualizationKeys, VisualizationValues
+
+from Kqlmagic.constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
 from Kqlmagic.column_guesser import ColumnGuesserMixin
 
 from Kqlmagic.display import Display
@@ -38,7 +39,6 @@ def _unduplicate_field_names(field_names):
             k += "_" + str(i)
         res.append(k)
     return res
-
 
 class UnicodeWriter(object):
     """
@@ -534,46 +534,61 @@ class ResultSet(list, ColumnGuesserMixin):
             return {"body": body, "head": head}
 
         figure_or_data = None
+
         # First column is color-axis, second column is numeric
         if self.visualization == VisualizationValues.PIE_CHART:
             figure_or_data = self._render_piechart_plotly(self.visualization_properties, " ")
             # chart = self._render_pie(self.visualization_properties, " ")
+
         # First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
         # kind = default, unstacked, stacked, stacked100 (Default, same as unstacked; unstacked - Each "area" to its own; stacked - "Areas" are stacked to the right; stacked100 - "Areas" are stacked to the right, and stretched to the same width)
         elif self.visualization == VisualizationValues.BAR_CHART:
             figure_or_data = self._render_barchart_plotly(self.visualization_properties, " ")
             # chart = self._render_barh(self.visualization_properties, " ")
+
         # Like barchart, with vertical strips instead of horizontal strips.
         # kind = default, unstacked, stacked, stacked100
         elif self.visualization == VisualizationValues.COLUMN_CHART:
-            figure_or_data = self._render_columnchart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_barchart_plotly(self.visualization_properties, " ")
             # chart = self._render_bar(self.visualization_properties, " ")
+
         # Area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         # kind = default, unstacked, stacked, stacked100
         elif self.visualization == VisualizationValues.AREA_CHART:
             figure_or_data = self._render_areachart_plotly(self.visualization_properties, " ")
             # chart = self._render_areachart(self.visualization_properties, " ")
+
         # Line graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         elif self.visualization == VisualizationValues.LINE_CHART:
             figure_or_data = self._render_linechart_plotly(self.visualization_properties, " ")
+
         # Line graph. First column is x-axis, and should be datetime. Other columns are y-axes.
         elif self.visualization == VisualizationValues.TIME_CHART:
             figure_or_data = self._render_timechart_plotly(self.visualization_properties, " ")
+
         # Similar to timechart, but highlights anomalies using an external machine-learning service.
         elif self.visualization == VisualizationValues.ANOMALY_CHART:
-            figure_or_data = self._render_anomalychart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_linechart_plotly(self.visualization_properties, " ")
+
         # Stacked area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         elif self.visualization == VisualizationValues.STACKED_AREA_CHART:
             figure_or_data = self._render_stackedareachart_plotly(self.visualization_properties, " ")
+
         # Last two columns are the x-axis, other columns are y-axis.
         elif self.visualization == VisualizationValues.LADDER_CHART:
-            figure_or_data = self.pie(self.visualization_properties, " ")
+            # not supported yet
+            return {}
+
         # Interactive navigation over the events time-line (pivoting on time axis)
         elif self.visualization == VisualizationValues.TIME_PIVOT:
-            figure_or_data = self.pie(self.visualization_properties, " ")
+            # not supported yet
+            return {}
+
         # Displays a pivot table and chart. User can interactively select data, columns, rows and various chart types.
         elif self.visualization == VisualizationValues.PIVOT_CHART:
-            figure_or_data = self.pie(self.visualization_properties, " ")
+            # not supported yet
+            return {}
+
         # Points graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes
         elif self.visualization == VisualizationValues.SCATTER_CHART:
             figure_or_data = self._render_scatterchart_plotly(self.visualization_properties, " ")
@@ -621,7 +636,7 @@ class ResultSet(list, ColumnGuesserMixin):
         import matplotlib.pyplot as plt
 
         pie = plt.pie(self.columns[1], labels=self.columns[0], **kwargs)
-        plt.title(properties.get(VisualizationKeys.TITLE, self.columns[1].name))
+        plt.title(properties.get(VisualizationKeys.TITLE) or self.columns[1].name)
         plt.show()
         return pie
 
@@ -652,7 +667,7 @@ class ResultSet(list, ColumnGuesserMixin):
         if hasattr(self.x, "name"):
             plt.xlabel(self.x.name)
         ylabel = ", ".join(y.name for y in self.ys)
-        plt.title(properties.get(VisualizationKeys.TITLE, ylabel))
+        plt.title(properties.get(VisualizationKeys.TITLE) or ylabel)
         plt.ylabel(ylabel)
         return plot
 
@@ -734,7 +749,7 @@ class ResultSet(list, ColumnGuesserMixin):
         import matplotlib.pylab as plt
 
         pie = plt.pie(self.columns[1], labels=self.columns[0], **kwargs)
-        plt.title(properties.get(VisualizationKeys.TITLE, self.columns[1].name))
+        plt.title(properties.get(VisualizationKeys.TITLE) or self.columns[1].name)
         plt.show()
         return pie
 
@@ -779,7 +794,7 @@ class ResultSet(list, ColumnGuesserMixin):
         plt.yticks(range(len(self.columns[0])), self.columns[0], rotation=0)
         plt.ylabel(xlabel)
         plt.xlabel(ylabel)
-        plt.title(properties.get(VisualizationKeys.TITLE, ylabel))
+        plt.title(properties.get(VisualizationKeys.TITLE) or ylabel)
 
         plt.show()
         return barchart
@@ -826,7 +841,7 @@ class ResultSet(list, ColumnGuesserMixin):
         plt.xticks(range(len(self.columns[0])), self.columns[0], rotation=45)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.title(properties.get(VisualizationKeys.TITLE, ylabel))
+        plt.title(properties.get(VisualizationKeys.TITLE) or ylabel)
 
         plt.show()
         return columnchart
@@ -862,41 +877,81 @@ class ResultSet(list, ColumnGuesserMixin):
 
         coords = functools.reduce(operator.add, [(x, y) for y in ys])
         plot = plt.plot(*coords, **kwargs)
-        plt.title(properties.get(VisualizationKeys.TITLE, ylabel))
+        plt.title(properties.get(VisualizationKeys.TITLE) or ylabel)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         plt.show()
         return plot
 
+    def _get_plotly_axis_scale(self, specified_property: str, col=None):
+        if col is not None:
+            if not col.is_quantity:
+                return "category"
+            elif col.is_datetime:
+                return "date"
+        return "log" if specified_property == VisualizationScales.LOG else "linear"
+
+    def _get_plotly_ylabel(self, specified_property: str, tabs: list) -> str:
+        label = specified_property
+        if label is None:
+            label_names = []
+            for tab in tabs:
+                if tab.col_y.name not in label_names:
+                    label_names.append(tab.col_y.name)
+            label =  ", ".join(label_names)
+        return label
+    
+    _CHART_X_TYPE = {
+        VisualizationValues.TABLE: "first",
+        VisualizationValues.PIE_CHART: "first",
+        VisualizationValues.BAR_CHART: "first",
+        VisualizationValues.COLUMN_CHART: "first",
+        VisualizationValues.AREA_CHART: "quantity",
+        VisualizationValues.LINE_CHART: "quantity",
+        VisualizationValues.TIME_CHART: "datetime",
+        VisualizationValues.ANOMALY_CHART: "datetime",
+        VisualizationValues.STACKED_AREA_CHART: "quantity",
+        VisualizationValues.LADDER_CHART: "last2",
+        VisualizationValues.TIME_PIVOT: "datetime",
+        VisualizationValues.PIVOT_CHART: "first",
+        VisualizationValues.SCATTER_CHART: "quantity",
+
+    }
+    def _get_plotly_chart_x_type(self, properties: dict) -> str:
+        return self._CHART_X_TYPE.get(properties.get(VisualizationKeys.VISUALIZATION), "first")
+    
+    def _get_plotly_chart_properties(self, properties: dict, tabs:list) -> dict:
+        chart_properties = {}
+        if properties.get(VisualizationKeys.VISUALIZATION) == VisualizationValues.BAR_CHART:
+            chart_properties["xlabel"] = self._get_plotly_ylabel(properties.get(VisualizationKeys.X_TITLE), tabs)
+            chart_properties["ylabel"] = properties.get(VisualizationKeys.Y_TITLE) or tabs[0].col_x.name
+            chart_properties["yscale"] = self._get_plotly_axis_scale(properties.get(VisualizationKeys.Y_AXIS), tabs[0].col_x)
+            chart_properties["xscale"] = self._get_plotly_axis_scale(properties.get(VisualizationKeys.X_AXIS))
+            chart_properties["orientation"] = "h"
+        else:
+            chart_properties["ylabel"] = self._get_plotly_ylabel(properties.get(VisualizationKeys.Y_TITLE), tabs)
+            chart_properties["xlabel"] = properties.get(VisualizationKeys.X_TITLE) or tabs[0].col_x.name
+            chart_properties["xscale"] = self._get_plotly_axis_scale(properties.get(VisualizationKeys.X_AXIS), tabs[0].col_x)
+            chart_properties["yscale"] = self._get_plotly_axis_scale(properties.get(VisualizationKeys.Y_AXIS))
+            chart_properties["orientation"] = "v"
+        chart_properties["autorange"] = "reversed" if tabs[0].is_descending_sorted else True
+        chart_properties["showlegend"] = properties.get(VisualizationKeys.LEGEND) != VisualizationLegends.HIDDEN
+        chart_properties["title"] = properties.get(VisualizationKeys.TITLE) or properties.get(VisualizationKeys.VISUALIZATION)
+        chart_properties["n_colors"] = len(tabs)
+        return chart_properties
+
+
     def _render_areachart_plotly(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
-        ``matplotlib`` must be installed, and in an
-        IPython Notebook, inlining must be on::
-
-            %%matplotlib inline
-
+        Area graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
-        kind = default, unstacked, stacked, stacked100 
-
-        Parameters
-        ----------
-        title: Plot title, defaults to names of Y value columns
-
-        Any additional keyword arguments will be passsed
-        through to ``matplotlib.pylab.plot``.
         """
 
-        self._build_chart_sub_tables(x_type="first")
+        self._build_chart_sub_tables(properties , x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        ylabel_names = []
-        for tab in self.chart_sub_tables:
-            if tab.col_y.name not in ylabel_names:
-                ylabel_names.append(tab.col_y.name)
-        ylabel = ", ".join(ylabel_names)
-        xlabel = self.chart_sub_tables[0].col_x.name
-        n_colors = len(self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
 
         data = [
             go.Scatter(
@@ -904,18 +959,22 @@ class ResultSet(list, ColumnGuesserMixin):
                 y=list(tab.values()),
                 name=tab.name,
                 mode="lines",
-                line=dict(width=0.5, color=self.get_color_from_palette(idx, n_colors=n_colors)),
+                line=dict(width=0.5, color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
                 fill="tozeroy",
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.AREA_CHART),
-            showlegend=True,
-            xaxis=dict(title=xlabel, type="category"),
+            title=chart_properties["title"],
+            showlegend=chart_properties["showlegend"],
+            xaxis=dict(
+                title=chart_properties["xlabel"], 
+                type=chart_properties["xscale"],
+                autorange=chart_properties["autorange"],
+            ),
             yaxis=dict(
-                title=ylabel,
-                type="linear",
+                title=chart_properties["ylabel"],
+                type=chart_properties["yscale"],
                 # range=[0, 3],
                 # dtick=20,
                 ticksuffix="",
@@ -927,32 +986,17 @@ class ResultSet(list, ColumnGuesserMixin):
     def _render_stackedareachart_plotly(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
-        ``matplotlib`` must be installed, and in an
-        IPython Notebook, inlining must be on::
-
-            %%matplotlib inline
-
-        Stacked area graph. First column is x-axis, and should be a datetime column. Other numeric columns are y-axes.
-
-        Parameters
-        ----------
-        title: Plot title, defaults to names of Y value columns
-
-        Any additional keyword arguments will be passsed
-        through to ``matplotlib.pylab.plot``.
+        Stacked area graph. 
+        First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
 
-        self._build_chart_sub_tables(x_type="first")
+        self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        ylabel_names = []
-        for tab in self.chart_sub_tables:
-            if tab.col_y.name not in ylabel_names:
-                ylabel_names.append(tab.col_y.name)
-        ylabel = ", ".join(ylabel_names)
-        xlabel = self.chart_sub_tables[0].col_x.name
-        n_colors = len(self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
 
+        # create stack one on top of each other
+        # TODO: chack newer version of plotly, support it better
         ys_stcks = []
         y_stck = [0 for x in range(len(self.chart_sub_tables[0]))]
         for tab in self.chart_sub_tables:
@@ -965,18 +1009,22 @@ class ResultSet(list, ColumnGuesserMixin):
                 y=ys_stcks[idx],
                 name=tab.name,
                 mode="lines",
-                line=dict(width=0.5, color=self.get_color_from_palette(idx, n_colors=n_colors)),
+                line=dict(width=0.5, color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
                 fill="tonexty",
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.STACKED_AREA_CHART),
-            showlegend=True,
-            xaxis=dict(title=xlabel, type="date"),
+            title=chart_properties["title"],
+            showlegend=chart_properties["showlegend"],
+            xaxis=dict(
+                title=chart_properties["xlabel"], 
+                type=chart_properties["xscale"],
+                autorange=chart_properties["autorange"],
+            ),
             yaxis=dict(
-                title=ylabel,
-                type="linear",
+                title=chart_properties["ylabel"],
+                type=chart_properties["yscale"],
                 # range=[0, 3],
                 # dtick=20,
                 ticksuffix="",
@@ -988,46 +1036,29 @@ class ResultSet(list, ColumnGuesserMixin):
     def _render_timechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
-        ``matplotlib`` must be installed, and in an
-        IPython Notebook, inlining must be on::
-
-            %%matplotlib inline
-
-        Line graph. First column is x-axis, and should be datetime. Other columns are y-axes.
-
-        Parameters
-        ----------
-        title: Plot title, defaults to names of Y value columns
-
-        Any additional keyword arguments will be passsed
-        through to ``matplotlib.pylab.plot``.
+        Line graph. 
+        First column is x-axis, and should be datetime. Other columns are y-axes.
         """
 
-        self._build_chart_sub_tables(x_type="datetime")
+        self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        ylabel_names = []
-        for tab in self.chart_sub_tables:
-            if tab.col_y.name not in ylabel_names:
-                ylabel_names.append(tab.col_y.name)
-        ylabel = ", ".join(ylabel_names)
-        xlabel = self.chart_sub_tables[0].col_x.name
-        n_colors = len(self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
 
         data = [
             go.Scatter(
                 x=list(tab.keys()),
                 y=list(tab.values()),
                 name=tab.name,
-                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=n_colors)),
+                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
                 opacity=0.8,
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
 
         layout = go.Layout(
-            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.TIME_CHART),
-            showlegend=True,
+            title=chart_properties["title"],
+            showlegend=chart_properties["showlegend"],
             xaxis=dict(
                 rangeselector=dict(
                     buttons=list(
@@ -1039,12 +1070,13 @@ class ResultSet(list, ColumnGuesserMixin):
                     )
                 ),
                 rangeslider=dict(),
-                title=xlabel,
-                type="date",
+                title=chart_properties["xlabel"],
+                type=chart_properties["xscale"],
+                autorange=chart_properties["autorange"],
             ),
             yaxis=dict(
-                title=ylabel,
-                type="linear",
+                title=chart_properties["ylabel"],
+                type=chart_properties["yscale"],
                 # range=[0, 3],
                 # dtick=20,
                 ticksuffix="",
@@ -1054,14 +1086,15 @@ class ResultSet(list, ColumnGuesserMixin):
         return fig
 
     def _render_piechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
+        """Generates a pylab plot from the result set.
 
-        self._build_chart_sub_tables(x_type="first")
+        Pie chart. 
+        First column is color-axis, second column is numeric.
+        """
+
+        self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        ylabel_names = []
-        for tab in self.chart_sub_tables:
-            if tab.col_y.name not in ylabel_names:
-                ylabel_names.append(tab.col_y.name)
         n_colors = len(self.chart_sub_tables[0])
 
         # number of pies to display
@@ -1085,6 +1118,9 @@ class ResultSet(list, ColumnGuesserMixin):
         ]
 
         palette = self._get_palette(n_colors=n_colors)
+        show_legend = properties.get(VisualizationKeys.LEGEND) != VisualizationLegends.HIDDEN
+        title = properties.get(VisualizationKeys.TITLE) or VisualizationValues.PIE_CHART
+
         data = [
             go.Pie(
                 labels=list(tab.keys()),
@@ -1097,8 +1133,8 @@ class ResultSet(list, ColumnGuesserMixin):
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.PIE_CHART),
-            showlegend=True,
+            title=title,
+            showlegend=show_legend,
             annotations=[
                 dict(
                     text=tab.name,
@@ -1113,124 +1149,80 @@ class ResultSet(list, ColumnGuesserMixin):
         return fig
 
     def _render_barchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
+        """Generates a pylab plot from the result set.
 
-        self._build_chart_sub_tables(x_type="first")
-        if len(self.chart_sub_tables) < 1:
+        Bar chart. 
+        First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
+        """
+
+        sub_tables = self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
+        if len(sub_tables) < 1:
+            print("No valid chart to show")
             return None
-        ylabel_names = []
-        for tab in self.chart_sub_tables:
-            if tab.col_y.name not in ylabel_names:
-                ylabel_names.append(tab.col_y.name)
-        ylabel = ", ".join(ylabel_names)
-        xlabel = self.chart_sub_tables[0].col_x.name
-        n_colors = len(self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, sub_tables)
 
         data = [
             go.Bar(
-                x=list(tab.values()),
-                y=list(tab.keys()),
-                marker=dict(color=self.get_color_from_palette(idx, n_colors=n_colors)),
+                x=list(tab.values()) if chart_properties["orientation"] == "h" else list(tab.keys()),
+                y=list(tab.keys()) if chart_properties["orientation"] == "h" else list(tab.values()),
+                marker=dict(color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
                 name=tab.name,
-                orientation="h",
+                orientation=chart_properties["orientation"],
             )
-            for idx, tab in enumerate(self.chart_sub_tables)
+            for idx, tab in enumerate(sub_tables)
         ]
         layout = go.Layout(
-            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.BAR_CHART),
-            showlegend=True,
+            title=chart_properties["title"],
+            showlegend=chart_properties["showlegend"],
             xaxis=dict(
-                title=ylabel,
-                type="linear",
+                title=chart_properties["xlabel"],
+                type=chart_properties["xscale"],
                 # range=[0, 3],
                 # dtick=20,
                 ticksuffix="",
             ),
-            yaxis=dict(type="category", title=xlabel),
-        )
-        fig = go.FigureWidget(data=data, layout=layout)
-        return fig
-
-    def _render_columnchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
-
-        self._build_chart_sub_tables(x_type="first")
-        if len(self.chart_sub_tables) < 1:
-            return None
-        ylabel_names = []
-        for tab in self.chart_sub_tables:
-            if tab.col_y.name not in ylabel_names:
-                ylabel_names.append(tab.col_y.name)
-        ylabel = ", ".join(ylabel_names)
-        xlabel = self.chart_sub_tables[0].col_x.name
-        n_colors = len(self.chart_sub_tables)
-
-        data = [
-            go.Bar(x=list(tab.keys()), y=list(tab.values()), marker=dict(color=self.get_color_from_palette(idx, n_colors=n_colors)), name=tab.name)
-            for idx, tab in enumerate(self.chart_sub_tables)
-        ]
-        layout = go.Layout(
-            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.COLUMN_CHART),
-            showlegend=True,
-            xaxis=dict(title=xlabel, type="category"),
             yaxis=dict(
-                title=ylabel,
-                type="linear",
-                # range=[0, 3],
-                # dtick=20,
-                ticksuffix="",
+                type=chart_properties["yscale"],
+                title=chart_properties["ylabel"],
             ),
         )
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
+
 
     def _render_linechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
-        ``matplotlib`` must be installed, and in an
-        IPython Notebook, inlining must be on::
-
-            %%matplotlib inline
-
-        Line graph. First column is x-axis, and should be numeric. Other columns are y-axes.
-
-        Parameters
-        ----------
-        title: Plot title, defaults to names of Y value columns
-
-        Any additional keyword arguments will be passsed
-        through to ``matplotlib.pylab.plot``.
+        Line graph. 
+        First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
 
-        self._build_chart_sub_tables(x_type="quantity")
+        self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        ylabel_names = []
-        for tab in self.chart_sub_tables:
-            if tab.col_y.name not in ylabel_names:
-                ylabel_names.append(tab.col_y.name)
-        ylabel = ", ".join(ylabel_names)
-        xlabel = self.chart_sub_tables[0].col_x.name
-        n_colors = len(self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
 
         data = [
             go.Scatter(
                 x=list(tab.keys()),
                 y=list(tab.values()),
                 name=tab.name,
-                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=n_colors)),
+                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
                 opacity=0.8,
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.LINE_CHART),
-            showlegend=True,
+            title=chart_properties["title"],
+            showlegend=chart_properties["showlegend"],
             xaxis=dict(
-                title=xlabel,
-                # type='linear',
+                title=chart_properties["xlabel"],
+                type=chart_properties["xscale"],
+                autorange=chart_properties["autorange"],
             ),
             yaxis=dict(
-                title=ylabel,
-                type="linear",
+                title=chart_properties["ylabel"],
+                type=chart_properties["yscale"],
                 # range=[0, 3],
                 # dtick=20,
                 # ticksuffix=''
@@ -1242,49 +1234,36 @@ class ResultSet(list, ColumnGuesserMixin):
     def _render_scatterchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
-        ``matplotlib`` must be installed, and in an
-        IPython Notebook, inlining must be on::
-
-            %%matplotlib inline
-
+        Points graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
-        kind = default, unstacked, stacked, stacked100 
-
-        Parameters
-        ----------
-        title: Plot title, defaults to names of Y value columns
-
-        Any additional keyword arguments will be passsed
-        through to ``matplotlib.pylab.plot``.
         """
 
-        self.build_columns()
-        quantity_columns = [c for c in self.columns[1:] if c.is_quantity]
-        if len(quantity_columns) < 1:
+        self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
+        if len(self.chart_sub_tables) < 1:
             return None
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
 
-        xticks = self.columns[0]
-        ys = quantity_columns
-
-        ylabel = ", ".join([c.name for c in ys])
-        xlabel = xticks.name
         data = [
             go.Scatter(
-                x=xticks,
-                y=yticks,
-                name=yticks.name,
+                x=list(tab.keys()),
+                y=list(tab.values()),
+                name=tab.name,
                 mode="markers",
-                marker=dict(line=dict(width=1), color=self.get_color_from_palette(idx, n_colors=len(ys))),
+                marker=dict(line=dict(width=1), color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
             )
-            for idx, yticks in enumerate(ys)
+            for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=properties.get(VisualizationKeys.TITLE, VisualizationValues.SCATTER_CHART),
-            showlegend=True,
-            xaxis=dict(title=xlabel, type="category"),
+            title=chart_properties["title"],
+            showlegend=chart_properties["showlegend"],
+            xaxis=dict(
+                title=chart_properties["xlabel"], 
+                type=chart_properties["xscale"],
+                autorange=chart_properties["autorange"],
+            ),
             yaxis=dict(
-                title=ylabel,
-                type="linear",
+                title=chart_properties["ylabel"],
+                type=chart_properties["yscale"],
                 # range=[0, 3],
                 # dtick=20,
                 ticksuffix="",
@@ -1292,11 +1271,6 @@ class ResultSet(list, ColumnGuesserMixin):
         )
         fig = go.FigureWidget(data=data, layout=layout)
         return fig
-
-    def _render_anomalychart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
-        props = dict(properties)
-        props[VisualizationKeys.TITLE] = props.get(VisualizationKeys.TITLE, VisualizationValues.ANOMALY_CHART)
-        return self._render_timechart_plotly(props, key_word_sep, fieldnames="kql-anomalychart-plot", **kwargs)
 
 
 class PrettyTable(prettytable.PrettyTable):

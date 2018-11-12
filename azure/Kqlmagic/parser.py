@@ -131,6 +131,8 @@ class Parser(object):
         "faq": {"flag": "faq", "type": "bool", "init": "False"},
         "palette": {"flag": "palette", "type": "bool", "init": "False"},
         "palettes": {"flag": "palettes", "type": "bool", "init": "False"},
+        "cache": {"flag": "cache", "type": "str", "init": "None"},
+        "usecache": {"flag": "use_cache", "type": "str", "init": "None"},
     }
     @classmethod
     def _parse_kql_command(cls, code, user_ns: dict):
@@ -209,15 +211,17 @@ class Parser(object):
         "pn": {"abbreviation": "palettename"},
         "paramsdict": {"flag": "params_dict", "type": "dict", "init": "None"},
         "palettename": {"flag": "palette_name", "type": "str", "config": "config.palette_name"},
+        "cache": {"flag": "cache", "readonly": "True", "config": "config.cache"},
+        "usecache": {"flag": "use_cache", "readonly": "True", "config": "config.use_cache"},
+        
         "tempfoldername": {"flag": "temp_folder_name", "readonly": "True", "config": "config.temp_folder_name"},
         "cachefoldername": {"flag": "cache_folder_name", "readonly": "True", "config": "config.cache_folder_name"},
         "exportfoldername": {"flag": "export_folder_name", "readonly": "True", "config": "config.export_folder_name"},
         "addkqlreftohelp": {"flag": "add_kql_ref_to_help", "readonly": "True", "config": "config.add_kql_ref_to_help"},
         "addschematohelp": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
         "notebookapp": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
-        "cache": {"flag": "cache", "readonly": "True", "config": "config.cache"},
-        "usecache": {"flag": "use_cache", "readonly": "True", "config": "config.use_cache"},
         "saveas": {"flag": "save_as", "type": "str", "init": "None"},
+        "saveto": {"flag": "save_to", "type": "str", "init": "None"},
         "query": {"flag": "query", "type": "str", "init": "None"},
         "conn": {"flag": "conn", "type": "str", "init": "None"},
 

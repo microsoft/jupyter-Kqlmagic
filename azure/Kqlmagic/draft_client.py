@@ -16,6 +16,7 @@ import requests
 from Kqlmagic.constants import Constants, ConnStrKeys
 from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse, KqlError
 from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
+from Kqlmagic.version import VERSION
 
 
 class DraftClient(object):
@@ -36,7 +37,7 @@ class DraftClient(object):
     #
 
     _DEFAULT_CLIENTID = "db662dc1-0cfe-4e1c-a843-19a68e65be58"
-    _WEB_CLIENT_VERSION = "0.1.0"
+    _WEB_CLIENT_VERSION = VERSION
     _API_VERSION = "v1"
     _GET_SCHEMA_QUERY = ".show schema"
 
@@ -47,7 +48,7 @@ class DraftClient(object):
         if self._appkey is None:
             self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID)
 
-    def execute(self, id: str, query: str, accept_partial_results: bool = False, timeout=None) -> object:
+    def execute(self, id: str, query: str, accept_partial_results: bool = False, **options) -> object:
         """ Execute a simple query or a metadata query
         
         Parameters
@@ -60,7 +61,7 @@ class DraftClient(object):
             Optional parameter. If query fails, but we receive some results, we consider results as partial.
             If this is True, results are returned to client, even if there are exceptions.
             If this is False, exception is raised. Default is False.
-        timeout : float, optional
+        oprions["timeout"] : float, optional
             Optional parameter. Network timeout in seconds. Default is no timeout.
 
         Returns
@@ -90,6 +91,8 @@ class DraftClient(object):
         prefer_list = []
         if self._API_VERSION != "beta":
             prefer_list.append("ai.response-thinning=false")  # returns data as kusto v1
+        
+        timeout = options.get("timeout")
         if timeout is not None:
             prefer_list.append("wait={0}".format(timeout))
 
@@ -99,7 +102,7 @@ class DraftClient(object):
 
         request_headers = {
             "x-ms-client-version": "{0}.Python.Client:{1}".format(Constants.MAGIC_CLASS_NAME, self._WEB_CLIENT_VERSION),
-            "x-ms-client-request-id": "{0}PC.execute;{1}".format(Constants.MAGIC_CLASS_NAME[0], str(uuid.uuid4())),
+            "x-ms-client-request-id": "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4())),
         }
         if self._appkey is not None:
             request_headers["x-api-key"] = self._appkey

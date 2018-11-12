@@ -61,7 +61,7 @@ class KqlEngine(object):
             client = self.get_client()
             if not client:
                 raise KqlEngineError("Client is not defined.")
-            return client.execute(self.get_database(), query, accept_partial_results=False, timeout=options.get("timeout"))
+            return client.execute(self.get_database(), query, accept_partial_results=False, **options)
 
     def execute(self, query, user_namespace=None, **options):
         if query.strip():

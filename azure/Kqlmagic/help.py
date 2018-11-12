@@ -53,12 +53,24 @@ The following commands are supported:<br>
 
 - **palette - Display information about the current or other named color palette.<br>
     - The behaviour of this command will change based on the specified option:
-    - palette_name, -palette_colors, palette_reverse, -palette_desaturation, execute ```%kql --palette -palette_name "Reds"```<br>
+    - -palette_name, -palette_colors, palette_reverse, -palette_desaturation, execute ```%kql --palette -palette_name "Reds"```<br>
 <br>
 
 - **palettes - Display information about all available palettes.<br>
     - The behaviour of this command will change based on the specified option:
     - -palette_colors, palette_reverse, -palette_desaturation, execute ```%kql --palettes -palette_desaturation 0.75```<br>
+<br>
+
+- **cache - Enables caching query results to a cache folder, or disbale. <br>
+    - To enable caching to folder XXX, execute: ```%kql --cache "XXX"```<br>
+    - To disable caching, execute: ```%kql --cache None```<br>
+    - Once results are cached, the results can be used by enabling the use of the cache, with the --use_cache command.<br>
+<br>
+
+- **use_cache - Enables use of cached results from a cache folder. <br>
+    - To enable use of cache from folder XXX, execute: ```%kql --use_cache "XXX"```<br>
+    - To disable use of cache, execute: ```%kql --use_cache None```<br>
+    - Once enabled, intead of quering the data source, the results are retreived from the cache.<br>
 <br>
 
 ## Examples:
@@ -67,7 +79,11 @@ The following commands are supported:<br>
 ```%kql --help "help"```<br><br>
 ```%kql --help "options"```<br><br>
 ```%kql --help "conn"```<br><br>
+```%kql --palette -palette_name "Reds"```<br><br>
+```%kql --cache "XXX"```<br><br>
+```%kql --use_cache None```<br><br>
 ```%kql --submit appinsights://appid='DEMO_APP';appkey='DEMO_KEY' pageViews | count```<br><br>
+```%kql --palettes -palette_desaturation 0.75```
 ```%kql pageViews | count```
 """
 _FAQ = """

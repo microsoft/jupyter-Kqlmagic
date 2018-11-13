@@ -11,12 +11,8 @@ import json
 import adal
 import dateutil.parser
 import requests
-from azure.kusto.data.request import KustoClient, KustoConnectionStringBuilder
-from azure.kusto.data.exceptions import KustoServiceError
 
-# from azure.kusto.data import KustoClient
-from azure.kusto.data._response import WellKnownDataSet
-from Kqlmagic.my_aad_helper import _MyAadHelper
+from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
 from Kqlmagic.kql_client import KqlQueryResponse, KqlError
 from Kqlmagic.constants import Constants, ConnStrKeys
 from Kqlmagic.version import VERSION
@@ -80,47 +76,11 @@ class Kusto_Client(object):
         cluster_name = conn_kv[ConnStrKeys.CLUSTER]
         data_source = cluster_name if cluster_name.find("://") >= 0 else self._DATA_SOURCE_TEMPLATE.format(cluster_name)
 
-        if all([conn_kv.get(ConnStrKeys.USERNAME), conn_kv.get(ConnStrKeys.PASSWORD)]):
-            kcsb = KustoConnectionStringBuilder.with_aad_user_password_authentication(
-                data_source, conn_kv.get(ConnStrKeys.USERNAME), conn_kv.get(ConnStrKeys.PASSWORD)
-            )
-            if conn_kv.get(ConnStrKeys.TENANT) is not None:
-                kcsb.authority_id = conn_kv.get(ConnStrKeys.TENANT)
-
-        elif all([conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CLIENTSECRET)]):
-            kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(
-                data_source, conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CLIENTSECRET), conn_kv.get(ConnStrKeys.TENANT)
-            )
-        elif all([conn_kv.get(ConnStrKeys.CLIENTID), conn_kv.get(ConnStrKeys.CERTIFICATE), conn_kv.get(ConnStrKeys.CERTIFICATE_THUMBPRINT)]):
-            kcsb = KustoConnectionStringBuilder.with_aad_application_certificate_authentication(
-                data_source,
-                conn_kv.get(ConnStrKeys.CLIENTID),
-                conn_kv.get(ConnStrKeys.CERTIFICATE),
-                conn_kv.get(ConnStrKeys.CERTIFICATE_THUMBPRINT),
-                conn_kv.get(ConnStrKeys.TENANT),
-            )
-        else:
-            kcsb = KustoConnectionStringBuilder.with_aad_device_authentication(data_source)
-            if conn_kv.get(ConnStrKeys.TENANT) is not None:
-                kcsb.authority_id = conn_kv.get(ConnStrKeys.TENANT)
-
-        # TODO: remove kusto python sdk, this kusto client init, is preparation for the removal
-        # need to remove the use of KustoConnectionStringBuilder
-        if not isinstance(kcsb, KustoConnectionStringBuilder):
-            kcsb = KustoConnectionStringBuilder(kcsb)
-        data_source = kcsb.data_source
-
         self._mgmt_endpoint = self._MGMT_ENDPOINT_TEMPLATE.format(data_source, self._MGMT_ENDPOINT_VERSION)
         self._query_endpoint = self._QUERY_ENDPOINT_TEMPLATE.format(data_source, self._QUERY_ENDPOINT_VERSION)
-        self._aad_helper = _MyAadHelper(kcsb, self._DEFAULT_CLIENTID)
-        #
+        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, data_source), self._DEFAULT_CLIENTID)
 
-        self.client = KustoClient(kcsb)
-
-        # replace aadhelper to use remote browser in interactive mode
-        self.client._aad_helper = _MyAadHelper(kcsb, self._DEFAULT_CLIENTID)
-
-    def execute(self, kusto_database, query, accept_partial_results=False, **options):
+    def execute(self, kusto_database, kusto_query, accept_partial_results=False, **options):
         """ Execute a simple query or management command
 
         Parameters
@@ -135,22 +95,6 @@ class Kusto_Client(object):
             If this is False, exception is raised. Default is False.
         options["timeout"] : float, optional
             Optional parameter. Network timeout in seconds. Default is no timeout.
-        """
-        endpoint_version = self._MGMT_ENDPOINT_VERSION if query.startswith(".") else self._QUERY_ENDPOINT_VERSION
-        get_raw_response = True
-        timeout = options.get("timeout")
-        response = self.client.execute(kusto_database, query, accept_partial_results, timeout, get_raw_response)
-        return KqlQueryResponse(response, endpoint_version)
-
-    def _execute(self, kusto_database, kusto_query, accept_partial_results=False, **options):
-        """Executes a query or management command.
-        :param str kusto_database: Database against query will be executed.
-        :param str kusto_query: Query to be executed.
-        :param bool accept_partial_results: Optional parameter.
-            If query fails, but we receive some results, we consider results as partial.
-            If this is True, results are returned to client, even if there are exceptions.
-            If this is False, exception is raised. Default is False.
-        :param float timeout: Optional parameter. Network timeout in seconds. Default is no timeout.
         """
         if kusto_query.startswith("."):
             endpoint_version = self._MGMT_ENDPOINT_VERSION

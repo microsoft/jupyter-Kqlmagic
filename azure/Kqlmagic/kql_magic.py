@@ -25,7 +25,6 @@ from traitlets.config.configurable import Configurable
 from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate
 
 from Kqlmagic.connection import Connection
-from azure.kusto.data.exceptions import KustoError
 
 from Kqlmagic.results import ResultSet
 from Kqlmagic.parser import Parser

@@ -156,7 +156,7 @@ class KqlTableResponse(object):
                     frame[col_name].apply(lambda t: t.replace(".", " days ") if t and "." in t.split(":")[0] else t)
                 )
             elif col_type.lower() == "dynamic":
-                frame[col_name] = frame[col_name].apply(lambda x: json.loads(x) if x else None)
+                frame[col_name] = frame[col_name].apply(lambda x: json.loads(x) if x and isinstance(x, six.text_type) else x if x else None)
             elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
                 pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
                 # NA type promotion

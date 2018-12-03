@@ -521,7 +521,7 @@ class Kqlmagic(Magics, Configurable):
         # parse error
         except KqlEngineError as e:
             if options.get("short_errors", self.short_errors):
-                msg = Connection.tell_format(connection_string)
+                msg = "to get help on connection string formats, run: %kql --help 'conn'"
                 Display.showDangerMessage(str(e))
                 Display.showInfoMessage(msg)
                 return None

@@ -23,12 +23,6 @@ class CacheEngine(KqlEngine):
 
     _VALIDATION_FILE_NAME = "validation_file.json"
 
-    @classmethod
-    def tell_format(cls):
-        return """
-               {0}://{1}='<foldername>'
-               """.format(cls._URI_SCHEMA_NAME, ConnStrKeys.FOLDER)
-
     # Object constructor
     def __init__(self, conn_str, user_ns: dict, current=None, cache_name=None, **kwargs):
         super().__init__()

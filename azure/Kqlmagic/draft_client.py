@@ -45,8 +45,10 @@ class DraftClient(object):
         self._domain = domain
         self._data_source = data_source
         self._appkey = conn_kv.get(ConnStrKeys.APPKEY)
-        if self._appkey is None:
+        if self._appkey is None and conn_kv.get(ConnStrKeys.ANONYMOUS) is None:
             self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID)
+        else:
+            self._aad_helper = None
 
     def execute(self, id: str, query: str, accept_partial_results: bool = False, **options) -> object:
         """ Execute a simple query or a metadata query
@@ -104,10 +106,11 @@ class DraftClient(object):
             "x-ms-client-version": "{0}.Python.Client:{1}".format(Constants.MAGIC_CLASS_NAME, self._WEB_CLIENT_VERSION),
             "x-ms-client-request-id": "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4())),
         }
-        if self._appkey is not None:
-            request_headers["x-api-key"] = self._appkey
-        else:
+        if self._aad_helper is not None:
             request_headers["Authorization"] = self._aad_helper.acquire_token()
+        elif self._appkey is not None:
+            request_headers["x-api-key"] = self._appkey
+
         if len(prefer_list) > 0:
             request_headers["Prefer"] = ", ".join(prefer_list)
 

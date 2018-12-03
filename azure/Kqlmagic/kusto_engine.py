@@ -22,6 +22,7 @@ class KustoEngine(KqlEngine):
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, _ALT_URI_SCHEMA1_NAME, _ALT_URI_SCHEMA2_NAME, _ALT_URI_SCHEMA3_NAME]
     _MANDATORY_KEY = ConnStrKeys.DATABASE
     _VALID_KEYS_COMBINATIONS = [
+        [ConnStrKeys.TENANT, ConnStrKeys.ANONYMOUS, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
         [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
         [ConnStrKeys.TENANT, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
         [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
@@ -38,23 +39,6 @@ class KustoEngine(KqlEngine):
 
     # Class methods
     # -------------
-
-    @classmethod
-    def tell_format(cls):
-        return """
-               {0}://username('username').password('password').cluster('clustername').database('databasename')
-               {0}://cluster('clustername').database('databasename')
-                     # Note: current username and password are attached
-               {0}://database('databasename')
-                     # Note: current username, password and cluster are attached
-               {0}://username('username').password('password').cluster('clustername')
-                     # Note: not enough for to submit a query, set current username, passsword and clustername, 
-               {0}://username('username').password('password')
-                     # Note: not enough for to submit a query, set current username and password 
-               {0}://cluster('clustername')
-                     # Note: not enough for to submit a query, set current clustername, current username and password are attached
-
-               ## Note: if password is missing, user will be prompted to enter password""".format(cls._URI_SCHEMA_NAME)
 
     # Instance methods
     # ----------------

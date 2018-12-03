@@ -37,21 +37,6 @@ class Connection(object):
                 uri_schema = parts[0].lower().replace("_", "").replace("-", "")
                 return cls._ENGINE_MAP.get(uri_schema)
 
-    @classmethod
-    def tell_format(cls, connect_str):
-        engine = cls._find_engine(connect_str)
-        engines = [engine] if engine is not None else cls._ENGINES
-        strs = [e.tell_format() for e in engines]
-        lsts = []
-        for e in engines:
-            lsts.extend(Connection.get_connection_list_by_schema(e._URI_SCHEMA_NAME))
-        msg = """connection string, examples:{0}
-               or an existing connection: {1}
-                   """.format(
-            "".join(strs), str(lsts)
-        )
-        return msg
-
     # Object constructor
     def __init__(self, connect_str, user_ns:dict, **kwargs):
 

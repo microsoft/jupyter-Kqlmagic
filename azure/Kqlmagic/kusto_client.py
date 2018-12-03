@@ -78,7 +78,7 @@ class Kusto_Client(object):
 
         self._mgmt_endpoint = self._MGMT_ENDPOINT_TEMPLATE.format(data_source, self._MGMT_ENDPOINT_VERSION)
         self._query_endpoint = self._QUERY_ENDPOINT_TEMPLATE.format(data_source, self._QUERY_ENDPOINT_VERSION)
-        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, data_source), self._DEFAULT_CLIENTID)
+        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, data_source), self._DEFAULT_CLIENTID) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
 
     def execute(self, kusto_database, kusto_query, accept_partial_results=False, **options):
         """ Execute a simple query or management command
@@ -108,16 +108,16 @@ class Kusto_Client(object):
             "csl": kusto_query,
         }
 
-        access_token = self._aad_helper.acquire_token()
         request_headers = {
-            "Authorization": access_token,
             "Accept": "application/json",
             "Accept-Encoding": "gzip,deflate",
             "Content-Type": "application/json; charset=utf-8",
-            "Fed": "True",
             "x-ms-client-version": "{0}.Python.Client:{1}".format(Constants.MAGIC_CLASS_NAME, self._WEB_CLIENT_VERSION),
             "x-ms-client-request-id": "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4())),
         }
+        if self._aad_helper is not None:
+            request_headers["Authorization"] = self._aad_helper.acquire_token()
+            request_headers["Fed"] = "True"
 
         response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
 

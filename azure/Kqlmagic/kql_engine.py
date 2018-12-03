@@ -95,7 +95,7 @@ class KqlEngine(object):
     _OPTIONAL_KEYS = {ConnStrKeys.TENANT, ConnStrKeys.ALIAS}
     _INHERITABLE_KEYS = {ConnStrKeys.CLUSTER, ConnStrKeys.TENANT}
     _EXCLUDE_FROM_URL_KEYS = {ConnStrKeys.DATABASE, ConnStrKeys.ALIAS}
-    _SHOULD_BE_NULL_KEYS = {ConnStrKeys.CODE}
+    _SHOULD_BE_NULL_KEYS = {ConnStrKeys.CODE, ConnStrKeys.ANONYMOUS}
 
     def _parse_common_connection_str(
         self, conn_str: str, current, uri_schema_name, mandatory_key: str, valid_keys_combinations: list, user_ns: dict

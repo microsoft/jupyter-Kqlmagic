@@ -41,7 +41,7 @@ class ConnStrKeys(object):
     CERTIFICATE_THUMBPRINT = "certificatethumbprint"
     APPKEY = "appkey"
     CODE = "code"
-
+    ANONYMOUS = "anonymous"
     CLUSTER = "cluster"
     DATABASE = "database"
     WORKSPACE = "workspace"

@@ -21,6 +21,7 @@ class LoganalyticsEngine(KqlEngine):
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME]
     _MANDATORY_KEY = ConnStrKeys.WORKSPACE
     _VALID_KEYS_COMBINATIONS = [
+        [ConnStrKeys.TENANT, ConnStrKeys.ANONYMOUS, ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS],
         [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS],
         [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.APPKEY, ConnStrKeys.ALIAS],  # only for demo, if workspace = "DEMO_WORKSPACE"
@@ -29,13 +30,6 @@ class LoganalyticsEngine(KqlEngine):
 
     # Class methods
     # -------------
-
-    @classmethod
-    def tell_format(cls):
-        return """
-               {0}://workspace('workspaceid').appkey('appkey')
-
-               ## Note: if appkey is missing, user will be prompted to enter appkey""".format(cls._URI_SCHEMA_NAME)
 
     # Instance methods
     # ----------------

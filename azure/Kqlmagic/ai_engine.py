@@ -24,6 +24,7 @@ class AppinsightsEngine(KqlEngine):
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, _ALT_URI_SCHEMA_NAME]
     _MANDATORY_KEY = ConnStrKeys.APPID
     _VALID_KEYS_COMBINATIONS = [
+        [ConnStrKeys.TENANT, ConnStrKeys.ANONYMOUS, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
         [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
         [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
         [ConnStrKeys.APPID, ConnStrKeys.APPKEY, ConnStrKeys.ALIAS],
@@ -31,13 +32,6 @@ class AppinsightsEngine(KqlEngine):
 
     # Class methods
     # -------------
-
-    @classmethod
-    def tell_format(cls):
-        return """
-               {0}://appid('appid').appkey('appkey')
-
-               ## Note: if appkey is missing, user will be prompted to enter appkey""".format(cls._URI_SCHEMA_NAME)
 
     # Instance methods
     # ----------------

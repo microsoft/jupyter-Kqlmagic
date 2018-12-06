@@ -748,12 +748,15 @@ def _set_default_connections():
         connection_str = connection_str.strip()
         if connection_str.startswith("'") or connection_str.startswith('"'):
             connection_str = connection_str[1:-1]
-
-        ip = get_ipython()  # pylint: disable=E0602
-        result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
-        if result and _get_kql_magic_load_mode() != "silent":
-            print(result)
-
+        
+        try:
+            conn = Connection(connection_str, {})
+            # ip = get_ipython()  # pylint: disable=E0602
+            # result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
+            # if conn and _get_kql_magic_load_mode() != "silent":
+            #     print(conn)
+        except Exception as err:
+            print(err)
 
 """
 FAQ

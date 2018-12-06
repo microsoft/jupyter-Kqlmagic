@@ -100,6 +100,7 @@ class KqlEngine(object):
     def _parse_common_connection_str(
         self, conn_str: str, current, uri_schema_name, mandatory_key: str, valid_keys_combinations: list, user_ns: dict
     ):
+        error_msg = "invalid connection string: {0}".format(conn_str)
         rest = conn_str[conn_str.find("://")+3:].strip()
 
         # get key/values in connection string
@@ -118,11 +119,11 @@ class KqlEngine(object):
         all_keys = set(itertools.chain(*valid_keys_combinations))
         unknonw_keys_set = matched_keys_set.difference(all_keys)
         if len(unknonw_keys_set) > 0:
-            raise ValueError("invalid connection string, detected unknown keys: {0}.".format(unknonw_keys_set))
+            raise ValueError("{0}, detected unknown keys: {1}.".format(error_msg, unknonw_keys_set))
 
         # check that mandatory key in matched set
         if mandatory_key not in matched_keys_set:
-            raise KqlEngineError("invalid connection string, mandatory key {0} is missing.".format(mandatory_key))
+            raise KqlEngineError("{0}, mandatory key {1} is missing.".format(error_msg, mandatory_key))
 
         # find a valid combination for the set
         valid_combinations = [c for c in valid_keys_combinations if matched_keys_set.issubset(c)]
@@ -135,12 +136,12 @@ class KqlEngine(object):
                         matched_keys_set.add(k)
                 for k in self._CREDENTIAL_KEYS.intersection(matched_keys_set):
                     if parsed_conn_kv[k] != current._parsed_conn.get(k):
-                        raise KqlEngineError("invalid connection string, missing keys.")
+                        raise KqlEngineError("{0}, missing keys.".format(error_msg))
         valid_combinations = [c for c in valid_combinations if matched_keys_set.issubset(c)]
 
         # only one combination can be accepted
         if len(valid_combinations) == 0:
-            raise KqlEngineError("invalid connection string, not a valid keys set, missing keys.")
+            raise KqlEngineError("{0}, not a valid keys set, missing keys.".format(error_msg))
 
         conn_keys_list = None
         # if still too many choose the shortest
@@ -152,7 +153,7 @@ class KqlEngine(object):
             conn_keys_list = valid_combinations[0]
 
         if conn_keys_list is None:
-            raise KqlEngineError("invalid connection string, not a valid keys set, missing keys.")
+            raise KqlEngineError("{0}, not a valid keys set, missing keys.".format(error_msg))
 
         conn_keys_set = set(conn_keys_list)
 
@@ -170,31 +171,34 @@ class KqlEngine(object):
         secret_key_set = self._SECRET_KEYS.intersection(conn_keys_set)
         missing_set = conn_keys_set.difference(matched_keys_set).difference(secret_key_set).difference(self._OPTIONAL_KEYS)
         if len(missing_set) > 0:
-            raise KqlEngineError("invalid connection string, missing {0}.".format(missing_set))
+            raise KqlEngineError("{0}, missing {1}.".format(error_msg, missing_set))
         # special case although tenant in _OPTIONAL_KEYS
         if parsed_conn_kv.get(ConnStrKeys.TENANT) is None and ConnStrKeys.CLIENTID in conn_keys_set:
-            raise KqlEngineError("invalid connection string, missing tenant key/value.")
+            raise KqlEngineError("{0}, missing tenant key/value.".format(error_msg))
 
         # make sure that all required keys are with proper value
         for key in matched_keys_set:  # .difference(secret_key_set).difference(self._SHOULD_BE_NULL_KEYS):
             if key in self._SHOULD_BE_NULL_KEYS:
                 if parsed_conn_kv[key] != "":
-                    raise KqlEngineError("invalid connection string, key {0} must be empty.".format(key))
+                    raise KqlEngineError("{0}, key {1} must be empty.".format(error_msg, key))
             elif key not in self._SECRET_KEYS:
                 if parsed_conn_kv[key] == "<{0}>".format(key) or parsed_conn_kv[key] =="":
-                    raise KqlEngineError("invalid connection string, key {0} cannot be empty or set to <{1}>.".format(key, key))
-
-        # in case secret is missing, get it from user
-        if len(secret_key_set) == 1:
-            s = secret_key_set.pop()
-            if s not in matched_keys_set or parsed_conn_kv[s] == "<{0}>".format(s):
-                parsed_conn_kv[s] = getpass.getpass(prompt="please enter {0}: ".format(s))
-                matched_keys_set.add(s)
+                    raise KqlEngineError("{0}, key {1} cannot be empty or set to <{2}>.".format(error_msg, key, key))
 
         # set attribuets
         self.cluster_name = parsed_conn_kv.get(ConnStrKeys.CLUSTER) or uri_schema_name
         self.database_name = parsed_conn_kv.get(mandatory_key)
         self.alias = parsed_conn_kv.get(ConnStrKeys.ALIAS)
+
+        # in case secret is missing, get it from user
+        if len(secret_key_set) == 1:
+            s = secret_key_set.pop()
+            if s not in matched_keys_set or parsed_conn_kv[s] == "<{0}>".format(s):
+                name = self.get_conn_name()
+                parsed_conn_kv[s] = getpass.getpass(prompt="connection to {0} requires {1}, please enter {1}: ".format(name, s))
+                matched_keys_set.add(s)
+
+
         bind_url = []
         for key in conn_keys_list:
             if key not in self._EXCLUDE_FROM_URL_KEYS:
@@ -202,16 +206,6 @@ class KqlEngine(object):
         self.bind_url = "{0}://".format(uri_schema_name) + ".".join(bind_url)
         return parsed_conn_kv
 
-    def _validate_connection_delimiter(self, require_delimiter, delimiter):
-        # delimiter '.' should separate between tokens
-        if len(delimiter) > 0:
-            if delimiter.strip() != ".":
-                raise KqlEngineError("Invalid connection string.")
-        elif require_delimiter:
-            raise KqlEngineError("Invalid connection string.")
-
-
 class KqlEngineError(Exception):
     """Generic error class."""
-
     pass

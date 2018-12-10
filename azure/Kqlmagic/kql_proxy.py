@@ -150,17 +150,17 @@ class KqlTableResponse(object):
         frame = pandas.DataFrame(self.data_table.rows, columns=self.data_table.columns_name)
 
         for (idx, col_name) in enumerate(self.data_table.columns_name):
-            col_type = self.data_table.columns_type[idx]
-            if col_type.lower() == "timespan":
+            col_type = self.data_table.columns_type[idx].lower()
+            if col_type == "timespan":
                 frame[col_name] = pandas.to_timedelta(
                     frame[col_name].apply(lambda t: t.replace(".", " days ") if t and "." in t.split(":")[0] else t)
                 )
-            elif col_type.lower() == "dynamic":
-                frame[col_name] = frame[col_name].apply(lambda x: json.loads(x) if x and isinstance(x, six.text_type) else x if x else None)
+            elif col_type == "dynamic":
+                frame[col_name] = frame[col_name].apply(lambda x: json.loads(x) if x and isinstance(x, str) else x if x else None)
             elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
                 pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
                 # NA type promotion
-                if pandas_type == "int64":
+                if pandas_type == "int64" or pandas_type == "int32":
                     for i in range(0, len(frame[col_name])):
                         if frame[col_name][i] is None or str( frame[col_name][i]) == "nan":
                             pandas_type = "float64"
@@ -173,6 +173,7 @@ class KqlTableResponse(object):
                 frame[col_name] = frame[col_name].astype(pandas_type, errors="raise" if raise_errors else "ignore")
         return frame
 
+    # index MUST be lowercase 
     KQL_TO_DATAFRAME_DATA_TYPES = {
         "bool": "bool",
         "uint8": "int64",
@@ -191,14 +192,14 @@ class KqlTableResponse(object):
         "timespan": "timedelta64[ns]",
         "dynamic": "object",
         # Support V1
-        "DateTime": "datetime64[ns]",
-        "Int32": "int32",
-        "Int64": "int64",
-        "Double": "float64",
-        "String": "object",
-        "SByte": "object",
-        "Guid": "object",
-        "TimeSpan": "object",
+        # "datetime": "datetime64[ns]",
+        "int32": "int32",
+        "int64": "int64",
+        "double": "float64",
+        # "string": "object",
+        "sbyte": "object",
+        # "guid": "object",
+        # "timespan": "object",
     }
 
 

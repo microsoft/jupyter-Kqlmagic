@@ -442,8 +442,9 @@ class ResultSet(list, ColumnGuesserMixin):
     def submit(self):
         "display the chart that was specified in the query"
         magic = self.metadata.get("magic")
-        user_ns = magic.shell.user_ns.copy()
-        return magic.execute_query(self.metadata.get("parsed"), user_ns)
+        line = self.metadata.get("parsed").get("line")
+        cell = self.metadata.get("parsed").get("cell")
+        return magic.execute(line, cell)
 
     def refresh(self):
         "refresh the results of the query"

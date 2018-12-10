@@ -24,9 +24,9 @@ from IPython.core.magics.display import Javascript
 from traitlets.config.configurable import Configurable
 from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate
 
+from Kqlmagic.results import ResultSet
 from Kqlmagic.connection import Connection
 
-from Kqlmagic.results import ResultSet
 from Kqlmagic.parser import Parser
 from Kqlmagic.parameterizer import Parameterizer
 
@@ -402,6 +402,8 @@ class Kqlmagic(Magics, Configurable):
             logger().debug("Parsed: {}".format(parsed_queries))
             result = None
             for parsed in parsed_queries:
+                parsed["line"] = line
+                parsed["cell"] = cell
                 popup_text = None
                 options = parsed["options"]
                 command = parsed["command"].get("command")

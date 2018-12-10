@@ -57,19 +57,17 @@ class KqlResponseTable(six.Iterator):
         self.row_index = 0
         self._rows_count = sum([1 for r in self.rows if isinstance(r,list)]) # len(self.rows)
         # Here we keep converter functions for each type that we need to take special care (e.g. convert)
+
+        # index MUST be lowercase !!!
         self.converters_lambda_mappings = {
             "datetime": self.to_datetime,
             "timespan": self.to_timedelta,
-            "DateTime": self.to_datetime,
-            "TimeSpan": self.to_timedelta,
             "dynamic": self.to_object,
         }
 
     @staticmethod
     def to_object(value):
-        if value is None:
-            return None
-        return json.loads(value)
+        return json.loads(value) if value and isinstance(value, str) else value if value else None
 
     @staticmethod
     def to_datetime(value):
@@ -106,13 +104,13 @@ class KqlResponseTable(six.Iterator):
         row = self.rows[self.row_index]
         result_dict = {}
         for index, value in enumerate(row):
-            data_type = self.index2type_mapping[index]
+            data_type = self.index2type_mapping[index].lower()
+            column_name = self.index2column_mapping[index]
             if data_type in self.converters_lambda_mappings:
-                result_dict[self.index2column_mapping[index]] = self.converters_lambda_mappings[data_type](value)
-            elif self.rows_count == 1 and self.columns_count == 1 and self.index2column_mapping[index] == "DatabaseSchema" and data_type == "String":
-                result_dict[self.index2column_mapping[index]] = self.to_object(value)
-            else:
-                result_dict[self.index2column_mapping[index]] = value
+                value = self.converters_lambda_mappings[data_type](value)
+            elif self.rows_count == 1 and self.columns_count == 1 and column_name == "DatabaseSchema" and data_type == "string":
+                value = self.to_object(value)
+            result_dict[column_name] = value
         self.row_index = self.row_index + 1
         return KqlResult(self.index2column_mapping, result_dict)
 
@@ -214,8 +212,8 @@ class KqlQueryResponse(object):
                             for row in table["Rows"]:
                                 if row[key_idx] == "Visualization":
                                     # print('visualization raw properties for table {0}: {1}'.format(id_idx, row[value_idx]))
-                                    self.visualization[row[id_idx]] = json.loads(row[value_idx])
-                                    # return json.loads(row[value_idx])
+                                    value = row[value_idx]
+                                    self.visualization[row[id_idx]] = self._dynamic_to_object(value)
             else:
                 tables_num = self.json_response["Tables"].__len__()
                 if tables_num > 1:
@@ -224,8 +222,8 @@ class KqlQueryResponse(object):
                         if row[2] == "@ExtendedProperties" and row[1] == "QueryProperties":
                             table = self.json_response["Tables"][row[0]]
                             # print('visualization raw properties for first table: {}'.format(table['Rows'][0][0]))
-                            self.visualization[0] = json.loads(table["Rows"][0][0])
-                            # return json.loads(table["Rows"][0][0])
+                            value = table["Rows"][0][0]
+                            self.visualization[0] = self._dynamic_to_object(value)
         return self.visualization
 
     @property
@@ -239,7 +237,8 @@ class KqlQueryResponse(object):
                     if event_type_name_idx is not None and payload_idx is not None:
                         for row in table["Rows"]:
                             if row[event_type_name_idx] == "QueryInfo":
-                                return json.loads(row[payload_idx])
+                                value = row[payload_idx]
+                                return self._dynamic_to_object(value)
         else:
             tables_num = self.json_response["Tables"].__len__()
             if tables_num > 1:
@@ -265,7 +264,8 @@ class KqlQueryResponse(object):
                     if event_type_name_idx is not None and payload_idx is not None:
                         for row in table["Rows"]:
                             if row[event_type_name_idx] == "QueryResourceConsumption":
-                                return json.loads(row[payload_idx])
+                                value = row[payload_idx]
+                                return self._dynamic_to_object(value)
         else:
             tables_num = self.json_response["Tables"].__len__()
             if tables_num > 1:
@@ -277,7 +277,7 @@ class KqlQueryResponse(object):
                             if sr[2] == "Stats":
                                 stats = sr[4]
                                 # print('stats: {}'.format(stats))
-                                return json.loads(stats)
+                                return self._dynamic_to_object(stats)
         return {}
 
     @property
@@ -307,6 +307,10 @@ class KqlQueryResponse(object):
 
     def get_exceptions(self):
         return self.json_response["Exceptions"]
+
+    @staticmethod
+    def _dynamic_to_object(value):
+        return json.loads(value) if value and isinstance(value, str) else value if value else None
 
 
 class KqlError(Exception):

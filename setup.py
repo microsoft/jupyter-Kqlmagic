@@ -27,22 +27,22 @@ LICENSE             = 'MIT License'
 KEYWORDS            = 'database ipython jupyter jupyterlab jupyter-notebook query language kql kusto loganalytics applicationinsights'
 
 INSTALL_REQUIRES    = [
-                        'ipython>=7.0.1',
-                        'plotly>=3.3.0',
+                        'ipython>=7.1.1',
+                        'plotly>=3.4.2',
                         'prettytable>=0.7.2',
-                        'matplotlib',
-                        'pandas>=0.23.4',
-                        'adal>=1.1.0',
+                        'matplotlib>=3.0.0',
+                        'pandas>=0.22.0',
+                        'adal>=1.2.0',
                         'Pygments>=2.2.0',
                         'seaborn>=0.9.0',
-                        'requests>=2.19.1',
-                        'python-dateutil>=2.7.3',
-                        'traitlets',
-                        'psutil',
+                        'requests>=2.20.1',
+                        'python-dateutil>=2.7.5',
+                        'traitlets>=4.3.2',
+                        'psutil>=5.4.7',
                         'six>=1.11.0',
-                        'setuptools>=40.4.3',
-                        'Markdown',
-                        'beautifulsoup4',
+                        'setuptools>=40.6.2',
+                        'Markdown>=3.0.1',
+                        'beautifulsoup4>=4.6.3',
 ]
 
 

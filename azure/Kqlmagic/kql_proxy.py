@@ -156,7 +156,7 @@ class KqlTableResponse(object):
                     frame[col_name].apply(lambda t: t.replace(".", " days ") if t and "." in t.split(":")[0] else t)
                 )
             elif col_type == "dynamic":
-                frame[col_name] = frame[col_name].apply(lambda x: json.loads(x) if x and isinstance(x, str) else x if x else None)
+                frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_object(x))
             elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
                 pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
                 # NA type promotion
@@ -172,6 +172,13 @@ class KqlTableResponse(object):
                             break
                 frame[col_name] = frame[col_name].astype(pandas_type, errors="raise" if raise_errors else "ignore")
         return frame
+
+    @staticmethod
+    def _dynamic_to_object(value):
+        try:
+            return json.loads(value) if value and isinstance(value, str) else value if value else None
+        except Exception:
+            return value
 
     # index MUST be lowercase 
     KQL_TO_DATAFRAME_DATA_TYPES = {

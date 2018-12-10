@@ -67,7 +67,10 @@ class KqlResponseTable(six.Iterator):
 
     @staticmethod
     def to_object(value):
-        return json.loads(value) if value and isinstance(value, str) else value if value else None
+        try:
+            return json.loads(value) if value and isinstance(value, str) else value if value else None
+        except Exception:
+            return value
 
     @staticmethod
     def to_datetime(value):
@@ -310,7 +313,10 @@ class KqlQueryResponse(object):
 
     @staticmethod
     def _dynamic_to_object(value):
-        return json.loads(value) if value and isinstance(value, str) else value if value else None
+        try:
+            return json.loads(value) if value and isinstance(value, str) else value if value else None
+        except Exception:
+            return value
 
 
 class KqlError(Exception):

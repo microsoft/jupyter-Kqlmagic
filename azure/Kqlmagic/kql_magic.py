@@ -118,7 +118,7 @@ class Kqlmagic(Magics, Configurable):
     cache_folder_name = Unicode("{0}_cache_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name for cache files")
 
     # valid values: jupyterlab or jupyternotebook
-    notebook_app = Enum(["jupyterlab", "jupyternotebook"], "jupyternotebook", config=True, help="Set notebook application used.")
+    notebook_app = Enum(["jupyterlab", "jupyternotebook", "ipython"], "jupyternotebook", config=True, help="Set notebook application used.")
 
     add_kql_ref_to_help = Bool(True, config=True, help="On {} load auto add kql reference to Help menu.".format(Constants.MAGIC_CLASS_NAME))
     add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
@@ -201,7 +201,6 @@ class Kqlmagic(Magics, Configurable):
 
         set_logger(Logger())
         ip = get_ipython()  # pylint: disable=E0602
-        ip.magic("matplotlib inline")
 
         # Add ourself to the list of module configurable via %config
         self.shell.configurables.append(self)
@@ -282,13 +281,15 @@ class Kqlmagic(Magics, Configurable):
         Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
 
         app = ip.run_line_magic("config", "{0}.notebook_app".format(Constants.MAGIC_CLASS_NAME))
-        # add help link
-        add_kql_ref_to_help = ip.run_line_magic("config", "{0}.add_kql_ref_to_help".format(Constants.MAGIC_CLASS_NAME))
-        if add_kql_ref_to_help:
-            Help_html.add_menu_item("kql Reference", "http://aka.ms/kdocs", notebook_app=app)
         if app is None or app != "jupyterlab":
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
             time.sleep(5)
+        if app is None or app != "ipython":
+            ip.magic("matplotlib inline")
+            # add help link
+            add_kql_ref_to_help = ip.run_line_magic("config", "{0}.add_kql_ref_to_help".format(Constants.MAGIC_CLASS_NAME))
+            if add_kql_ref_to_help:
+                Help_html.add_menu_item("kql Reference", "http://aka.ms/kdocs", notebook_app=app)
         _set_default_connections()
 
     @needs_local_scope
@@ -572,12 +573,12 @@ class Kqlmagic(Magics, Configurable):
             ):
                 schema_file_path = Database_html.get_schema_file_path(conn, **options)
                 Database_html.popup_schema(schema_file_path, conn)
-
             conn.options["auto_popup_schema_done"] = True
-            if not conn.options.get("add_schema_to_help_done") and options.get("add_schema_to_help"):
+
+            if not conn.options.get("add_schema_to_help_done") and options.get("add_schema_to_help") and options.get("notebook_app") != "ipython":
                 schema_file_path = schema_file_path or Database_html.get_schema_file_path(conn, **options)
                 Help_html.add_menu_item(conn.get_conn_name(), schema_file_path, **options)
-                conn.options["add_schema_to_help_done"] = True
+            conn.options["add_schema_to_help_done"] = True
 
             if not query:
                 #
@@ -730,7 +731,8 @@ def _override_default_configuration(ip, load_mode):
     app = os.getenv("{0}_NOTEBOOK_APP".format(Constants.MAGIC_CLASS_NAME.upper()))
     if app is not None:
         lookup_key = app.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
-        app = {"jupyterlab": "jupyterlab", "jupyternotebook": "jupyternotebook", "lab": "jupyterlab", "notebook": "jupyternotebook"}.get(lookup_key)
+        app = {"jupyterlab": "jupyterlab", "jupyternotebook": "jupyternotebook", "ipython":"ipython", 
+                "lab": "jupyterlab", "notebook": "jupyternotebook", "ipy": "ipython"}.get(lookup_key)
         if app is not None:
             ip.run_line_magic("config", '{0}.notebook_app = "{1}"'.format(Constants.MAGIC_CLASS_NAME, app.strip()))
 

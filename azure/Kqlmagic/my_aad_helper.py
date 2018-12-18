@@ -10,7 +10,6 @@
 from enum import Enum, unique
 from datetime import timedelta, datetime
 
-# import webbrowser
 from six.moves.urllib.parse import urlparse
 
 import dateutil.parser
@@ -83,7 +82,7 @@ class _MyAadHelper(object):
             self._authentication_method = AuthenticationMethod.aad_device_login
             self._client_id = default_clientid
 
-    def acquire_token(self):
+    def acquire_token(self, **options):
         """Acquire tokens from AAD."""
         token = self._adal_context.acquire_token(self._resource, self._username, self._client_id)
         if token is not None:
@@ -105,7 +104,7 @@ class _MyAadHelper(object):
             # token = self._adal_context.acquire_token_with_device_code(
             #     self._resource, code, self._client_id
             # )
-            code = self._adal_context.acquire_user_code(self._resource, self._client_id)
+            code: dict = self._adal_context.acquire_user_code(self._resource, self._client_id)
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
 
@@ -154,8 +153,13 @@ class _MyAadHelper(object):
                 </body></html>"""
             )
 
-            Display.show_html(html_str)
-            # webbrowser.open(code['verification_url'])
+            if options.get("notebook_app") in ["visualstudiocode", "ipython"]:
+                Display.show_window('verification_url', url, **options)
+                # Display.showInfoMessage("Code: {0}".format(device_code))
+                Display.showInfoMessage("Copy code: {0} to verification url: {1} and authenticate".format(device_code, url), **options)
+            else:
+                Display.show_html(html_str)
+
             try:
                 token = self._adal_context.acquire_token_with_device_code(self._resource, code, self._client_id)
             finally:

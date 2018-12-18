@@ -374,7 +374,7 @@ class ResultSet(list, ColumnGuesserMixin):
         "display the table"
         options = {**self.options, **kwargs}
         if len(self) == 1 and len(self[0]) == 1  and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
-            Display.show(Display.to_styled_class(self[0][0]))
+            Display.show(Display.to_styled_class(self[0][0]), **options)
             return None
         elif options.get("table_package", "").upper() == "PANDAS":
             t = self.to_dataframe()._repr_html_()
@@ -463,7 +463,7 @@ class ResultSet(list, ColumnGuesserMixin):
             html = Display.toHtml(**c)
             Display.show(html, **options)
         elif c.get("fig"):
-            if Display.notebooks_host or options.get("notebook_app") == "jupyterlab":
+            if Display.notebooks_host or options.get("notebook_app") in ["jupyterlab", "visualstudiocode", "ipython"]:
                 plotly.offline.init_notebook_mode(connected=True)
                 plotly.offline.iplot(c.get("fig"), filename="plotlychart")
             else:
@@ -607,7 +607,6 @@ class ResultSet(list, ColumnGuesserMixin):
                 )
                 return {"body": body, "head": head}
             else:
-                self
                 return {"fig": figure_or_data}
         return {}
 

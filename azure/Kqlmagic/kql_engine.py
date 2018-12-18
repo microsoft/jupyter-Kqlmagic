@@ -74,7 +74,7 @@ class KqlEngine(object):
         if not client:
             raise KqlEngineError("Client is not defined.")
         query = "range c from 1 to 10 step 1 | count"
-        response = client.execute(self.get_database(), query, accept_partial_results=False, timeout=options.get("timeout"))
+        response = client.execute(self.get_database(), query, accept_partial_results=False, **options)
         # print(response.json_response)
         table = KqlResponse(response, **options).tables[0]
         if table.rowcount() != 1 or table.colcount() != 1 or [r for r in table.fetchall()][0][0] != 10:

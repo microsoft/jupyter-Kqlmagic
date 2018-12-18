@@ -5,6 +5,7 @@
 # --------------------------------------------------------------------------
 
 import uuid
+import webbrowser
 from IPython.core.display import display, HTML
 from IPython.display import JSON
 
@@ -88,21 +89,26 @@ class Display(object):
         display(HTML(html_str))
 
     @staticmethod
-    def show(content, **kwargs):
+    def show(content, **options):
         if isinstance(content, str) and len(content) > 0:
-            if kwargs is not None and kwargs.get("popup_window", False):
-                file_name = Display._get_name(**kwargs)
-                file_path = Display._html_to_file_path(content, file_name, **kwargs)
-                Display.show_window(file_name, file_path, **kwargs)
+            if options is not None and options.get("popup_window", False):
+                file_name = Display._get_name(**options)
+                file_path = Display._html_to_file_path(content, file_name, **options)
+                Display.show_window(file_name, file_path, **options)
             else:
                 Display.show_html(content)
         else:
             display(content)
 
     @staticmethod
-    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, **kwargs):
-        html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, **kwargs)
-        Display.show_html(html_str)
+    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, **options):
+        if options.get("notebook_app") in ["visualstudiocode", "ipython"]: 
+            url = file_path if file_path.startswith("http") else "file://" + Display.showfiles_base_path + "/" + file_path
+            webbrowser.open(url, new=1, autoraise=True)
+            Display.showInfoMessage("opened popup window: {0}, see your browser".format(window_name))
+        else:
+            html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, **options)
+            Display.show_html(html_str)
 
     @staticmethod
     def to_styled_class(item, **kwargs):
@@ -116,14 +122,14 @@ class Display(object):
 
     @staticmethod
     def _html_to_file_path(html_str, file_name, **kwargs):
-        full_file_name = Display.showfiles_base_path + "/" + Display.showfiles_folder_name + "/" + file_name + ".html"
+        file_path = Display.showfiles_folder_name + "/" + file_name + ".html"
+        full_file_name = Display.showfiles_base_path + "/" + file_path
         text_file = open(full_file_name, "w")
         text_file.write(html_str)
         text_file.close()
         # ipython will delete file at shutdown or by restart
         ip = get_ipython()  # pylint: disable=E0602
         ip.tempfiles.append(full_file_name)
-        file_path = Display.showfiles_folder_name + "/" + file_name + ".html"
         return file_path
 
     @staticmethod
@@ -277,22 +283,22 @@ class Display(object):
         return Display._getMessageHtml(msg, Display.danger_style)
 
     @staticmethod
-    def _showMessage(html_msg):
+    def _showMessage(html_msg, **kwargs):
         html_str = Display.toHtml(**html_msg)
         Display.show_html(html_str)
 
     @staticmethod
-    def showSuccessMessage(msg, **kwargs):
+    def showSuccessMessage(msg, **options):
         Display._showMessage(Display.getSuccessMessageHtml(msg))
 
     @staticmethod
-    def showInfoMessage(msg, **kwargs):
+    def showInfoMessage(msg, **options):
         Display._showMessage(Display.getInfoMessageHtml(msg))
 
     @staticmethod
-    def showWarningMessage(msg, **kwargs):
+    def showWarningMessage(msg, **options):
         Display._showMessage(Display.getWarningMessageHtml(msg))
 
     @staticmethod
-    def showDangerMessage(msg, **kwargs):
+    def showDangerMessage(msg, **options):
         Display._showMessage(Display.getDangerMessageHtml(msg))

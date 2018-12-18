@@ -107,7 +107,7 @@ class DraftClient(object):
             "x-ms-client-request-id": "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4())),
         }
         if self._aad_helper is not None:
-            request_headers["Authorization"] = self._aad_helper.acquire_token()
+            request_headers["Authorization"] = self._aad_helper.acquire_token(**options)
         elif self._appkey is not None:
             request_headers["x-api-key"] = self._appkey
 

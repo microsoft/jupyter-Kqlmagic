@@ -118,7 +118,7 @@ class Kqlmagic(Magics, Configurable):
     cache_folder_name = Unicode("{0}_cache_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name for cache files")
 
     # valid values: jupyterlab or jupyternotebook
-    notebook_app = Enum(["jupyterlab", "jupyternotebook", "ipython"], "jupyternotebook", config=True, help="Set notebook application used.")
+    notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "auto", config=True, help="Set notebook application used.")
 
     add_kql_ref_to_help = Bool(True, config=True, help="On {} load auto add kql reference to Help menu.".format(Constants.MAGIC_CLASS_NAME))
     add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
@@ -129,7 +129,7 @@ class Kqlmagic(Magics, Configurable):
     def _valid_value_palette_name(self, proposal):
         try:
             Palette.validate_palette_name(proposal["value"])
-        except AttributeError as e:
+        except (AttributeError, ValueError) as e:
             message = "The 'palette_name' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
             raise TraitError(message)
         return proposal["value"]
@@ -138,7 +138,7 @@ class Kqlmagic(Magics, Configurable):
     def _valid_value_palette_desaturation(self, proposal):
         try:
             Palette.validate_palette_desaturation(proposal["value"])
-        except AttributeError as e:
+        except (AttributeError, ValueError) as e:
             message = "The 'palette_desaturation' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
             raise TraitError(message)
         return proposal["value"]
@@ -147,8 +147,18 @@ class Kqlmagic(Magics, Configurable):
     def _valid_value_palette_color(self, proposal):
         try:
             Palette.validate_palette_colors(proposal["value"])
-        except AttributeError as e:
+        except (AttributeError, ValueError) as e:
             message = "The 'palette_color' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            raise TraitError(message)
+        return proposal["value"]
+
+    @validate("notebook_app")
+    def _valid_value_notebook_app(self, proposal):
+        try:
+            if proposal["value"] == "auto":
+                raise ValueError("cannot be set to auto, after instance is loaded")
+        except (AttributeError , ValueError) as e:
+            message = "The 'notebook_app' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
             raise TraitError(message)
         return proposal["value"]
 
@@ -280,16 +290,31 @@ class Kqlmagic(Magics, Configurable):
         Display.showfiles_folder_name = folder_name
         Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
 
-        app = ip.run_line_magic("config", "{0}.notebook_app".format(Constants.MAGIC_CLASS_NAME))
-        if app is None or app != "jupyterlab":
+        app = ip.run_line_magic("config", "{0}.notebook_app".format(Constants.MAGIC_CLASS_NAME)) or "auto"
+        if app == "auto":
+            if os.getenv("VSCODE_CWD") and os.getenv("MPLBACKEND"):
+                app = "visualstudiocode"
+            else:
+                try:
+                    ip.magic("matplotlib inline")
+                    app = "jupyternotebook"
+                except:
+                    app = "ipython"
+            ip.run_line_magic("config", "{0}.notebook_app='{1}'".format(Constants.MAGIC_CLASS_NAME, app))
+            # print("notebook_app: {0}".format(app))
+            
+        if app != "jupyterlab":
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
             time.sleep(5)
-        if app is None or app != "ipython":
+        
+        if app != "ipython":
             ip.magic("matplotlib inline")
             # add help link
             add_kql_ref_to_help = ip.run_line_magic("config", "{0}.add_kql_ref_to_help".format(Constants.MAGIC_CLASS_NAME))
             if add_kql_ref_to_help:
                 Help_html.add_menu_item("kql Reference", "http://aka.ms/kdocs", notebook_app=app)
+        else:
+            ip.magic("matplotlib qt")
         _set_default_connections()
 
     @needs_local_scope
@@ -454,7 +479,7 @@ class Kqlmagic(Magics, Configurable):
                     else:
                         raise ValueError("command {0} not implemented".format(command))
                     if isinstance(result, UrlReference):
-                        Display.show_window(result.name, result.url, result.button_text, onclick_visibility="visible")
+                        Display.show_window(result.name, result.url, result.button_text, onclick_visibility="visible", **options)
                         return None
                     if options.get("popup_window"):
                         _repr_html_ = getattr(result, "_repr_html_", None)
@@ -469,7 +494,7 @@ class Kqlmagic(Magics, Configurable):
                                 if popup_text:
                                     button_text += " {0}".format(popup_text)
                                 file_path = Display._html_to_file_path(html_str, file_name, **options)
-                                Display.show_window(file_name, file_path, button_text=button_text, onclick_visibility="visible")
+                                Display.show_window(file_name, file_path, button_text=button_text, onclick_visibility="visible", **options)
                                 return None
             return result
         except Exception as e:
@@ -572,7 +597,7 @@ class Kqlmagic(Magics, Configurable):
                 not conn.options.get("auto_popup_schema_done") and options.get("auto_popup_schema", self.auto_popup_schema)
             ):
                 schema_file_path = Database_html.get_schema_file_path(conn, **options)
-                Database_html.popup_schema(schema_file_path, conn)
+                Database_html.popup_schema(schema_file_path, conn, **options)
             conn.options["auto_popup_schema_done"] = True
 
             if not conn.options.get("add_schema_to_help_done") and options.get("add_schema_to_help") and options.get("notebook_app") != "ipython":
@@ -731,8 +756,8 @@ def _override_default_configuration(ip, load_mode):
     app = os.getenv("{0}_NOTEBOOK_APP".format(Constants.MAGIC_CLASS_NAME.upper()))
     if app is not None:
         lookup_key = app.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
-        app = {"jupyterlab": "jupyterlab", "jupyternotebook": "jupyternotebook", "ipython":"ipython", 
-                "lab": "jupyterlab", "notebook": "jupyternotebook", "ipy": "ipython"}.get(lookup_key)
+        app = {"jupyterlab": "jupyterlab", "jupyternotebook": "jupyternotebook", "ipython": "ipython", "visualstudiocode": "visualstudiocode", 
+                "lab": "jupyterlab", "notebook": "jupyternotebook", "ipy": "ipython", "vsc": "visualstudiocode"}.get(lookup_key)
         if app is not None:
             ip.run_line_magic("config", '{0}.notebook_app = "{1}"'.format(Constants.MAGIC_CLASS_NAME, app.strip()))
 

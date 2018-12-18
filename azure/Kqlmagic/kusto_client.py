@@ -13,6 +13,7 @@ import dateutil.parser
 import requests
 
 from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
+
 from Kqlmagic.kql_client import KqlQueryResponse, KqlError
 from Kqlmagic.constants import Constants, ConnStrKeys
 from Kqlmagic.version import VERSION
@@ -116,7 +117,7 @@ class Kusto_Client(object):
             "x-ms-client-request-id": "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4())),
         }
         if self._aad_helper is not None:
-            request_headers["Authorization"] = self._aad_helper.acquire_token()
+            request_headers["Authorization"] = self._aad_helper.acquire_token(**options)
             request_headers["Fed"] = "True"
 
         response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))

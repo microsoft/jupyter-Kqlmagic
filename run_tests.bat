@@ -19,3 +19,4 @@ REM we are done
 pause "tests finished !!!"
 cd ..\..
 
+

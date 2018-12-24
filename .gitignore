@@ -108,6 +108,12 @@ venv.bak/
 /notebooks/csv_file.csv
 /notebooks/Kqlmagic_temp_files
 /notebooks/KustoMagic01.ipynb
-/LOCAL_HACKING.txt
-/LOCAL_README.txt
+
+# private files
 /private_local
+
+
+# Kqlmagic tests
+/azure/tests/tests_results.xml
+.vscode/launch.json
+.vscode/settings.json

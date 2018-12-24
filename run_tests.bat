@@ -6,6 +6,7 @@ REM
 REM set environment variables that are needed by the tests
 set TEST_CONNECTION_STR=appinsights://appid='DEMO_APP';appkey='DEMO_KEY'
 set KQLMAGIC_NOTEBOOK_APP=ipython
+set KQLMAGIC_CONFIGURATION=auto_popup_schema=False
 REM
 REM change directory to the location of the tests
 cd azure\tests
@@ -17,6 +18,9 @@ REM Insert breakpoints with `from nose.tools import set_trace; set_trace()`
 REM
 REM we are done
 pause "tests finished !!!"
+set TEST_CONNECTION_STR=
+set KQLMAGIC_NOTEBOOK_APP=
+set KQLMAGIC_CONFIGURATION=
 cd ..\..
 
 

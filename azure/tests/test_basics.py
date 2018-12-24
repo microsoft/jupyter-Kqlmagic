@@ -29,6 +29,7 @@ TEST_URI_SCHEMA_NAME = "kusto"
 
 query1 = "-conn=$TEST_CONNECTION_STR let T = view () { datatable(n:long, name:string)[1,'foo',2,'bar'] }; T"
 
+@with_setup(_setup, _teardown)
 def test_ok():
     assert True
 

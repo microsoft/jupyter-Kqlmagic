@@ -33,6 +33,14 @@ query1 = "-conn=$TEST_CONNECTION_STR let T = view () { datatable(n:long, name:st
 def test_ok():
     assert True
 
+@with_setup(_setup, _teardown)
+def test_version():
+    command = "--version"
+    result = ip.run_line_magic('kql', command)
+    str_result = str(result)
+    # print(str_result)
+    assert re.search(r'^Kqlmagic version: [0-9]+\.[0-9]+\.[0-9]+$', str_result)
+
 # def test_fail():
 #     assert False    
 

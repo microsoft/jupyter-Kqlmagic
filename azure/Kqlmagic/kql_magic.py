@@ -119,6 +119,7 @@ class Kqlmagic(Magics, Configurable):
 
     # valid values: jupyterlab or jupyternotebook
     notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "auto", config=True, help="Set notebook application used.")
+    test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.")
 
     add_kql_ref_to_help = Bool(True, config=True, help="On {} load auto add kql reference to Help menu.".format(Constants.MAGIC_CLASS_NAME))
     add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
@@ -479,8 +480,8 @@ class Kqlmagic(Magics, Configurable):
                     else:
                         raise ValueError("command {0} not implemented".format(command))
                     if isinstance(result, UrlReference):
-                        Display.show_window(result.name, result.url, result.button_text, onclick_visibility="visible", **options)
-                        return None
+                        html_obj = Display.get_show_window_html_obj(result.name, result.url, result.button_text, onclick_visibility="visible", **options)
+                        return html_obj
                     if options.get("popup_window"):
                         _repr_html_ = getattr(result, "_repr_html_", None)
                         if _repr_html_ is not None and callable(_repr_html_):
@@ -494,8 +495,8 @@ class Kqlmagic(Magics, Configurable):
                                 if popup_text:
                                     button_text += " {0}".format(popup_text)
                                 file_path = Display._html_to_file_path(html_str, file_name, **options)
-                                Display.show_window(file_name, file_path, button_text=button_text, onclick_visibility="visible", **options)
-                                return None
+                                html_obj = Display.get_show_window_html_obj(file_name, file_path, button_text=button_text, onclick_visibility="visible", **options)
+                                return html_obj
             return result
         except Exception as e:
             if parsed:

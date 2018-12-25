@@ -6,7 +6,7 @@ REM
 REM set environment variables that are needed by the tests
 set TEST_CONNECTION_STR=appinsights://appid='DEMO_APP';appkey='DEMO_KEY'
 set KQLMAGIC_NOTEBOOK_APP=ipython
-set KQLMAGIC_CONFIGURATION=auto_popup_schema=False
+set KQLMAGIC_CONFIGURATION=auto_popup_schema=False;test_notebook_app='jupyternotebook'
 REM
 REM change directory to the location of the tests
 cd azure\tests

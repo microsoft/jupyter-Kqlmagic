@@ -12,7 +12,6 @@ import adal
 import dateutil.parser
 import requests
 
-# import webbrowser
 from Kqlmagic.constants import Constants, ConnStrKeys
 from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse, KqlError
 from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB

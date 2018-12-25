@@ -220,6 +220,7 @@ class Parser(object):
         "addkqlreftohelp": {"flag": "add_kql_ref_to_help", "readonly": "True", "config": "config.add_kql_ref_to_help"},
         "addschematohelp": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
         "notebookapp": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
+        "testnotebookapp": {"flag": "test_notebook_app", "readonly": "True", "config": "config.test_notebook_app"},
         "saveas": {"flag": "save_as", "type": "str", "init": "None"},
         "saveto": {"flag": "save_to", "type": "str", "init": "None"},
         "query": {"flag": "query", "type": "str", "init": "None"},

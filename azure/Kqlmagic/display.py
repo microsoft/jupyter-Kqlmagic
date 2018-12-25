@@ -101,14 +101,21 @@ class Display(object):
             display(content)
 
     @staticmethod
-    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, **options):
-        if options.get("notebook_app") in ["visualstudiocode", "ipython"]: 
+    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, **options):
+        if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]: 
             url = file_path if file_path.startswith("http") else "file://" + Display.showfiles_base_path + "/" + file_path
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage("opened popup window: {0}, see your browser".format(window_name))
+            return None
         else:
             html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, **options)
-            Display.show_html(html_str)
+            return HTML(html_str)
+
+    @staticmethod
+    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, **options):
+        html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, **options)
+        if html_obj is not None:
+            display(html_obj)
 
     @staticmethod
     def to_styled_class(item, **kwargs):

@@ -166,40 +166,50 @@ class Database_html(object):
         return """<a href="#" class="list-group-item">""" + item + """</a>"""
 
     @staticmethod
-    def get_schema_file_path(conn, **options):
+    def get_schema_tree(connection, **options) :
         engine_type = (
             KustoEngine
-            if isinstance(conn, KustoEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, KustoEngine))
+            if isinstance(connection, KustoEngine) or (isinstance(connection, CacheEngine) and isinstance(connection.kql_engine, KustoEngine))
             else AppinsightsEngine
-            if isinstance(conn, AppinsightsEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, AppinsightsEngine))
+            if isinstance(connection, AppinsightsEngine) or (isinstance(connection, CacheEngine) and isinstance(connection.kql_engine, AppinsightsEngine))
             else LoganalyticsEngine
-            if isinstance(conn, LoganalyticsEngine) or (isinstance(conn, CacheEngine) and isinstance(conn.kql_engine, LoganalyticsEngine))
+            if isinstance(connection, LoganalyticsEngine) or (isinstance(connection, CacheEngine) and isinstance(connection.kql_engine, LoganalyticsEngine))
             else None
         )
 
         if engine_type is not None:
-            if isinstance(conn, CacheEngine):
-                database_name = conn.kql_engine.get_database()
-                conn_name = conn.kql_engine.get_conn_name()
+            if isinstance(connection, CacheEngine):
+                database_name = connection.kql_engine.get_database()
             else:
-                database_name = conn.get_database()
-                conn_name = conn.get_conn_name()
+                database_name = connection.get_database()
 
             if engine_type == KustoEngine:
-                query = ".show schema"
-                raw_query_result = conn.execute(query, **options)
+                show_schema_query = ".show schema"
+                raw_query_result = connection.execute(show_schema_query, **options)
                 raw_schema_table = raw_query_result.tables[0]
                 database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
                 if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
-                    CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), query, **options)
+                    CacheClient().save(raw_query_result, connection.get_database(), connection.get_cluster(), show_schema_query, **options)
+                return database_metadata_tree
 
             elif engine_type == AppinsightsEngine or LoganalyticsEngine:
-                query = ".show schema"
-                metadata_result = conn.client_execute(query, **options)
+                show_schema_query = ".show schema"
+                metadata_result = connection.client_execute(show_schema_query, **options)
                 metadata_schema_table = metadata_result.table
                 database_metadata_tree = Database_html._create_database_draft_metadata_tree(metadata_schema_table)
                 if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
-                    CacheClient().save(metadata_result, conn.get_database(), conn.get_cluster(), query, **options)
+                    CacheClient().save(metadata_result, connection.get_database(), connection.get_cluster(), show_schema_query, **options)
+                return database_metadata_tree
+        return None
+
+    @staticmethod
+    def get_schema_file_path(connection, **options):
+        database_metadata_tree = Database_html.get_schema_tree(connection, **options)
+        if database_metadata_tree is not None:
+            if isinstance(connection, CacheEngine):
+                conn_name = connection.kql_engine.get_conn_name()
+            else:
+                conn_name = connection.get_conn_name()
 
             html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)
             window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
@@ -208,9 +218,9 @@ class Database_html(object):
             return None
 
     @staticmethod
-    def popup_schema(file_path, conn, **options):
+    def popup_schema(file_path, connection, **options):
         if file_path:
-            conn_name = conn.kql_engine.get_conn_name() if isinstance(conn, CacheEngine) else conn.get_conn_name()
+            conn_name = connection.kql_engine.get_conn_name() if isinstance(connection, CacheEngine) else connection.get_conn_name()
             button_text = "popup schema " + conn_name
             window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
             Display.show_window(window_name, file_path, button_text=button_text, onclick_visibility="visible", **options)

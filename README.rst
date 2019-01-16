@@ -3,8 +3,19 @@ Kqlmagic: Microsoft Azure Monitor magic extension to Jupyter notebook
 Enables notebook experience, exploring Microsoft Azure Monitor data: Azure Data Explorer (Kusto),
 ApplicationInsights, and LogAnalytics data, from Jupyter notebook (Python3 kernel), using kql (Kusto Query language).
 
+
+
+
+|version| |python| |license| 
+
+|downloads| |monthDownloads| |weekDownloads|
+
+
+
+
 Example
 --------
+
 
 .. code-block:: python
 
@@ -49,3 +60,26 @@ Links
 * `How to install the package <https://github.com/Microsoft/jupyter-Kqlmagic#install>`_.
 * `How to load the magic extension <https://github.com/Microsoft/jupyter-Kqlmagic#load>`_.
 * `GitHub Repository <https://github.com/Microsoft/jupyter-Kqlmagic/tree/master>`_.
+
+
+
+
+
+
+.. |downloads| image:: https://pepy.tech/badge/kqlmagic
+    :target: https://pepy.tech/project/kqlmagic
+
+.. |monthDownloads| image:: https://pepy.tech/badge/kqlmagic/month
+    :target: https://pepy.tech/project/kqlmagic
+
+.. |weekDownloads| image:: https://pepy.tech/badge/kqlmagic/week
+    :target: https://pepy.tech/project/kqlmagic
+
+.. |version| image:: https://img.shields.io/pypi/v/Kqlmagic.svg?style=flat-square
+    :target: https://pypi.org/project/Kqlmagic/
+
+.. |python| image:: https://img.shields.io/pypi/pyversions/Kqlmagic.svg?style=flat-square
+    :target: https://github.com/Microsoft/jupyter-Kqlmagic/blob/master/setup.py
+
+.. |license| image:: https://img.shields.io/pypi/l/Kqlmagic.svg?style=flat-square
+    :target: https://github.com/Microsoft/jupyter-Kqlmagic/blob/master/LICENSE.TXT

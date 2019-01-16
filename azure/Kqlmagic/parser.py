@@ -131,8 +131,10 @@ class Parser(object):
         "faq": {"flag": "faq", "type": "bool", "init": "False"},
         "palette": {"flag": "palette", "type": "bool", "init": "False"},
         "palettes": {"flag": "palettes", "type": "bool", "init": "False"},
+        # should be per connection
         "cache": {"flag": "cache", "type": "str", "init": "None"},
         "usecache": {"flag": "use_cache", "type": "str", "init": "None"},
+        "schema": {"flag": "schema", "type": "str", "init": "None", "default": "None"},
     }
     @classmethod
     def _parse_kql_command(cls, code, user_ns: dict):

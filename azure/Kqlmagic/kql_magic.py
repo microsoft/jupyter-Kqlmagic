@@ -195,6 +195,34 @@ class Kqlmagic(Magics, Configurable):
             self.cache = None
             return MarkdownString("{0} cache was disabled.".format(Constants.MAGIC_PACKAGE_NAME))
 
+    def execute_schema_command(self, connection_string:str, user_ns: dict, **options) -> dict:
+        """ execute the schema command.
+        command return the schema of the connection in json format, so that it can be used programattically
+
+        Returns
+        -------
+        str
+            A string with the cache name, if None cache is diabled
+        """
+
+        # removing query and con is required to avoid multiple parameter values error
+        options.pop("query", None)
+        connection_string = options.pop("conn", None) or connection_string
+        connection_string = None if connection_string == "None" else connection_string
+
+        conn = Connection.get_connection(connection_string, user_ns, **options)
+
+        if options.get("popup_window"):
+            schema_file_path  = Database_html.get_schema_file_path(conn, **options)
+            conn_name = conn.kql_engine.get_conn_name() if isinstance(conn, CacheEngine) else conn.get_conn_name()
+            button_text = "popup schema " + conn_name
+            window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
+            html_obj = Display.get_show_window_html_obj(window_name, schema_file_path, button_text=button_text, onclick_visibility="visible", **options)
+            return html_obj
+        else:
+            schema_tree = Database_html.get_schema_tree(conn, **options)
+            return Display.to_styled_class(schema_tree, **options)
+
     # [KUSTO]
     # Driver          = Easysoft ODBC-SQL Server
     # Server          = my_machine\SQLEXPRESS
@@ -450,6 +478,10 @@ class Kqlmagic(Magics, Configurable):
                         result = self.execute_cache_command(param)
                     elif command == "use_cache":
                         result = self.execute_use_cache_command(param)
+                    elif command == "schema":
+                        result = self.execute_schema_command(param, user_ns, **options)
+                        # the return is here, because it already handle the popupwindow option case
+                        return result
                     elif command == "palette":
                         result = Palette(
                             palette_name=options.get("palette_name", self.palette_name),

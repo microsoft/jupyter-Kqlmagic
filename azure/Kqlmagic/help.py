@@ -47,7 +47,7 @@ The following commands are supported:<br>
 - **usage** - Displays usage of Kqlmagic.<br>
 <br>
 
-- **help "topic"** - Display information about the topic.<br>
+- **help "topic"** - Displays information about the topic.<br>
     - To get the list of all the topics, execute ```%kql --help "help"```<br>
 <br>
 
@@ -59,6 +59,14 @@ The following commands are supported:<br>
 - **palettes - Display information about all available palettes.<br>
     - The behaviour of this command will change based on the specified option:
     - -palette_colors, palette_reverse, -palette_desaturation, execute ```%kql --palettes -palette_desaturation 0.75```<br>
+<br>
+
+- **schema "database"** - Returns the database schema as a python dict (displayed as a json format). <br>
+    - To get Azure Data Explorer database schema: ```%kql --schema "databasename@clustername"```<br>
+    - To get application insights app schema: ```%kql --schema "appname@applicationinsights"```<br>
+    - To get log analytics workspace schema: ```%kql --schema "workspacename@loganalytics"```<br>
+    - To get current connection database schema ```%kql --schema```<br>
+    - If -conn option is sepcified it will override the database value.<br>
 <br>
 
 - **cache - Enables caching query results to a cache folder, or disbale. <br>
@@ -80,6 +88,7 @@ The following commands are supported:<br>
 ```%kql --help "options"```<br><br>
 ```%kql --help "conn"```<br><br>
 ```%kql --palette -palette_name "Reds"```<br><br>
+```%kql --schema 'DEMO_APP@applicationinsights'```<br><br>
 ```%kql --cache "XXX"```<br><br>
 ```%kql --use_cache None```<br><br>
 ```%kql --submit appinsights://appid='DEMO_APP';appkey='DEMO_KEY' pageViews | count```<br><br>

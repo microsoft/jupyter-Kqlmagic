@@ -920,7 +920,7 @@ class ResultSet(list, ColumnGuesserMixin):
     def _get_plotly_chart_x_type(self, properties: dict) -> str:
         return self._CHART_X_TYPE.get(properties.get(VisualizationKeys.VISUALIZATION), "first")
     
-    def _get_plotly_chart_properties(self, properties: dict, tabs:list) -> dict:
+    def _get_plotly_chart_properties(self, properties: dict, tabs: list) -> dict:
         chart_properties = {}
         if properties.get(VisualizationKeys.VISUALIZATION) == VisualizationValues.BAR_CHART:
             chart_properties["xlabel"] = self._get_plotly_ylabel(properties.get(VisualizationKeys.X_TITLE), tabs)
@@ -941,7 +941,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return chart_properties
 
 
-    def _render_areachart_plotly(self, properties:dict, key_word_sep=" ", **kwargs):
+    def _render_areachart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
         Area graph. 

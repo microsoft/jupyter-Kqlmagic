@@ -165,8 +165,9 @@ class KqlQueryResponse(object):
 
     def __init__(self, json_response, endpoint_version="v1"):
         self.json_response = json_response
-        self.endpoint_version = endpoint_version
+        self.endpoint_version = "v1" if not isinstance(self.json_response, list)  else endpoint_version
         self.visualization = None
+
         if self.endpoint_version == "v2":
             self.all_tables = [t for t in json_response if t["FrameType"] == "DataTable"]
             self.tables = [t for t in json_response if t["FrameType"] == "DataTable" and t["TableKind"] == "PrimaryResult"]

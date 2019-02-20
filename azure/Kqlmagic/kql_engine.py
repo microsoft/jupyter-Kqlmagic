@@ -3,6 +3,7 @@
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
 # --------------------------------------------------------------------------
+import re
 import itertools
 import getpass
 from Kqlmagic.kql_proxy import KqlResponse
@@ -10,7 +11,8 @@ import functools
 from Kqlmagic.constants import ConnStrKeys
 from Kqlmagic.parser import Parser
 
-
+_FQN_KUSTO_CLUSTER_PATTERN = re.compile(r"(http(s?)\:\/\/)?(?P<cname>.*)\.kusto\.(windows\.net|chinacloudapi.cn|cloudapi.de|usgovcloudapi.net)$")
+_FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(?P<io>(applicationinsights|loganalytics))\.io\/subscriptions\/(?P<subscription>.*)\/.*$")
 class KqlEngine(object):
 
     # Object constructor
@@ -24,6 +26,7 @@ class KqlEngine(object):
         self.options = {}
 
         self.validated = None
+        self.conn_name = None
 
     def __eq__(self, other):
         return self.bind_url and self.bind_url == other.bind_url
@@ -47,9 +50,21 @@ class KqlEngine(object):
             raise KqlEngineError("Cluster is not defined.")
         return self.cluster_name
 
+
     def get_conn_name(self):
+        if self.conn_name:
+            return self.conn_name
         if self.database_name and self.cluster_name:
-            return "{0}@{1}".format(self.alias or self.database_name, self.cluster_name)
+            cname = self.cluster_name
+            match = _FQN_KUSTO_CLUSTER_PATTERN.match(cname)
+            if match:
+                cname = match.group("cname")
+            else:
+                match = _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(cname + "/")
+                if match:
+                    cname = "adx-proxy-for-{0}[{1}]".format(match.group("io"), match.group("subscription"))
+            self.conn_name = "{0}@{1}".format(self.alias or self.database_name, cname)
+            return self.conn_name
         else:
             raise KqlEngineError("Database and/or cluster is not defined.")
 

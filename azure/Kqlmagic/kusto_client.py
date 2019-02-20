@@ -4,6 +4,7 @@
 # license information.
 # --------------------------------------------------------------------------
 
+import re
 import uuid
 import six
 from datetime import timedelta, datetime
@@ -79,6 +80,10 @@ class Kusto_Client(object):
 
         self._mgmt_endpoint = self._MGMT_ENDPOINT_TEMPLATE.format(data_source, self._MGMT_ENDPOINT_VERSION)
         self._query_endpoint = self._QUERY_ENDPOINT_TEMPLATE.format(data_source, self._QUERY_ENDPOINT_VERSION)
+        _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.io.*$")
+        if _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
+            data_source = "https://kusto.kusto.windows.net" 
+
         self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, data_source), self._DEFAULT_CLIENTID) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
 
     def execute(self, kusto_database, kusto_query, accept_partial_results=False, **options):
@@ -119,8 +124,16 @@ class Kusto_Client(object):
         if self._aad_helper is not None:
             request_headers["Authorization"] = self._aad_helper.acquire_token(**options)
             request_headers["Fed"] = "True"
+        # print("endpoint: ", endpoint)
+        # print("headers: ", request_headers)
+        # print("payload: ", request_payload)
+        # print("timeout: ", options.get("timeout"))
 
         response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
+
+        # print("response status code: ", response.status_code)
+        # print("response", response)
+        # print("response text", response.text)
 
         if response.status_code != requests.codes.ok:  # pylint: disable=E1101
             raise KqlError([response.text], response)

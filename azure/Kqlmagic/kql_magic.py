@@ -721,7 +721,7 @@ class Kqlmagic(Magics, Configurable):
                 result = None
 
             if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
-                file_path = CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, **options)
+                CacheClient().save(raw_query_result, conn.get_database(), conn.get_cluster(), parametrized_query, **options)
                 if options.get("feedback", self.feedback):
                     saved_result.feedback_info.append("query results cached")
 
@@ -812,7 +812,7 @@ def _set_default_connections():
             connection_str = connection_str[1:-1]
         
         try:
-            conn = Connection(connection_str, {})
+            Connection(connection_str, {})
             # ip = get_ipython()  # pylint: disable=E0602
             # result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
             # if conn and _get_kql_magic_load_mode() != "silent":

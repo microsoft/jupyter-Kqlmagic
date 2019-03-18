@@ -81,15 +81,13 @@ class ColumnGuesserMixin(object):
         elif x_type == "first":
             x_col_idx = 0
         elif x_type == "quantity":
-            x_col_datetime_idx = None
             for idx, c in enumerate(self.columns):
                 if c.is_quantity:
                     if not c.is_datetime: 
                         x_col_idx = idx
                         break
-                    else:
-                        x_col_datetime_idx = x_col_datetime_idx or idx
-            x_col_idx = x_col_idx or x_col_datetime_idx
+                    elif x_col_idx is None:
+                        x_col_idx = idx
         elif x_type == "datetime":
             # find first of type datetime
             for idx, c in enumerate(self.columns):

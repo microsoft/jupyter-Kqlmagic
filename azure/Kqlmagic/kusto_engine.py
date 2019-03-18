@@ -50,6 +50,7 @@ class KustoEngine(KqlEngine):
             self.database_name = conn_str.get(ConnStrKeys.DATABASE)
             self.cluster_name = conn_str.get(ConnStrKeys.CLUSTER)
             self.alias = conn_str.get(ConnStrKeys.ALIAS)
+            self.cluster_friendly_name = conn_str.get("cluster_friendly_name")
             self.bind_url = "{0}://{1}('{2}').{3}('{4}')".format(
                 self._URI_SCHEMA_NAME, ConnStrKeys.CLUSTER, self.cluster_name, ConnStrKeys.DATABASE, self.database_name
             )
@@ -61,7 +62,7 @@ class KustoEngine(KqlEngine):
 
     def get_client(self):
         if self.client is None:
-            cluster_connection = self.conn_class.get_connection_by_name("@" + self.cluster_name)
+            cluster_connection = self.conn_class.get_connection_by_name("@" + self.cluster_friendly_name)
             if cluster_connection is None:
                 raise KqlEngineError("connection to cluster not set.")
             return cluster_connection.get_client()

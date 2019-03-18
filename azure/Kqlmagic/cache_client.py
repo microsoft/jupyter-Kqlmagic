@@ -50,6 +50,7 @@ class CacheClient(object):
 
     def _get_folder_path(self, database_at_cluster, cache_folder=None):
         if "_at_" in database_at_cluster:
+            database_at_cluster = "_".join(database_at_cluster.split())
             database_name, cluster_name = database_at_cluster.split("_at_")[:2]
 
             if not os.path.exists(self.files_folder):

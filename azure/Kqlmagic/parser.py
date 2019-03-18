@@ -7,7 +7,7 @@
 import itertools
 import os
 import six
-from six.moves import configparser as CP
+import configparser as CP
 from Kqlmagic.log import Logger, logger
 from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
 
@@ -28,7 +28,8 @@ class Parser(object):
             return parsed_queries
 
          # split to max 2 parts. First part, parts[0], is the first string.
-        parts = [part.strip() for part in cell.split(None, 1)]
+        # parts = [part.strip() for part in cell.split(None, 1)]
+        parts = Parser.split_lex(cell)
 
         # print(parts)
         if not parts:
@@ -39,18 +40,20 @@ class Parser(object):
         #
         # replace substring of the form $name or ${name}, in windows also %name% if found in env variabes
         #
-        # parts[0] = os.path.expandvars(parts[0])  # for environment variables
-        sub_parts = parts[0].split("://", 1)
 
         connection = None
         # assume connection is specified and will be found
         code = parts[1] if len(parts) == 2 else ""
+        conn_str = parts[0].strip()
+        if conn_str.startswith('"') and conn_str.endswith('"') or conn_str.startswith("'") and conn_str.endswith("'"):
+            conn_str = conn_str[1:-1]
 
+        sub_parts = conn_str.strip().split("://", 1)
         #
         # connection taken from a section in  dsn file (file name have to be define in config.dsn_filename or specified as a parameter)
         #
-        if parts[0].startswith("[") and parts[0].endswith("]"):
-            section = parts[0][1:-1].strip()
+        if conn_str.startswith("[") and conn_str.endswith("]"):
+            section = conn_str[1:-1].strip()
 
             # parse to get flag, for the case that the file nema is specified in the options
             kql, options = cls._parse_kql_options(code, config, user_ns)
@@ -73,12 +76,12 @@ class Parser(object):
         elif (len(sub_parts) == 2 and not sub_parts[0].startswith("-") and 
         sub_parts[0].lower().replace("_", "").replace("-", "") in list(itertools.chain(*[e._ALT_URI_SCHEMA_NAMES for e in engines]))):
 
-            connection = parts[0]
+            connection = conn_str
         #
         # connection specified as database@cluster
         #
-        elif "@" in parts[0] and "|" not in parts[0] and "'" not in parts[0] and '"' not in parts[0] and " " not in parts[0]:
-            connection = parts[0]
+        elif "@" in conn_str and "|" not in conn_str and "'" not in conn_str and '"' not in conn_str:
+            connection = conn_str
         #
         # connection not specified, override default
         #
@@ -435,3 +438,39 @@ class Parser(object):
                 return _convert(eval(val), _type)
         except:
             raise ValueError("failed to set {0}, due to invalid {1} value {2}.".format(key, _type, value))
+
+    @classmethod            
+    def split_lex(cls, text: str):
+
+        startIdx = 0
+        idx = 0
+        escapeOn = False
+        quoteChar = None
+        while idx < len(text):
+            char = text[idx]
+            if char in [' ', '\t', '\r', '\n', '\f']:
+                if startIdx == idx:
+                    startIdx += 1
+                elif quoteChar is None:
+                    break
+            else:
+                if char == "\\":
+                    escapeOn = not escapeOn
+                else:
+                    if not escapeOn:
+                        if char == quoteChar:
+                            quoteChar = None
+                        elif char == '"' or  char == "'":
+                            quoteChar = char
+                    escapeOn = False
+
+            idx += 1
+        parts = []
+        if idx > startIdx:
+            parts.append(text[startIdx:idx])
+            component2 = text[idx:].strip()
+            if len(component2) > 0:
+                parts.append(component2)
+        return parts
+        
+        

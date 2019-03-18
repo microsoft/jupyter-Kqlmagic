@@ -12,7 +12,8 @@ from Kqlmagic.constants import ConnStrKeys
 from Kqlmagic.parser import Parser
 
 _FQN_KUSTO_CLUSTER_PATTERN = re.compile(r"(http(s?)\:\/\/)?(?P<cname>.*)\.kusto\.(windows\.net|chinacloudapi.cn|cloudapi.de|usgovcloudapi.net)$")
-_FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(?P<io>(applicationinsights|loganalytics))\.io\/subscriptions\/(?P<subscription>.*)\/.*$")
+_FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(?P<io>(applicationinsights|loganalytics))\.io\/subscriptions\/(?P<subscription>.*)$")
+
 class KqlEngine(object):
 
     # Object constructor
@@ -60,13 +61,33 @@ class KqlEngine(object):
             if match:
                 cname = match.group("cname")
             else:
-                match = _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(cname + "/")
-                if match:
-                    cname = "adx-proxy-for-{0}[{1}]".format(match.group("io"), match.group("subscription"))
+                cname = self.getDraftProxyName(cname)
             self.conn_name = "{0}@{1}".format(self.alias or self.database_name, cname)
             return self.conn_name
         else:
             raise KqlEngineError("Database and/or cluster is not defined.")
+
+    def getDraftProxyName(self, cname):
+        name = cname[:-1] if cname[-1] == "/" else cname
+        match = _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(name)
+        if match:
+            components = match.group("subscription").split("/")
+            name = "apps_in_subscription_76767 767676_resourcegroup_jhjhjh_app_"
+            resource_name = "app" if match.group("io") == "applicationinsights" else "workspace"
+            name = "{0}s_in_subscription_{1}".format(resource_name, components[0])
+
+            if len(components) >= 3:
+                key = components[1].lower
+                if key == "resourcegroups":
+                    name = "{0}_resourcegroup_{1}".format(name, components[2])
+                    if len(components) >= 5:
+                        name = "{0}_{1}_{2}".format(name, resource_name, components[-1])
+                else:
+                    name = "{0}_{1}_{2}".format(name, resource_name, components[-1])
+        else:
+            name = cname
+        return name
+
 
     def get_client(self):
         return self.client
@@ -200,10 +221,28 @@ class KqlEngine(object):
                 if parsed_conn_kv[key] == "<{0}>".format(key) or parsed_conn_kv[key] =="":
                     raise KqlEngineError("{0}, key {1} cannot be empty or set to <{2}>.".format(error_msg, key, key))
 
-        # set attribuets
+        # set attributes
         self.cluster_name = parsed_conn_kv.get(ConnStrKeys.CLUSTER) or uri_schema_name
+        if self.cluster_name is not None:
+            if len(self.cluster_name) < 1 or len(self.cluster_name.split()) > 1:
+                raise KqlEngineError("{0}, key {1} cannot be empty or to contain whitespace characters <{2}>.".format(error_msg, ConnStrKeys.CLUSTER, self.cluster_name))
+
         self.database_name = parsed_conn_kv.get(mandatory_key)
+        if self.database_name is not None:
+            if len(self.database_name) < 1:
+                raise KqlEngineError("{0}, key {1} cannot be empty <{2}>.".format(error_msg, mandatory_key, self.database_name))
+            components = self.database_name.split()
+            if len(components) > 1:
+                alias = parsed_conn_kv.get(ConnStrKeys.ALIAS)
+                if alias is None:
+                    parsed_conn_kv[ConnStrKeys.ALIAS] = "_".join(components)
+
+
         self.alias = parsed_conn_kv.get(ConnStrKeys.ALIAS)
+        if self.alias is not None:
+            if len(self.alias) < 1 or len(self.alias.split()) > 1:
+                raise KqlEngineError("{0}, key {1} cannot be empty or to contain whitespace characters <{2}>.".format(error_msg, ConnStrKeys.ALIAS, self.alias))
+
 
         # in case secret is missing, get it from user
         if len(secret_key_set) == 1:

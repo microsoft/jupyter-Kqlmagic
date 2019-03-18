@@ -36,7 +36,7 @@ class Connection(object):
             if len(parts) == 2:
                 uri_schema = parts[0].lower().replace("_", "").replace("-", "")
                 return cls._ENGINE_MAP.get(uri_schema)
-
+    
     # Object constructor
     def __init__(self, connect_str, user_ns:dict, **kwargs):
 
@@ -59,32 +59,43 @@ class Connection(object):
                     last_cluster_name = last_current.get_cluster()
                     last_current = self.connections.get("@" + last_cluster_name)
                 cluster_conn_engine = engine(connect_str, user_ns, last_current)
-                cluster_name = cluster_conn_engine.get_cluster()
-                Connection._set_current(cluster_conn_engine, conn_name="@" + cluster_name)
+                cluster_friendly_name = cluster_conn_engine.get_conn_name().split("@")[1]
+                Connection._set_current(cluster_conn_engine, conn_name="@" + cluster_friendly_name)
                 database_name = cluster_conn_engine.get_database()
                 alias = cluster_conn_engine.get_alias()
             else:
-                database_name, cluster_name = connect_str.split("@")
+                database_name, cluster_friendly_name = connect_str.split("@")
                 alias = None
-            conn_engine = Connection._get_kusto_database_engine(database_name, cluster_name, alias, user_ns)
+                if len(database_name) < 1:
+                    raise KqlEngineError("invalid connection_str, key {0} cannot be empty.".format(ConnStrKeys.DATABASE))
+                components = database_name.split()
+                if len(components) > 1:
+                    alias = "_".join(components)
+            conn_engine = Connection._new_kusto_database_engine(database_name, cluster_friendly_name, alias, user_ns)
 
         if kwargs.get("use_cache") and engine != CacheEngine:
             conn_engine = CacheEngine(conn_engine, user_ns, last_current, cache_name=kwargs.get("use_cache"))
         Connection._set_current(conn_engine)
 
     @classmethod
-    def _get_kusto_database_engine(cls, database_name, cluster_name, alias, user_ns: dict):
-        if cluster_name in cls._ENGINE_MAP.keys():
+    def _new_kusto_database_engine(cls, database_name, cluster_friendly_name, alias, user_ns: dict):
+        if cluster_friendly_name in cls._ENGINE_MAP.keys():
             raise KqlEngineError(
                 'invalid connection_str, connection_str pattern "database@cluster" cannot be used for "appinsights", "loganalytics" and "cache"'
             )
-        cluster_conn_name = "@" + cluster_name
+        cluster_conn_name = "@" + cluster_friendly_name
         cluster_conn = cls.connections.get(cluster_conn_name)
         if cluster_conn is None:
             raise KqlEngineError(
                 'invalid connection_str, connection_str pattern "database@cluster" can be used only after a previous connection was established to a cluster'
             )
-        details = {ConnStrKeys.DATABASE: database_name, ConnStrKeys.CLUSTER: cluster_name, ConnStrKeys.ALIAS: alias}
+        cluster_name = cluster_conn.get_cluster()
+        details = { 
+            ConnStrKeys.DATABASE: database_name,
+            ConnStrKeys.CLUSTER: cluster_name,
+            ConnStrKeys.ALIAS: alias,
+            "cluster_friendly_name": cluster_friendly_name
+        }
         return KustoEngine(details, user_ns, conn_class=Connection)
 
     @classmethod

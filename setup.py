@@ -28,21 +28,22 @@ KEYWORDS            = 'database ipython jupyter jupyterlab jupyter-notebook quer
 
 INSTALL_REQUIRES    = [
                         'ipython>=7.1.1',
-                        'plotly>=3.4.2',
+                        'plotly>=3.6.1',
                         'prettytable>=0.7.2',
                         'matplotlib>=3.0.0',
                         'pandas>=0.22.0',
-                        'adal>=1.2.0',
+                        'adal>=1.2.1',
                         'Pygments>=2.2.0',
                         'seaborn>=0.9.0',
-                        'requests>=2.20.1',
+                        'requests>=2.21.0',
                         'python-dateutil>=2.7.5',
                         'traitlets>=4.3.2',
                         'psutil>=5.4.7',
                         'six>=1.11.0',
-                        'setuptools>=40.6.2',
+                        'setuptools>=40.8.0',
                         'Markdown>=3.0.1',
                         'beautifulsoup4>=4.6.3',
+                        'lxml>=4.2.5',
 ]
 
 

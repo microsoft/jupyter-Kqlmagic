@@ -13,6 +13,7 @@ from Kqlmagic.parser import Parser
 
 _FQN_KUSTO_CLUSTER_PATTERN = re.compile(r"(http(s?)\:\/\/)?(?P<cname>.*)\.kusto\.(windows\.net|chinacloudapi.cn|cloudapi.de|usgovcloudapi.net)$")
 _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(?P<io>(applicationinsights|loganalytics))\.io\/subscriptions\/(?P<subscription>.*)$")
+_FQN_ARIA_KUSTO_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/kusto\.aria\.microsoft\.com$")
 
 class KqlEngine(object):
 
@@ -61,18 +62,18 @@ class KqlEngine(object):
             if match:
                 cname = match.group("cname")
             else:
-                cname = self.getDraftProxyName(cname)
+                cname = self.getOtherClusterName(cname)
             self.conn_name = "{0}@{1}".format(self.alias or self.database_name, cname)
             return self.conn_name
         else:
             raise KqlEngineError("Database and/or cluster is not defined.")
 
-    def getDraftProxyName(self, cname):
+    def getOtherClusterName(self, cname):
         name = cname[:-1] if cname[-1] == "/" else cname
+
         match = _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(name)
         if match:
             components = match.group("subscription").split("/")
-            name = "apps_in_subscription_76767 767676_resourcegroup_jhjhjh_app_"
             resource_name = "app" if match.group("io") == "applicationinsights" else "workspace"
             name = "{0}s_in_subscription_{1}".format(resource_name, components[0])
 
@@ -84,8 +85,14 @@ class KqlEngine(object):
                         name = "{0}_{1}_{2}".format(name, resource_name, components[-1])
                 else:
                     name = "{0}_{1}_{2}".format(name, resource_name, components[-1])
+        elif _FQN_ARIA_KUSTO_CLUSTER_PATTERN.match(name):
+            name = "adx_aria"
         else:
-            name = cname
+            if name.startswith("https://"):
+                name = name[8:]
+            elif name.startswith("http://"):
+                name = name[7:]
+            name = name.replace("/", "_").replace(".", "_").replace(":", "_").replace("-", "_")
         return name
 
 

@@ -81,10 +81,12 @@ class Kusto_Client(object):
         self._mgmt_endpoint = self._MGMT_ENDPOINT_TEMPLATE.format(data_source, self._MGMT_ENDPOINT_VERSION)
         self._query_endpoint = self._QUERY_ENDPOINT_TEMPLATE.format(data_source, self._QUERY_ENDPOINT_VERSION)
         _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.io.*$")
-        if _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
-            data_source = "https://kusto.kusto.windows.net" 
+        auth_resource = data_source
 
-        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, data_source), self._DEFAULT_CLIENTID) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
+        if _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
+            auth_resource = "https://kusto.kusto.windows.net"
+
+        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), self._DEFAULT_CLIENTID) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
 
     def execute(self, kusto_database, kusto_query, accept_partial_results=False, **options):
         """ Execute a simple query or management command

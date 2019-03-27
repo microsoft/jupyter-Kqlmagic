@@ -7,7 +7,7 @@
 """A module that manage package version.
 """
 
-VERSION = "0.1.93"
+VERSION = "0.1.94"
 
 import sys
 import requests

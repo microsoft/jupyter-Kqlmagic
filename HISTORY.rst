@@ -1,3 +1,4 @@
+fix http://kusto.aria.microsoft.com and other not standard cluster name 
 fix missing lxml.py module dependency in setup.py; created history.rst file; updated setup.py based on azure notebooks image - 0.1.93 - Mar 24, 2019
 support database names with whitespaces; support ADX proxy over AI/LA cluster names; fix charts based on firest quantity column - 0.1.92 - Mar 18, 2019
 allow v1 response from kusto api v2, support adx-proxy, - 0.1.91 - Feb 20, 2019

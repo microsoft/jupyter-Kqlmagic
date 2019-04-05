@@ -4,11 +4,48 @@
 # license information.
 # --------------------------------------------------------------------------
 
+import os
 import logging
+import datetime
 import uuid
 import traceback
+from ipykernel import (get_connection_info)
 from Kqlmagic.constants import Constants
 
+def _get_kql_magic_log_level():
+    log_level = os.getenv("{0}_LOG_LEVEL".format(Constants.MAGIC_CLASS_NAME.upper()))
+    if log_level:
+        log_level = log_level.strip().upper().replace("_", "").replace("-", "")
+        if log_level.startswith("'") or log_level.startswith('"'):
+            log_level = log_level[1:-1].strip()
+    return log_level
+
+def initialize():
+    log_level = _get_kql_magic_log_level()
+    log_file = os.getenv("{0}_LOG_FILE".format(Constants.MAGIC_CLASS_NAME.upper()))
+    log_file_prefix = os.getenv("{0}_LOG_FILE_PREFIX".format(Constants.MAGIC_CLASS_NAME.upper()))
+    log_file_mode = os.getenv("{0}_LOG_FILE_MODE".format(Constants.MAGIC_CLASS_NAME.upper()))
+    if log_level or log_file or log_file_mode or log_file_prefix:
+        connection_info = get_connection_info(unpack=True)
+        key = connection_info.get("key").decode(encoding="utf-8")
+        log_level = log_level or logging.DEBUG
+        log_file = log_file or ((log_file_prefix or 'Kqlmagic') + '-' + key + '.log')
+        log_file_mode = (log_file_mode or "w").lower()[:1]
+        log_handler = logging.FileHandler(log_file, mode=log_file_mode)
+    else:
+        log_handler = logging.NullHandler()
+
+    set_logging_options({ 'level': log_level, 'handler': log_handler})
+    set_logger(Logger())
+
+    if log_file:
+        if log_file_mode == "a":
+            logger().debug("\n\n----------------------------------------------------------------------")
+        now = datetime.datetime.now()
+
+        logger().debug("start date %s\n", now.isoformat())
+        logger().debug("logger level %s\n", log_level)
+        logger().debug("logger init done")
 
 def create_log_context(correlation_id=None):
     return {"correlation_id": correlation_id or str(uuid.uuid4())}
@@ -28,7 +65,7 @@ def set_logging_options(options=None):
         options = {}
     logger = logging.getLogger(Constants.LOGGER_NAME)
 
-    logger.setLevel(options.get("level", logging.ERROR))
+    logger.setLevel(options.get("level", logging.ERROR) or logging.ERROR)
 
     handler = options.get("handler")
     if handler:
@@ -79,6 +116,11 @@ class Logger(object):
 
         return formatted
 
+    def critical(self, msg, *args, **kwargs):
+        log_stack_trace = kwargs.pop("log_stack_trace", None)
+        msg = self._log_message(msg, log_stack_trace)
+        self._logging.critical(msg, *args, **kwargs)
+
     def error(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
@@ -99,6 +141,11 @@ class Logger(object):
         msg = self._log_message(msg, log_stack_trace)
         self._logging.debug(msg, *args, **kwargs)
 
+    def exception(self, msg, *args, **kwargs):
+        log_stack_trace = kwargs.pop("log_stack_trace", None)
+        msg = self._log_message(msg, log_stack_trace)
+        self._logging.exception(msg, *args, **kwargs)
+
 
 def logger():
     global current_logger
@@ -109,3 +156,5 @@ def set_logger(new_logger):
     global current_logger
     current_logger = new_logger
     return current_logger
+
+initialize()

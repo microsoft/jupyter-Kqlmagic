@@ -18,6 +18,7 @@ from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
 from Kqlmagic.kql_client import KqlQueryResponse, KqlError
 from Kqlmagic.constants import Constants, ConnStrKeys
 from Kqlmagic.version import VERSION
+from Kqlmagic.log import logger
 
 
 class Kusto_Client(object):
@@ -111,6 +112,11 @@ class Kusto_Client(object):
             endpoint_version = self._QUERY_ENDPOINT_VERSION
             endpoint = self._query_endpoint
 
+        # print("### db: ", kusto_database, " ###")
+        # print("### csl: ", kusto_query, " ###")
+        # kusto_database = kusto_database.replace(" ", "")
+        # print("### db: ", kusto_database, " ###")
+
         request_payload = {
             "db": kusto_database, 
             "csl": kusto_query,
@@ -131,7 +137,16 @@ class Kusto_Client(object):
         # print("payload: ", request_payload)
         # print("timeout: ", options.get("timeout"))
 
+        log_request_headers = request_headers
+        if request_headers.get("Authorization"):
+            log_request_headers = request_headers.copy()
+            log_request_headers["Authorization"] = "..."  
+
+        logger().debug("Kusto_Client::execute - POST request - url: %s, headers: %s, payload: %s, timeout: %s", endpoint, log_request_headers, request_payload, options.get("timeout"))
+
         response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
+
+        logger().debug("Kusto_Client::execute - response - status: %s, headers: %s, payload: %s", response.status_code, response.headers, response.text)
 
         # print("response status code: ", response.status_code)
         # print("response", response)

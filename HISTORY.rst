@@ -1,3 +1,4 @@
+fix query caching  to support non standard database names; support separate logging; log Kqlmagic steps; log requests; log adal request; add env KQLMAGIC [-LOG_LEVEL, _LOG_FILE, _LOG_FILE_PREFIX, _LOG_FILE_MODE]; add experimental sso, to enable KQLMAGIC_ENABLE_SSO=TRUE; fix parametrized dataframe types long and real; - 0.1.95 - Apr 06, 2019
 fix http://kusto.aria.microsoft.com and other not standard cluster name 
 fix missing lxml.py module dependency in setup.py; created history.rst file; updated setup.py based on azure notebooks image - 0.1.93 - Mar 24, 2019
 support database names with whitespaces; support ADX proxy over AI/LA cluster names; fix charts based on firest quantity column - 0.1.92 - Mar 18, 2019

@@ -184,12 +184,12 @@ class Database_html(object):
                 database_name = connection.get_database()
 
             if engine_type == KustoEngine:
-                show_schema_query = ".show schema"
+                show_schema_query = ".show database ['{0}'] schema".format(database_name)
                 raw_query_result = connection.execute(show_schema_query, **options)
                 raw_schema_table = raw_query_result.tables[0]
                 database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
                 if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
-                    CacheClient().save(raw_query_result, connection.get_database(), connection.get_cluster(), show_schema_query, **options)
+                    CacheClient().save(raw_query_result, connection, show_schema_query, **options)
                 return database_metadata_tree
 
             elif engine_type == AppinsightsEngine or LoganalyticsEngine:
@@ -198,7 +198,7 @@ class Database_html(object):
                 metadata_schema_table = metadata_result.table
                 database_metadata_tree = Database_html._create_database_draft_metadata_tree(metadata_schema_table)
                 if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
-                    CacheClient().save(metadata_result, connection.get_database(), connection.get_cluster(), show_schema_query, **options)
+                    CacheClient().save(metadata_result, connection, show_schema_query, **options)
                 return database_metadata_tree
         return None
 

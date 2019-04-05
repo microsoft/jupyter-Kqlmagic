@@ -16,6 +16,7 @@ from Kqlmagic.constants import Constants, ConnStrKeys
 from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse, KqlError
 from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
 from Kqlmagic.version import VERSION
+from Kqlmagic.log import logger
 
 
 class DraftClient(object):
@@ -116,13 +117,20 @@ class DraftClient(object):
         #
         # submit request
         #
+        log_request_headers = request_headers
+        if request_headers.get("Authorization"):
+            log_request_headers = request_headers.copy()
+            log_request_headers["Authorization"] = "..." 
 
         if is_metadata:
+            logger().debug("DraftClient::execute - GET request - url: %s, headers: %s, timeout: %s", api_url, log_request_headers, options.get("timeout"))
             response = requests.get(api_url, headers=request_headers)
         else:
-            payload = {"query": query}
-            response = requests.post(api_url, headers=request_headers, json=payload)
+            request_payload = {"query": query}
+            logger().debug("DraftClient::execute - POST request - url: %s, headers: %s, payload: %s, timeout: %s", api_url, log_request_headers, request_payload, options.get("timeout"))
+            response = requests.post(api_url, headers=request_headers, json=request_payload)
 
+        logger().debug("DraftClient::execute - response - status: %s, headers: %s, payload: %s", response.status_code, response.headers, response.text)
         #
         # handle response
         #

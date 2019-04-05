@@ -71,6 +71,10 @@ class Parameterizer(object):
                 if str(v) == "nan" # missing na for long(null)
                 else "'{0}'".format(v.decode("utf-8"))
                 if isinstance(v, bytes)
+                else "long({0})".format(v)
+                if isinstance(v, int)
+                else "real({0})".format(v)
+                if isinstance(v, float)
                 else str(v)
             )
         except:
@@ -125,9 +129,9 @@ class Parameterizer(object):
                 s = val.decode("utf-8")
             return "" if s is None else "'{0}'".format(s)
         if kql_type == "long": 
-            return 'long(null)' if s == 'nan' else s
+            return 'long(null)' if s == 'nan' else "long({0})".format(s)
         if kql_type == "real": 
-            return 'real(null)' if s == 'nan' else s
+            return 'real(null)' if s == 'nan' else "real({0})".format(s)
         if kql_type == "bool": 
             return 'true' if val == True else 'false' if  val == False else 'bool(null)'
         if kql_type == "datetime":

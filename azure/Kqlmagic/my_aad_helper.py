@@ -7,6 +7,7 @@
 """A module to acquire tokens from AAD.
 """
 
+import os
 from enum import Enum, unique
 from datetime import timedelta, datetime
 
@@ -15,8 +16,11 @@ from six.moves.urllib.parse import urlparse
 import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
+from Kqlmagic.constants import Constants
+from Kqlmagic.log import logger
 from Kqlmagic.display import Display
 from Kqlmagic.constants import ConnStrKeys
+from Kqlmagic.adal_token_cache import AdalTokenCache
 
 
 class AuthenticationError(Exception):
@@ -62,7 +66,11 @@ class _MyAadHelper(object):
     def __init__(self, kcsb, default_clientid):
         authority = kcsb.authority_id or "common"
         self._resource = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
-        self._adal_context = AuthenticationContext("https://login.microsoftonline.com/{0}".format(authority))
+        token_cache = None
+        isSso = os.getenv("{0}_ENABLE_SSO".format(Constants.MAGIC_CLASS_NAME.upper()))
+        if (isSso and isSso.upper() == "TRUE"):
+            token_cache = AdalTokenCache()
+        self._adal_context = AuthenticationContext("https://login.microsoftonline.com/{0}".format(authority), cache=token_cache)
         self._username = None
         if all([kcsb.aad_user_id, kcsb.password]):
             self._authentication_method = AuthenticationMethod.aad_username_password
@@ -88,15 +96,19 @@ class _MyAadHelper(object):
         if token is not None:
             expiration_date = dateutil.parser.parse(token[TokenResponseFields.EXPIRES_ON])
             if expiration_date > datetime.now() + timedelta(minutes=1):
+                logger().debug("_MyAadHelper::acquire_token - from Cache - resource: '%s', username: '%s', client: '%s'", self._resource, self._username, self._client_id)
                 return self._get_header(token)
             if TokenResponseFields.REFRESH_TOKEN in token:
                 token = self._adal_context.acquire_token_with_refresh_token(token[TokenResponseFields.REFRESH_TOKEN], self._client_id, self._resource)
                 if token is not None:
+                    logger().debug("_MyAadHelper::acquire_token - aad refresh - resource: '%s', username: '%s', client: '%s'", self._resource, self._username, self._client_id)
                     return self._get_header(token)
 
         if self._authentication_method is AuthenticationMethod.aad_username_password:
+            logger().debug("_MyAadHelper::acquire_token - aad/user-password - resource: '%s', username: '%s', password: '...', client: '%s'", self._resource, self._username, self._client_id)
             token = self._adal_context.acquire_token_with_username_password(self._resource, self._username, self._password, self._client_id)
         elif self._authentication_method is AuthenticationMethod.aad_application_key:
+            logger().debug("_MyAadHelper::acquire_token - aad/client-secret - resource: '%s', client: '%s', secret: '...'", self._resource, self._client_id)
             token = self._adal_context.acquire_token_with_client_credentials(self._resource, self._client_id, self._client_secret)
         elif self._authentication_method is AuthenticationMethod.aad_device_login:
             # print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
@@ -104,6 +116,7 @@ class _MyAadHelper(object):
             # token = self._adal_context.acquire_token_with_device_code(
             #     self._resource, code, self._client_id
             # )
+            logger().debug("_MyAadHelper::acquire_token - aad/code - resource: '%s', client: '%s'", self._resource, self._client_id)
             code: dict = self._adal_context.acquire_user_code(self._resource, self._client_id)
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
@@ -182,6 +195,7 @@ class _MyAadHelper(object):
 
                 Display.show_html(html_str)
         elif self._authentication_method is AuthenticationMethod.aad_application_certificate:
+            logger().debug("_MyAadHelper::acquire_token - aad/client-certificate - resource: '%s', client: '%s', _certificate: '...', thumbprint: '%s'", self._resource, self._client_id, self._thumbprint)
             token = self._adal_context.acquire_token_with_client_certificate(self._resource, self._client_id, self._certificate, self._thumbprint)
         else:
             raise AuthenticationError("Unknown authentication method.")

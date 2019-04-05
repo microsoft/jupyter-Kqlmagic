@@ -1,1 +1,1 @@
-Kqlmagic==0.1.94
+Kqlmagic==0.1.95

@@ -81,7 +81,7 @@ class CacheClient(object):
     def execute(self, database_at_cluster, query, **options):
         """Executes a query or management command.
         :param str database_at_cluster: name of database and cluster that a folder will be derived that contains all the files with the query results for this specific database.
-        :param str query: Query to be executed.
+        :param str query: Query to be executed or a json file with query results.
         """
         file_path = self._get_file_path(query, database_at_cluster, cache_folder=options.get("use_cache"))
         str_response = open(file_path, "r").read()
@@ -92,11 +92,12 @@ class CacheClient(object):
             endpoint_version = self._get_endpoint_version(json_response)
             return KqlQueryResponse(json_response, endpoint_version)
 
-    def save(self, result, database, cluster, query, filepath=None, filefolder=None, **options):
+    def save(self, result, conn, query, filepath=None, filefolder=None, **options):
         """Executes a query or management command.
         :param str database_at_cluster: name of database and cluster that a folder will be derived that contains all the files with the query results for this specific database.
         :param str query: Query to be executed.
         """
+
         if filefolder is not None:
             filepath = filefolder + "/" + self._get_query_hash_filename(query)
         if filepath is not None:
@@ -109,7 +110,10 @@ class CacheClient(object):
                 if not os.path.exists(folder_name):
                     os.makedirs(folder_name)
         else:
-            file_path = self._get_file_path(query, database + "_at_" + cluster, cache_folder=options.get("cache"))
+            database_name = conn.get_database()
+            # cluster = conn.get_cluster()
+            cluster_friendly_name = conn.get_cluster_friendly_name()
+            file_path = self._get_file_path(query, database_name + "_at_" + cluster_friendly_name, cache_folder=options.get("cache"))
         outfile = open(file_path, "w")
         outfile.write(json.dumps(result.json_response))
         outfile.flush()

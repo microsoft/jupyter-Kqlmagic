@@ -23,6 +23,7 @@ class KqlEngine(object):
         self._parsed_conn = {}
         self.database_name = None
         self.cluster_name = None
+        self.cluster_friendly_name = None
         self.alias = None
         self.client = None
         self.options = {}
@@ -52,23 +53,27 @@ class KqlEngine(object):
             raise KqlEngineError("Cluster is not defined.")
         return self.cluster_name
 
+    def get_cluster_friendly_name(self):
+        if not self.cluster_friendly_name:
+            raise KqlEngineError("Cluster friendly name is not defined.")
+        return self.cluster_friendly_name
+
 
     def get_conn_name(self):
         if self.conn_name:
             return self.conn_name
         if self.database_name and self.cluster_name:
-            cname = self.cluster_name
-            match = _FQN_KUSTO_CLUSTER_PATTERN.match(cname)
+            match = _FQN_KUSTO_CLUSTER_PATTERN.match(self.cluster_name)
             if match:
-                cname = match.group("cname")
+                self.cluster_friendly_name = match.group("cname")
             else:
-                cname = self.getOtherClusterName(cname)
-            self.conn_name = "{0}@{1}".format(self.alias or self.database_name, cname)
+                self.cluster_friendly_name = self.createClusterFriendlyName(self.cluster_name)
+            self.conn_name = "{0}@{1}".format(self.alias or self.database_name, self.cluster_friendly_name)
             return self.conn_name
         else:
             raise KqlEngineError("Database and/or cluster is not defined.")
 
-    def getOtherClusterName(self, cname):
+    def createClusterFriendlyName(self, cname):
         name = cname[:-1] if cname[-1] == "/" else cname
 
         match = _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(name)

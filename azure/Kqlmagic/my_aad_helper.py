@@ -67,7 +67,7 @@ class _MyAadHelper(object):
         authority = kcsb.authority_id or "common"
         self._resource = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
         token_cache = None
-        isSso = os.getenv("{0}_ENABLE_SSO".format(Constants.MAGIC_CLASS_NAME.upper()))
+        isSso = "FALSE" # os.getenv("{0}_ENABLE_SSO".format(Constants.MAGIC_CLASS_NAME.upper()))
         if (isSso and isSso.upper() == "TRUE"):
             token_cache = AdalTokenCache()
         self._adal_context = AuthenticationContext("https://login.microsoftonline.com/{0}".format(authority), cache=token_cache)

@@ -7,8 +7,10 @@
 import itertools
 import os
 import six
+import json
 import configparser as CP
 from Kqlmagic.log import Logger, logger
+from Kqlmagic.my_utils import split_lex, get_valid_filename, adjust_path
 from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
 
 
@@ -29,7 +31,7 @@ class Parser(object):
 
          # split to max 2 parts. First part, parts[0], is the first string.
         # parts = [part.strip() for part in cell.split(None, 1)]
-        parts = Parser.split_lex(cell)
+        parts = split_lex(cell)
 
         # print(parts)
         if not parts:
@@ -59,7 +61,8 @@ class Parser(object):
             kql, options = cls._parse_kql_options(code, config, user_ns)
 
             parser = CP.ConfigParser()
-            parser.read(options.get("dsn_filename", config.dsn_filename))
+            dsn_filename = adjust_path(options.get("dsn_filename", config.dsn_filename))
+            parser.read(dsn_filename)
             cfg_dict = dict(parser.items(section))
 
             cfg_dict_lower = {k.lower().replace("_", "").replace("-", ""): v for (k, v) in cfg_dict.items()}
@@ -168,6 +171,158 @@ class Parser(object):
 
         return (trimmed_code.strip(), {"command":  obj.get("flag"), "param": param})
 
+    _QUERY_PROPERTIES_TABLE = {
+        # (OptionBlockSplittingEnabled): Enables splitting of sequence blocks after aggregation operator. [Boolean]
+        "block_splitting_enabled": {"type": "bool"},
+
+        # (OptionDatabasePattern): Database pattern overrides database name and picks the 1st database that matches the pattern. '*' means any database that user has access to. [String]
+        "database_pattern": {"type": "str"},
+
+        # (OptionDeferPartialQueryFailures): If true, disables reporting partial query failures as part of the result set. [Boolean]
+        "deferpartialqueryfailures": {"type": "bool"},
+
+        # (OptionMaxMemoryConsumptionPerQueryPerNode): Overrides the default maximum amount of memory a whole query may allocate per node. [UInt64]
+        "max_memory_consumption_per_query_per_node": {"type": "uint"},
+
+        # (OptionMaxMemoryConsumptionPerIterator): Overrides the default maximum amount of memory a query operator may allocate. [UInt64]
+        "maxmemoryconsumptionperiterator": {"type": "uint"},
+
+        # (OptionMaxOutputColumns): Overrides the default maximum number of columns a query is allowed to produce. [Long]
+        "maxoutputcolumns": {"type": "uint"},
+
+        # (OptionNoRequestTimeout): Enables setting the request timeout to its maximum value. [Boolean]
+        "norequesttimeout": {"type": "bool"},
+
+        # (OptionNoTruncation): Enables suppressing truncation of the query results returned to the caller. [Boolean]
+        "notruncation": {"type": "bool"},
+
+        # (OptionPushSelectionThroughAggregation): If true, push simple selection through aggregation [Boolean]
+        "push_selection_through_aggregation": {"type": "bool"},
+
+        # (OptionAdminSuperSlackerMode): If true, delegate execution of the query to another node [Boolean]
+        "query_admin_super_slacker_mode": {"type": "bool"},
+
+        #  (QueryBinAutoAt): When evaluating the bin_auto() function, the start value to use. [LiteralExpression]
+        "query_bin_auto_at": {"type": "str"},
+
+        # (QueryBinAutoSize): When evaluating the bin_auto() function, the bin size value to use. [LiteralExpression]
+        "query_bin_auto_size": {"type": "str"},
+
+        #  (OptionQueryCursorAfterDefault): The default parameter value of the cursor_after() function when called without parameters. [string]
+        "query_cursor_after_default": {"type": "str"},
+
+        #  (OptionQueryCursorAllowReferencingStreamingIngestionTables): Enable usage of cursor functions over databases which have streaming ingestion enabled. [boolean]
+        "query_cursor_allow_referencing_streaming_ingestion_tables": {"type": "bool"},
+
+        #  (OptionQueryCursorBeforeOrAtDefault): The default parameter value of the cursor_before_or_at() function when called without parameters. [string]
+        "query_cursor_before_or_at_default": {"type": "str"},
+
+        # (OptionQueryCursorCurrent): Overrides the cursor value returned by the cursor_current() or current_cursor() functions. [string]
+        "query_cursor_current": {"type": "str"},
+
+        #  (OptionQueryCursorScopedTables): List of table names that should be scoped to cursor_after_default .. cursor_before_or_at_default (upper bound is optional). [dynamic]
+        "query_cursor_scoped_tables": {"type": "dict"},
+
+        #  (OptionQueryDataScope): Controls the query's datascope -- whether the query applies to all data or just part of it. ['default', 'all', or 'hotcache']
+        "query_datascope": {"type": "enum", "values": ['default', 'all', 'hotcache']},
+
+        #  (OptionQueryDateTimeScopeColumn): Controls the column name for the query's datetime scope (query_datetimescope_to / query_datetimescope_from). [String]
+        "query_datetimescope_column": {"type": "str"},
+
+        #  (OptionQueryDateTimeScopeFrom): Controls the query's datetime scope (earliest) -- used as auto-applied filter on query_datetimescope_column only (if defined). [DateTime]
+        "query_datetimescope_from": {"type": "str"},
+
+        # (OptionQueryDateTimeScopeTo): Controls the query's datetime scope (latest) -- used as auto-applied filter on query_datetimescope_column only (if defined). [DateTime]
+        "query_datetimescope_to": {"type": "str"},
+
+        #  (OptionQueryDistributionNodesSpanSize): If set, controls the way sub-query merge behaves: the executing node will introduce an additional level in the query hierarchy for each sub-group of nodes; the size of the sub-group is set by this option. [Int]
+        "query_distribution_nodes_span": {"type": "int"},
+
+        #  (OptionQueryFanoutNodesPercent): The percentage of nodes to fanour execution to. [Int]
+        "query_fanout_nodes_percent": {"type": "uint"},
+
+        #  (OptionQueryFanoutThreadsPercent): The percentage of threads to fanout execution to. [Int]
+        "query_fanout_threads_percent": {"type": "uint"},
+
+        #  (OptionQueryLanguage): Controls how the query text is to be interpreted. ['csl','kql' or 'sql']
+        "query_language": {"type": "enum", "values": ['csl', 'kql', 'sql']},
+
+        #  (RemoteMaterializeOperatorInCrossCluster): Enables remoting materialize operator in cross cluster query.
+        "query_materialize_remote_subquery": {"type": "bool"},
+
+        # (OptionMaxEntitiesToUnion): Overrides the default maximum number of columns a query is allowed to produce. [Long]
+        "query_max_entities_in_union": {"type": "uint"},
+
+        # (OptionQueryNow): Overrides the datetime value returned by the now(0s) function. [DateTime]
+        # note: cannot be relative to now()
+        "query_now": {"type": "str"},
+
+        #  (CostBasedOptimizerBroadcastJoinBuildMax): Max Rows count for build in broadcast join.
+        "query_optimization_broadcast_build_maxSize": {"type": "uint"},
+
+        #  (CostBasedOptimizerBroadcastJoinProbeMin): Min Rows count for probe in broadcast join.
+        "query_optimization_broadcast_probe_minSize": {"type": "uint"},
+
+        #  (CostBasedOptimizer): Enables automatic optimizations.
+        "query_optimization_costbased_enabled": {"type": "bool"},
+
+        #  (OptionOptimizeInOperator): Optimizes in operands serialization.
+        "query_optimization_in_operator": {"type": "bool"},
+
+        #  (CostBasedOptimizerShufflingCardinalityThreshold): Shuffling Cardinality Threshold.
+        "query_optimization_shuffling_cardinality": {"type": "uint"},
+
+        #  (OptionQueryRemoteEntitiesDisabled): If set, queries cannot access remote databases / clusters. [Boolean]
+        "query_remote_entities_disabled": {"type": "bool"},
+
+        #  (RemoteInOperandsInQuery): Enables remoting in operands.
+        "query_remote_in_operands": {"type": "bool"},
+
+        #  (OptionProgressiveQueryMinRowCountPerUpdate): Hint for Kusto as to how many records to send in each update (Takes effect only if OptionProgressiveQueryIsProgressive is set)
+        "query_results_progressive_row_count": {"type": "uint"},
+
+        #  (OptionProgressiveProgressReportPeriod): Hint for Kusto as to how often to send progress frames (Takes effect only if OptionProgressiveQueryIsProgressive is set)
+        "query_results_progressive_update_period": {"type": "uint"},
+
+        #  (OptionTakeMaxRecords): Enables limiting query results to this number of records. [Long]
+        "query_take_max_records": {"type": "uint"},
+
+        #  (OptionQueryConsistency): Controls query consistency. ['strongconsistency' or 'normalconsistency' or 'weakconsistency']
+        "queryconsistency": {"type": "enum", "values": ['strongconsistency', 'normalconsistency', 'weakconsistency']},
+
+        #  (OptionRequestCalloutDisabled): If set, callouts to external services are blocked. [Boolean]
+        "request_callout_disabled": {"type": "bool"},
+
+        #  (OptionRequestReadOnly): If specified, indicates that the request must not be able to write anything. [Boolean]
+        "request_readonly": {"type": "bool"},
+
+        #  (OptionResponseDynamicSerialization): Controls the serialization of 'dynamic' values in result sets. ['string', 'json']
+        "response_dynamic_serialization": {"type": "enum", "values": ['string', 'json']},
+
+        #  (OptionResponseDynamicSerialization_2): Controls the serialization of 'dynamic' string and null values in result sets. ['legacy', 'current']
+        "response_dynamic_serialization_2": {"type": "enum", "values": ['legacy', 'current']},
+
+        #  (OptionResultsProgressiveEnabled): If set, enables the progressive query stream
+        "results_progressive_enabled": {"type": "bool"},
+
+        #  (OptionSandboxedExecutionDisabled): If set, using sandboxes as part of query execution is disabled. [Boolean]
+        "sandboxed_execution_disabled": {"type": "bool"},
+
+        #  (OptionServerTimeout): Overrides the default request timeout. [TimeSpan]
+        # is capped by 1hour
+        "servertimeout": {"type": "str"},
+
+        #  (OptionTruncationMaxRecords): Overrides the default maximum number of records a query is allowed to return to the caller (truncation). [Long]
+        "truncationmaxrecords": {"type": "uint"},
+
+        #  (OptionTruncationMaxSize): Overrides the dfefault maximum data size a query is allowed to return to the caller (truncation). [Long]
+        "truncationmaxsize": {"type": "uint"},
+
+        #  (OptionValidatePermissions): Validates user's permissions to perform the query and doesn't run the query itself. [Boolean]
+        "validate_permissions": {"type": "bool"},
+    }
+    
+
     # all lookup keys in table, must be without spaces, underscores and hypthen-minus, because parser ignores them
     _OPTIONS_TABLE = {
         "ad": {"abbreviation": "autodataframe"},
@@ -230,6 +385,7 @@ class Parser(object):
         "saveto": {"flag": "save_to", "type": "str", "init": "None"},
         "query": {"flag": "query", "type": "str", "init": "None"},
         "conn": {"flag": "conn", "type": "str", "init": "None"},
+        "queryproperties": {"flag": "query_properties", "type": "dict", "init": "None"},
 
         "pc": {"abbreviation": "palettecolors"},
         "palettecolors": {"flag": "palette_colors", "type": "int", "config": "config.palette_colors"},
@@ -243,6 +399,8 @@ class Parser(object):
     def _parse_kql_options(cls, code, config, user_ns: dict):
         words = code.split()
         options = {}
+        properties = {}
+        table = options
 
         for value in cls._OPTIONS_TABLE.values():
             if value.get("config"):
@@ -262,12 +420,16 @@ class Parser(object):
             first_word += 2
 
         key_state = True
+        is_option = True
+        is_property = False
         for word in words[first_word:]:
             if key_state:
-                if not word[0].startswith("-"):
+                is_option = word[0].startswith("-")
+                is_property = word[0].startswith("+")
+                if not is_option and not is_property:
                     break
                 # validate it is not a command
-                if word[0].startswith("--"):
+                if is_option and word[0].startswith("--"):
                     raise ValueError("invalid option {0}, cannot start with a bouble hyphen-minus".format(word[0]))
 
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
@@ -283,8 +445,16 @@ class Parser(object):
                 else:
                     key = word
                     value = None
-                lookup_key = key.lower().replace("-", "").replace("_", "")
-                obj = cls._OPTIONS_TABLE.get(lookup_key)
+
+                if is_option:
+                    lookup_key = key.lower().replace("-", "").replace("_", "")
+                    obj = cls._OPTIONS_TABLE.get(lookup_key)
+                    table = options 
+                else:
+                    lookup_key = key.lower()
+                    obj = cls._QUERY_PROPERTIES_TABLE.get(lookup_key)
+                    table = properties 
+
                 if obj is not None:
                     if obj.get("abbreviation"):
                         obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
@@ -292,22 +462,22 @@ class Parser(object):
                         raise ValueError("option {0} is readony, cannot be set".format(key))
 
                     _type = obj.get("type")
-                    opt_key = obj.get("flag")
+                    opt_key = obj.get("flag") or lookup_key
                     option_config = obj.get("config")
                     if _type == "bool" and value is None:
-                        options[opt_key] = bool_value
+                        table[opt_key] = bool_value
                     else:
                         if not bool_value:
                             raise ValueError("option {0} cannot be negated".format(key))
                         if value is not None:
-                            options[opt_key] = cls.parse_value(value, key, _type, user_ns)
+                            table[opt_key] = cls.parse_value(value, key, _type, user_ns)
                         else:
                             key_state = False
                 else:
                     raise ValueError("unknown option")
             else:
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
-                options[opt_key] = cls.parse_value(word, key, _type, user_ns)
+                table[opt_key] = cls.parse_value(word, key, _type, user_ns)
                 key_state = True
             first_word += 1
 
@@ -321,6 +491,10 @@ class Parser(object):
         if not key_state:
             raise ValueError("last option is missing parameter")
 
+        if (options["query_properties"]):
+            properties.update(options["query_properties"])
+        options["query_properties"] = properties 
+        print("DEBUG: query_properties: ", options["query_properties"])
         if num_words - first_word > 0:
             last_word = words[-1].strip()
             if last_word.endswith(";"):
@@ -405,13 +579,17 @@ class Parser(object):
         return matched_kv
 
     @classmethod
-    def parse_value(cls, value: str, key: str, _type: str, user_ns: dict):
+    def parse_value(cls, value: str, key: str, _type: str, user_ns: dict, enums: list = []):
 
         def _convert(val, _type):
             if _type == "int":
                 if float(val) != int(val):
                     raise ValueError
-                return int(val)                 
+                return int(val)
+            if _type == "uint":
+                if float(val) != int(val) or int(val) < 0:
+                    raise ValueError
+                return int(val)                    
             elif _type == "float":
                 return float(val)
             elif _type == "bool":
@@ -420,57 +598,30 @@ class Parser(object):
                 return bool(val)
             elif _type == "dict":
                 return dict(val)
+            elif _type == "enum":
+                if enums.index(val):
+                    return str(val)
+                else:
+                    raise ValueError
             return str(val)
 
 
         try:
             if value == "" and _type == "str":
                 return value
+            if _type == "enum" and enums.index(value):
+                return value
             if value.startswith('$'):
                 val = os.getenv(value[1:])
             else:
                 val = eval(value, None, user_ns)
 
-            # check value if of the right type
+            # check value is of the right type
             try:
                 return _convert(val, _type)
             except:
                 return _convert(eval(val), _type)
         except:
             raise ValueError("failed to set {0}, due to invalid {1} value {2}.".format(key, _type, value))
-
-    @classmethod            
-    def split_lex(cls, text: str):
-
-        startIdx = 0
-        idx = 0
-        escapeOn = False
-        quoteChar = None
-        while idx < len(text):
-            char = text[idx]
-            if char in [' ', '\t', '\r', '\n', '\f']:
-                if startIdx == idx:
-                    startIdx += 1
-                elif quoteChar is None:
-                    break
-            else:
-                if char == "\\":
-                    escapeOn = not escapeOn
-                else:
-                    if not escapeOn:
-                        if char == quoteChar:
-                            quoteChar = None
-                        elif char == '"' or  char == "'":
-                            quoteChar = char
-                    escapeOn = False
-
-            idx += 1
-        parts = []
-        if idx > startIdx:
-            parts.append(text[startIdx:idx])
-            component2 = text[idx:].strip()
-            if len(component2) > 0:
-                parts.append(component2)
-        return parts
         
         

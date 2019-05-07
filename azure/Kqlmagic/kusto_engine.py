@@ -48,8 +48,9 @@ class KustoEngine(KqlEngine):
         if isinstance(conn_str, dict):
             self.conn_class = conn_class
             self.database_name = conn_str.get(ConnStrKeys.DATABASE)
+            self.database_friendly_name = self.createDatabaseFriendlyName(self.database_name)
             self.cluster_name = conn_str.get(ConnStrKeys.CLUSTER)
-            self.alias = conn_str.get(ConnStrKeys.ALIAS)
+            self.alias = conn_str.get(ConnStrKeys.ALIAS) or self.database_friendly_name
             self.cluster_friendly_name = conn_str.get("cluster_friendly_name")
             self.bind_url = "{0}://{1}('{2}').{3}('{4}')".format(
                 self._URI_SCHEMA_NAME, ConnStrKeys.CLUSTER, self.cluster_name, ConnStrKeys.DATABASE, self.database_name

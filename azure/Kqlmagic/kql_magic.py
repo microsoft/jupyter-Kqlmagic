@@ -13,6 +13,7 @@ import hashlib
 from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
 from Kqlmagic.help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
 from Kqlmagic.constants import Constants
+from Kqlmagic.my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
 from Kqlmagic.log import logger
 
 logger().debug("kql_magic.py - import Magics, magics_class, cell_magic, line_magic, needs_local_scope from IPython.core.magic")
@@ -356,16 +357,16 @@ class Kqlmagic(Magics, Configurable):
 
         logger().debug("Kqlmagic::__init__ - override defualt configuraion")
         _override_default_configuration(ip, load_mode)
-        root_path = os.path.normpath(ip.starting_dir)
+        root_path = ip.starting_dir
 
         logger().debug("Kqlmagic::__init__ - set temp folder")
         folder_name = ip.run_line_magic("config", "{0}.temp_folder_name".format(Constants.MAGIC_CLASS_NAME))
-        showfiles_folder_Full_name = root_path + "/" + folder_name
+        showfiles_folder_Full_name = adjust_path(root_path + "/" + folder_name)
         if not os.path.exists(showfiles_folder_Full_name):
             os.makedirs(showfiles_folder_Full_name)
         # ipython will removed folder at shutdown or by restart
         ip.tempdirs.append(showfiles_folder_Full_name)
-        Display.showfiles_base_path = root_path
+        Display.showfiles_base_path = adjust_path_to_uri(root_path)
         Display.showfiles_folder_name = folder_name
 
         Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
@@ -674,6 +675,7 @@ class Kqlmagic(Magics, Configurable):
                     database_name = conn.get_database()
                     cluster_name = conn.get_cluster()
                     uri_schema_name = conn._URI_SCHEMA_NAME
+                    # TODO: fix it to have all tokens, but enforce code()
                     connection_string = "{0}://code().cluster('{1}').database('{2}')".format(uri_schema_name, cluster_name, database_name)
                     conn = Connection.get_connection(connection_string, user_ns, **options)
                     conn.validate(**options)
@@ -714,7 +716,7 @@ class Kqlmagic(Magics, Configurable):
 
             if options.get("save_as") is not None:
                 save_as_file_path = CacheClient().save(
-                    raw_query_result, conn, parametrized_query, filepath=options.get("save_as"), **options
+                    raw_query_result, conn, parametrized_query, file_path=options.get("save_as"), **options
                 )
             if options.get("save_to") is not None:
                 save_as_file_path = CacheClient().save(

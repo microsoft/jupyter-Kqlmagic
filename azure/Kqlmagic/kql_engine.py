@@ -9,6 +9,7 @@ import getpass
 from Kqlmagic.kql_proxy import KqlResponse
 import functools
 from Kqlmagic.constants import ConnStrKeys
+from Kqlmagic.my_utils import get_valid_filename, adjust_path
 from Kqlmagic.parser import Parser
 
 _FQN_KUSTO_CLUSTER_PATTERN = re.compile(r"(http(s?)\:\/\/)?(?P<cname>.*)\.kusto\.(windows\.net|chinacloudapi.cn|cloudapi.de|usgovcloudapi.net)$")
@@ -22,6 +23,7 @@ class KqlEngine(object):
         self.bind_url = None
         self._parsed_conn = {}
         self.database_name = None
+        self.database_friendly_name = None
         self.cluster_name = None
         self.cluster_friendly_name = None
         self.alias = None
@@ -58,22 +60,31 @@ class KqlEngine(object):
             raise KqlEngineError("Cluster friendly name is not defined.")
         return self.cluster_friendly_name
 
+    def get_database_friendly_name(self):
+        if not self.database_friendly_name:
+            raise KqlEngineError("Database friendly name is not defined.")
+        return self.database_friendly_name
+
 
     def get_conn_name(self):
         if self.conn_name:
             return self.conn_name
-        if self.database_name and self.cluster_name:
-            match = _FQN_KUSTO_CLUSTER_PATTERN.match(self.cluster_name)
-            if match:
-                self.cluster_friendly_name = match.group("cname")
-            else:
-                self.cluster_friendly_name = self.createClusterFriendlyName(self.cluster_name)
-            self.conn_name = "{0}@{1}".format(self.alias or self.database_name, self.cluster_friendly_name)
+        # print('=',self.alias,'=', self.cluster_friendly_name, '=', self.database_friendly_name)
+        if self.alias and self.cluster_friendly_name and self.database_friendly_name:
+            self.conn_name = "{0}@{1}".format(self.alias, self.cluster_friendly_name)
             return self.conn_name
         else:
             raise KqlEngineError("Database and/or cluster is not defined.")
 
+
+    def createDatabaseFriendlyName(self, dname):
+        return get_valid_filename(dname)
+
     def createClusterFriendlyName(self, cname):
+        match = _FQN_KUSTO_CLUSTER_PATTERN.match(self.cluster_name)
+        if match:
+            return match.group("cname")
+
         name = cname[:-1] if cname[-1] == "/" else cname
 
         match = _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(name)
@@ -157,6 +168,7 @@ class KqlEngine(object):
         # In case certificate_pem_file was specified instead of certificate.
         pem_file_name = parsed_conn_kv.get(ConnStrKeys.CERTIFICATE_PEM_FILE)
         if pem_file_name is not None:
+            pem_file_name = adjust_path(pem_file_name)
             with open(pem_file_name, "r") as pem_file:
                 parsed_conn_kv[ConnStrKeys.CERTIFICATE] = pem_file.read()
                 del parsed_conn_kv[ConnStrKeys.CERTIFICATE_PEM_FILE]
@@ -236,25 +248,20 @@ class KqlEngine(object):
         # set attributes
         self.cluster_name = parsed_conn_kv.get(ConnStrKeys.CLUSTER) or uri_schema_name
         if self.cluster_name is not None:
-            if len(self.cluster_name) < 1 or len(self.cluster_name.split()) > 1:
-                raise KqlEngineError("{0}, key {1} cannot be empty or to contain whitespace characters <{2}>.".format(error_msg, ConnStrKeys.CLUSTER, self.cluster_name))
+            if len(self.cluster_name) < 1:
+                raise KqlEngineError("{0}, key {1} cannot be empty.".format(error_msg, ConnStrKeys.CLUSTER))
+            self.cluster_friendly_name = self.createClusterFriendlyName(self.cluster_name)
 
         self.database_name = parsed_conn_kv.get(mandatory_key)
         if self.database_name is not None:
             if len(self.database_name) < 1:
                 raise KqlEngineError("{0}, key {1} cannot be empty <{2}>.".format(error_msg, mandatory_key, self.database_name))
-            components = self.database_name.split()
-            if len(components) > 1:
-                alias = parsed_conn_kv.get(ConnStrKeys.ALIAS)
-                if alias is None:
-                    parsed_conn_kv[ConnStrKeys.ALIAS] = "_".join(components)
+            self.database_friendly_name = self.createDatabaseFriendlyName(self.database_name)
 
-
-        self.alias = parsed_conn_kv.get(ConnStrKeys.ALIAS)
+        self.alias = parsed_conn_kv.get(ConnStrKeys.ALIAS) or self.database_friendly_name
         if self.alias is not None:
-            if len(self.alias) < 1 or len(self.alias.split()) > 1:
-                raise KqlEngineError("{0}, key {1} cannot be empty or to contain whitespace characters <{2}>.".format(error_msg, ConnStrKeys.ALIAS, self.alias))
-
+            if len(self.alias) < 1 or self.alias != get_valid_filename(self.alias):
+                raise KqlEngineError("{0}, key {1} cannot be empty or anything that is not an alphanumeric, dash, underscore, or dot. alias: <{2}>.".format(error_msg, ConnStrKeys.ALIAS, self.alias))
 
         # in case secret is missing, get it from user
         if len(secret_key_set) == 1:

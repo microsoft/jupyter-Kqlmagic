@@ -11,6 +11,7 @@ from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
 from Kqlmagic.cache_client import CacheClient
 from Kqlmagic.kql_proxy import KqlResponse
 from Kqlmagic.constants import ConnStrKeys
+from Kqlmagic.my_utils import get_valid_filename, adjust_path
 
 
 class CacheEngine(KqlEngine):
@@ -21,7 +22,7 @@ class CacheEngine(KqlEngine):
     _MANDATORY_KEY = ConnStrKeys.FOLDER
     _VALID_KEYS_COMBINATIONS = [[ConnStrKeys.FOLDER, ConnStrKeys.ALIAS]]
 
-    _VALIDATION_FILE_NAME = "validation_file.json"
+    _VALIDATION_FILE_NAME = get_valid_filename("validation_file.json")
 
     # Object constructor
     def __init__(self, conn_str, user_ns: dict, current=None, cache_name=None, **kwargs):
@@ -30,15 +31,16 @@ class CacheEngine(KqlEngine):
         self.kql_engine = None
         if isinstance(conn_str, KqlEngine):
             self.kql_engine = conn_str
-            folder_name = conn_str.get_database() + "_at_" + conn_str.cluster_friendly_name()
+            folder_name = conn_str.get_database_friendly_name() + "_at_" + conn_str.cluster_friendly_name()
             conn_str = "{0}://{1}='{2}'".format(self._URI_SCHEMA_NAME, ConnStrKeys.FOLDER, folder_name)
+
         self._parsed_conn = self._parse_common_connection_str(
             conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
         )
         self.client = CacheClient()
 
-        folder_path = self.client._get_folder_path(self.get_database(), cache_name)
-        validation_file_path = folder_path + "/" + self._VALIDATION_FILE_NAME
+        folder_path = self.client._get_folder_path(self.get_database_friendly_name(), cache_name)
+        validation_file_path = adjust_path(folder_path + "/" + self._VALIDATION_FILE_NAME)
         if not os.path.exists(validation_file_path):
             outfile = open(validation_file_path, "w")
             outfile.write(self.validate_json_file_content)
@@ -51,7 +53,7 @@ class CacheEngine(KqlEngine):
             raise KqlEngineError("Client is not defined.")
         # query = "range c from 1 to 10 step 1 | count"
         filename = self._VALIDATION_FILE_NAME
-        database = self.get_database()
+        database = self.get_database_friendly_name()
         response = client.execute(database, filename, accept_partial_results=False, **options)
         # print(response.json_response)
         table = KqlResponse(response, **options).tables[0]

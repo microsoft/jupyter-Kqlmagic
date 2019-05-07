@@ -105,6 +105,7 @@ class Kusto_Client(object):
         options["timeout"] : float, optional
             Optional parameter. Network timeout in seconds. Default is no timeout.
         """
+        print("DEBUG: execute query_properties: ", options.get("query_properties"))
         if kusto_query.startswith("."):
             endpoint_version = self._MGMT_ENDPOINT_VERSION
             endpoint = self._mgmt_endpoint  
@@ -122,12 +123,26 @@ class Kusto_Client(object):
             "csl": kusto_query,
         }
 
+        client_request_id = "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4()))
+
+        query_properties: dict = options.get("query_properties")
+        if query_properties and len(query_properties):
+            properties = {
+                "Options": query_properties,
+                "Parameters": {},
+                "ClientRequestId": client_request_id
+            }
+            request_payload["properties"] = json.dumps(properties)
+            print("DEBUG: execute properties: ", request_payload["properties"])
+            print("DEBUG: execute payload: ", request_payload)
+
         request_headers = {
             "Accept": "application/json",
             "Accept-Encoding": "gzip,deflate",
             "Content-Type": "application/json; charset=utf-8",
             "x-ms-client-version": "{0}.Python.Client:{1}".format(Constants.MAGIC_CLASS_NAME, self._WEB_CLIENT_VERSION),
-            "x-ms-client-request-id": "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4())),
+            "x-ms-client-request-id": client_request_id,
+            "x-ms-app": Constants.MAGIC_CLASS_NAME
         }
         if self._aad_helper is not None:
             request_headers["Authorization"] = self._aad_helper.acquire_token(**options)

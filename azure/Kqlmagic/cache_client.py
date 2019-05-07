@@ -5,6 +5,7 @@
 # --------------------------------------------------------------------------
 
 from Kqlmagic.constants import Constants
+from Kqlmagic.my_utils import get_valid_filename, adjust_path
 from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse
 import hashlib
 import json
@@ -22,12 +23,13 @@ class CacheClient(object):
         Parameters
         ----------
         cluster_folder : str
-            folder that contains all the databse_folders that contains the query result files
+            folder that contains all the database_folders that contains the query result files
         """
 
         ip = get_ipython()  # pylint: disable=E0602
-        root_path = os.path.normpath(ip.starting_dir)
-        self.files_folder = root_path + "/" + ip.run_line_magic("config", "{0}.cache_folder_name".format(Constants.MAGIC_CLASS_NAME))
+        root_path = ip.starting_dir
+        cache_folder_name = ip.run_line_magic("config", "{0}.cache_folder_name".format(Constants.MAGIC_CLASS_NAME))
+        self.files_folder = adjust_path(root_path + "/" + cache_folder_name)
 
     def _get_query_hash_filename(self, query):
         lines = [l.replace("\r", "").replace("\t", " ").strip() for l in query.split("\n")]
@@ -46,7 +48,7 @@ class CacheClient(object):
         file_name = query if query.strip().endswith(".json") else self._get_query_hash_filename(query)
         folder_path = self._get_folder_path(database_at_cluster, cache_folder=cache_folder)
         file_path = folder_path + "/" + file_name
-        return os.path.normpath(file_path)
+        return adjust_path(file_path)
 
     def _get_folder_path(self, database_at_cluster, cache_folder=None):
         if "_at_" in database_at_cluster:
@@ -57,15 +59,18 @@ class CacheClient(object):
                 os.makedirs(self.files_folder)
             folder_path = self.files_folder
             if  cache_folder is not None:
-                folder_path += "/" + cache_folder
+                folder_path += "/" + adjust_path(cache_folder)
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
-            folder_path += "/" + cluster_name
+            folder_path += "/" + get_valid_filename(cluster_name)
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
-            folder_path += "/" + database_name
+            folder_path += "/" + get_valid_filename(database_name)
         else:
-            folder_path = os.path.normpath(database_at_cluster)
+            folder_path = database_at_cluster
+
+        
+        folder_path = adjust_path(folder_path)
 
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
@@ -92,16 +97,16 @@ class CacheClient(object):
             endpoint_version = self._get_endpoint_version(json_response)
             return KqlQueryResponse(json_response, endpoint_version)
 
-    def save(self, result, conn, query, filepath=None, filefolder=None, **options):
+    def save(self, result, conn, query, file_path=None, filefolder=None, **options):
         """Executes a query or management command.
         :param str database_at_cluster: name of database and cluster that a folder will be derived that contains all the files with the query results for this specific database.
         :param str query: Query to be executed.
         """
 
         if filefolder is not None:
-            filepath = filefolder + "/" + self._get_query_hash_filename(query)
-        if filepath is not None:
-            file_path = os.path.normpath(filepath)
+            file_path = filefolder + "/" + self._get_query_hash_filename(query)
+        if file_path is not None:
+            file_path = adjust_path(file_path)
             parts = file_path.split("/")
             folder_parts = []
             for part in parts[:-1]:
@@ -110,10 +115,9 @@ class CacheClient(object):
                 if not os.path.exists(folder_name):
                     os.makedirs(folder_name)
         else:
-            database_name = conn.get_database()
-            # cluster = conn.get_cluster()
+            database_friendly_name = conn.get_database_friendly_name()
             cluster_friendly_name = conn.get_cluster_friendly_name()
-            file_path = self._get_file_path(query, database_name + "_at_" + cluster_friendly_name, cache_folder=options.get("cache"))
+            file_path = self._get_file_path(query, database_friendly_name + "_at_" + cluster_friendly_name, cache_folder=options.get("cache"))
         outfile = open(file_path, "w")
         outfile.write(json.dumps(result.json_response))
         outfile.flush()

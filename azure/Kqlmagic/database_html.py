@@ -4,6 +4,7 @@
 # license information.
 # --------------------------------------------------------------------------
 
+import re
 from Kqlmagic.display import Display
 from Kqlmagic.kusto_engine import KustoEngine
 from Kqlmagic.ai_engine import AppinsightsEngine
@@ -184,7 +185,7 @@ class Database_html(object):
                 database_name = connection.get_database()
 
             if engine_type == KustoEngine:
-                show_schema_query = ".show database ['{0}'] schema".format(database_name)
+                show_schema_query = ".show database ['{0}'] schema".format(Database_html.adjustToKustoEntityNameRules(database_name))
                 raw_query_result = connection.execute(show_schema_query, **options)
                 raw_schema_table = raw_query_result.tables[0]
                 database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
@@ -201,6 +202,13 @@ class Database_html(object):
                     CacheClient().save(metadata_result, connection, show_schema_query, **options)
                 return database_metadata_tree
         return None
+
+    @staticmethod
+    def adjustToKustoEntityNameRules(name: str) -> str:
+        if isinstance(name, str):
+            name = re.sub(r'[\s\n\r\f\t]+', ' ', name.strip())
+            name = re.sub(r'[^0-9a-zA-Z._\s-]+', ' ', name)
+        return name
 
     @staticmethod
     def get_schema_file_path(connection, **options):

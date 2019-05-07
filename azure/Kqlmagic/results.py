@@ -16,6 +16,7 @@ import uuid
 import prettytable
 
 from Kqlmagic.constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
+from Kqlmagic.my_utils import get_valid_filename, adjust_path
 from Kqlmagic.column_guesser import ColumnGuesserMixin
 
 from Kqlmagic.display import Display
@@ -137,7 +138,7 @@ class FileResultDescriptor(bytes):
 
     def _repr_png_(self):
         if self.show and self.format == "png":
-            print("_repr_png_")
+            # print("_repr_png_")
             return self._get_data()
 
     def _repr_jpeg_(self):
@@ -476,8 +477,9 @@ class ResultSet(list, ColumnGuesserMixin):
         params = kwargs or {}
         fig = self._getChartHtml().get("fig")
         if fig is not None:
-            file = params.get("filename")
-            image = self._export_chart_image_plotly(fig, file, **kwargs)
+            filename = params.get("filename")
+            filename = adjust_path(filename)
+            image = self._export_chart_image_plotly(fig, filename, **kwargs)
             return FileResultDescriptor(image, message="image results", format=params.get("format"), show=params.get("show"))
 
     def _export_chart_image_plotly(self, fig, file, **kwargs):
@@ -708,6 +710,7 @@ class ResultSet(list, ColumnGuesserMixin):
             return None  # no results
         self.pretty.add_rows(self)
         if filename:
+            filename = adjust_path(filename)
             encoding = kwargs.get("encoding", "utf-8")
             if six.PY2:
                 outfile = open(filename, "wb")

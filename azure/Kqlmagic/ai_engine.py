@@ -4,7 +4,6 @@
 # license information.
 # --------------------------------------------------------------------------
 
-import os.path
 from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
 from Kqlmagic.draft_client import DraftClient
 from Kqlmagic.constants import ConnStrKeys

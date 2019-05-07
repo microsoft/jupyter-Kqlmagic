@@ -14,6 +14,7 @@ from pygments import highlight
 from pygments.lexers.data import JsonLexer
 from pygments.formatters.terminal import TerminalFormatter
 import datetime
+from Kqlmagic.my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -103,7 +104,7 @@ class Display(object):
     @staticmethod
     def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, **options):
         if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]: 
-            url = file_path if file_path.startswith("http") else "file://" + Display.showfiles_base_path + "/" + file_path
+            url = file_path if file_path.startswith("http") else "file:///" + adjust_path_to_uri(Display.showfiles_base_path + "/" + file_path)
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage("opened popup window: {0}, see your browser".format(window_name))
             return None
@@ -131,6 +132,7 @@ class Display(object):
     def _html_to_file_path(html_str, file_name, **kwargs):
         file_path = Display.showfiles_folder_name + "/" + file_name + ".html"
         full_file_name = Display.showfiles_base_path + "/" + file_path
+        full_file_name = adjust_path(full_file_name)
         text_file = open(full_file_name, "w")
         text_file.write(html_str)
         text_file.close()

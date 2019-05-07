@@ -321,7 +321,7 @@ class Parser(object):
         #  (OptionValidatePermissions): Validates user's permissions to perform the query and doesn't run the query itself. [Boolean]
         "validate_permissions": {"type": "bool"},
     }
-    
+
 
     # all lookup keys in table, must be without spaces, underscores and hypthen-minus, because parser ignores them
     _OPTIONS_TABLE = {
@@ -494,7 +494,6 @@ class Parser(object):
         if (options["query_properties"]):
             properties.update(options["query_properties"])
         options["query_properties"] = properties 
-        print("DEBUG: query_properties: ", options["query_properties"])
         if num_words - first_word > 0:
             last_word = words[-1].strip()
             if last_word.endswith(";"):

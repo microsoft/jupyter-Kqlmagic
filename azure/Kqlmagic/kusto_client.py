@@ -105,7 +105,6 @@ class Kusto_Client(object):
         options["timeout"] : float, optional
             Optional parameter. Network timeout in seconds. Default is no timeout.
         """
-        print("DEBUG: execute query_properties: ", options.get("query_properties"))
         if kusto_query.startswith("."):
             endpoint_version = self._MGMT_ENDPOINT_VERSION
             endpoint = self._mgmt_endpoint  
@@ -133,8 +132,6 @@ class Kusto_Client(object):
                 "ClientRequestId": client_request_id
             }
             request_payload["properties"] = json.dumps(properties)
-            print("DEBUG: execute properties: ", request_payload["properties"])
-            print("DEBUG: execute payload: ", request_payload)
 
         request_headers = {
             "Accept": "application/json",

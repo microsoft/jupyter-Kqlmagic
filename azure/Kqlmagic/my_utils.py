@@ -87,11 +87,9 @@ def adjust_path_to_uri(_path: str):
     parts = path.split("/")
     parts = [get_valid_filename(part) for part in parts]
     path = "/".join(parts)
-    print("DEBUG: adjust_path_to_uri", _path, prefix + path)
     return prefix + path
 
 def adjust_path(_path: str):
     path = adjust_path_to_uri(_path)
     path = os.path.normpath(path)
-    print("DEBUG: adjust_path", _path, path)
     return path

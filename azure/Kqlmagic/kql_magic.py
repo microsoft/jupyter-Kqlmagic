@@ -320,10 +320,10 @@ class Kqlmagic(Magics, Configurable):
                     <div>
                         <p>Kql Query Language, aka kql, is the query language for advanced analytics on Azure Monitor resources. The current supported data sources are 
                         Azure Data Explorer (Kusto), Log Analytics and Application Insights. To get more information execute '%kql --help "kql"'</p>
-                        <p>   &bull; kql reference: Click on 'Help' tab > and Select 'kql referece' or execute '%kql --help "kql"'<br>
+                        <p>   &bull; kql reference: Click on 'Help' tab > and Select 'kql reference' or execute '%kql --help "kql"'<br>
                           &bull; """
                 + Constants.MAGIC_CLASS_NAME
-                + """ configuarion: execute '%config """
+                + """ configuration: execute '%config """
                 + Constants.MAGIC_CLASS_NAME
                 + """'<br>
                           &bull; """

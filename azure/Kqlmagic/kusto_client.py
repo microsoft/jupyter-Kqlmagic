@@ -50,6 +50,11 @@ class Kusto_Client(object):
     _QUERY_ENDPOINT_VERSION = "v2"
     _MGMT_ENDPOINT_TEMPLATE = "{0}/{1}/rest/mgmt"
     _QUERY_ENDPOINT_TEMPLATE = "{0}/{1}/rest/query"
+    _PUBLIC_CLOUD_DATA_SOURCE = "windows.net"
+    _MOONCAKE_CLOUD_DATA_SOURCE = "chinacloudapi.cn"
+    _BLACKFOREST_CLOUD_DATA_SOURCE = "cloudapi.de"
+    _FAIRFAX_CLOUD_DATA_SOURCE = "usgovcloudapi.net"
+
     _DATA_SOURCE_TEMPLATE = "https://{0}.kusto.windows.net"
 
     _WEB_CLIENT_VERSION = VERSION

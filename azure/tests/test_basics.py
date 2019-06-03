@@ -22,6 +22,7 @@ def register_magic():
 
 TEST_URI_SCHEMA_NAME = "kusto"
 query1 = "-conn=$TEST_CONNECTION_STR let T = view () { datatable(n:long, name:string)[1,'foo',2,'bar'] }; T"
+query2 = "-conn=$TEST_CONNECTION_STR pageViews | where client_City != '' | summarize count() by client_City | sort by count_ | limit 10"
 
 version_command = "--version"
 version_pw_command = version_command + " -pw"
@@ -65,7 +66,7 @@ def test_version_pw_file(register_magic):
     assert re.search(expected_pattern , version_html_str)
 
 
-#This method creates a table with query 1 and checks its components. The table created is:
+# This method creates a table with query 1 and checks its components. The table created is:
 # +---+------+
 # | n | name |
 # +---+------+
@@ -77,4 +78,16 @@ def test_query(register_magic):
     print(result)
     assert result[0][0] == 1
     assert result[1]['name'] == 'bar'
+
+
+
+# This method sends an example query:
+# "pageViews | where client_City != '' | summarize count() by client_City | sort by count_ | limit 10"
+# and checks the result
+def test_query2(register_magic):
+    result = ip.run_line_magic('kql', query2)
+
+    print(result)
+    assert result[0][0] == "Bothell"
+    assert result[1][0] == "Peterborough"
 

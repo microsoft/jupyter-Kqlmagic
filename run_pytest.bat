@@ -12,7 +12,7 @@ REM change directory to the location of the tests
 cd azure\tests
 REM
 REM Execute nose to run the tests in the context of jupyter / ipython
-ipython -c "import pytest; pytest.main(['-x'])" --matplotlib='qt'
+ipython -c "import pytest; pytest.main([])" --matplotlib='qt'
 
 
 REM Insert breakpoints with `from nose.tools import set_trace; set_trace()`

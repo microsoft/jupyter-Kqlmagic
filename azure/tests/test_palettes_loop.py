@@ -5,9 +5,7 @@
 #--------------------------------------------------------------------------
 
 """ Test for current default color palette. """
-
-from nose import with_setup
-from nose.tools import raises
+import pytest
 from Kqlmagic.constants import Constants
 from Kqlmagic.kql_magic import Kqlmagic as Magic
 from bs4 import BeautifulSoup
@@ -17,24 +15,15 @@ import tempfile
 
 ip = get_ipython() # pylint: disable=E0602
 
-def setup():
+@pytest.fixture 
+def register_magic():
     magic = Magic(shell=ip)
     ip.register_magics(magic)
 
-def _setup():
-    pass
-
-def _teardown():
-    pass
-
 TEST_URI_SCHEMA_NAME = "kusto"
 
-@with_setup(_setup, _teardown)
-def test_ok():
+def test_ok(register_magic):
     assert True
-
-# def test_fail():
-#     assert False
 
 # more palettes to be tested can be added to the dict
 palette_dicts = {'tab10': {'commands': {'name': 'tab10', 'colors': 16, 'desaturation': 0.5}, 
@@ -69,13 +58,16 @@ palette_dicts = {'tab10': {'commands': {'name': 'tab10', 'colors': 16, 'desatura
                 }
 }
 
-@with_setup(_setup, _teardown)
-def test_show_default_palette():
+
+
+#TEST IF EVERY PALETTE IN PALETTE_DICT IS CONFIGURED CORRECTLY 
+def test_show_default_palette(register_magic):
     # iterate over palettes in dict to test for correct output
     for palette in palette_dicts.values():
-        palette_dict_loop(palette)
+        palette_dict_loop(register_magic,palette)
 
-def palette_dict_loop(palette_dict):
+
+def palette_dict_loop(register_magic, palette_dict):
     # iterate over Kqlmgic palette config commands and set defaults
     for command in palette_dict['commands']:
         if command == 'name':           # if Kqlmagic.palette_name: value is a string

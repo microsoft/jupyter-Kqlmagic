@@ -46,6 +46,16 @@ INSTALL_REQUIRES    = [
                         'lxml>=4.2.5',
 ]
 
+EXTRAS_REQUIRE      = {
+    'dev':  [
+        'pytest',
+        'pytest-pep8',
+        'pytest-docstyle',
+        'pytest-flakes',
+        'pytest-cov',
+    ]
+}
+
 
 # To use a consistent encoding
 import codecs
@@ -107,4 +117,5 @@ setup(name=NAME,
     include_package_data=True,
     zip_safe=False,
     install_requires=INSTALL_REQUIRES,
+    extras_require=EXTRAS_REQUIRE,
 )

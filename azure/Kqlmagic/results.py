@@ -27,6 +27,12 @@ import plotly
 
 import plotly.plotly as py
 import plotly.graph_objs as go
+try:
+    import ipywidgets
+except Exception:
+    ipywidgets_installed = False
+else:
+    ipywidgets_installed = True
 
 
 def _unduplicate_field_names(field_names):
@@ -464,7 +470,7 @@ class ResultSet(list, ColumnGuesserMixin):
             html = Display.toHtml(**c)
             Display.show(html, **options)
         elif c.get("fig"):
-            if Display.notebooks_host or options.get("notebook_app") in ["jupyterlab", "visualstudiocode", "ipython"]:
+            if not ipywidgets_installed or Display.notebooks_host or options.get("notebook_app") in ["jupyterlab", "visualstudiocode", "ipython"]:
                 plotly.offline.init_notebook_mode(connected=True)
                 plotly.offline.iplot(c.get("fig"), filename="plotlychart")
             else:
@@ -943,6 +949,14 @@ class ResultSet(list, ColumnGuesserMixin):
         chart_properties["n_colors"] = len(tabs)
         return chart_properties
 
+    def _figure_or_figurewidget(self, data, layout):
+        if ipywidgets_installed:
+            # print("----------- FigureWidget --------------")
+            fig = go.FigureWidget(data=data, layout=layout)
+        else:
+            # print("----------- Figure --------------")
+            fig = go.Figure(data=data, layout=layout)
+        return fig
 
     def _render_areachart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
         """Generates a pylab plot from the result set.
@@ -983,7 +997,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = go.FigureWidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout)
         return fig
 
     def _render_stackedareachart_plotly(self, properties:dict, key_word_sep=" ", **kwargs):
@@ -1033,7 +1047,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = go.FigureWidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout)
         return fig
 
     def _render_timechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
@@ -1085,7 +1099,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = go.FigureWidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout)
         return fig
 
     def _render_piechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
@@ -1148,7 +1162,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 for idx, tab in enumerate(self.chart_sub_tables)
             ],
         )
-        fig = go.FigureWidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout)
         return fig
 
     def _render_barchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
@@ -1189,7 +1203,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 title=chart_properties["ylabel"],
             ),
         )
-        fig = go.FigureWidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout)
         return fig
 
 
@@ -1231,7 +1245,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 # ticksuffix=''
             ),
         )
-        fig = go.FigureWidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout)
         return fig
 
     def _render_scatterchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
@@ -1272,7 +1286,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = go.FigureWidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout)
         return fig
 
 

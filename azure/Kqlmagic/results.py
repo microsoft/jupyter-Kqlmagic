@@ -25,7 +25,6 @@ from Kqlmagic.palette import Palette, Palettes
 
 import plotly
 
-import plotly.plotly as py
 import plotly.graph_objs as go
 try:
     import ipywidgets

@@ -1,0 +1,27 @@
+- support suvereign clouds
+- support kusto MFA clusters
+- add intelisense
+- add secured Single Sign On (partially implemented)
+- support row time series
+- support dSTS (Azure Data Center) authentication
+- show nice and clear errors report
+- check python and modules version, and error on load Kqlmagic if no match
+- add dashboarding
+- add options full help
+- add help on environment variables
+- enable to use Kqlmagic as a module
+- add caching (partially implemented)
+- support Kql parameters
+- provide help on Kql options
+- provide help on Kql parameters
+- add Kqlmagic history command
+- add Kqlmagic new features when old version is used
+- support Kusto progressive module
+- support Kusto enhanced V2 proptocol
+- add charts widget capabilities
+- support Databricks jupyter
+- enhance logging (verbose, debug)
+- extend supported python version
+- add full coverage unit testing
+
+- Done: if ipywidgets not installed, instead of using plotly FigureWidget use Figure

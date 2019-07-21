@@ -28,7 +28,7 @@ KEYWORDS            = 'database ipython jupyter jupyterlab jupyter-notebook quer
 
 INSTALL_REQUIRES    = [
                         'ipython>=7.1.1',
-                        'plotly>=3.8.1',
+                        'plotly>=3.10.0',
                         'prettytable>=0.7.2',
                         'matplotlib>=3.0.0',
                         'pandas>=0.23.4',
@@ -53,6 +53,9 @@ EXTRAS_REQUIRE      = {
         'pytest-docstyle',
         'pytest-flakes',
         'pytest-cov',
+    ],
+    'widgets':[
+        'ipywidgets'
     ]
 }
 

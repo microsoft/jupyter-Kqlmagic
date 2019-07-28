@@ -151,7 +151,7 @@ class KqlEngine(object):
     }
     _SECRET_KEYS = {ConnStrKeys.CLIENTSECRET, ConnStrKeys.APPKEY, ConnStrKeys.PASSWORD, ConnStrKeys.CERTIFICATE_THUMBPRINT}
     _NOT_INHERITABLE_KEYS = {ConnStrKeys.APPKEY, ConnStrKeys.ALIAS}
-    _OPTIONAL_KEYS = {ConnStrKeys.TENANT, ConnStrKeys.ALIAS}
+    _OPTIONAL_KEYS = {ConnStrKeys.TENANT, ConnStrKeys.ALIAS, ConnStrKeys.CLIENTID}
     _INHERITABLE_KEYS = {ConnStrKeys.CLUSTER, ConnStrKeys.TENANT}
     _EXCLUDE_FROM_URL_KEYS = {ConnStrKeys.DATABASE, ConnStrKeys.ALIAS}
     _SHOULD_BE_NULL_KEYS = {ConnStrKeys.CODE, ConnStrKeys.ANONYMOUS}
@@ -206,9 +206,7 @@ class KqlEngine(object):
         conn_keys_list = None
         # if still too many choose the shortest
         if len(valid_combinations) > 1:
-            for c in valid_combinations:
-                if len(c) == 3:
-                    conn_keys_list = c
+            conn_keys_list =  min(valid_combinations, key=len)
         else:
             conn_keys_list = valid_combinations[0]
 

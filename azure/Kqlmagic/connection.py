@@ -38,7 +38,7 @@ class Connection(object):
                 return cls._ENGINE_MAP.get(uri_schema)
     
     # Object constructor
-    def __init__(self, connect_str, user_ns:dict, **kwargs):
+    def __init__(self, connect_str, user_ns:dict, **options):
 
         engine = self._find_engine(connect_str)
         # wasn't found in connection list, but maybe a kusto database connection
@@ -52,14 +52,14 @@ class Connection(object):
         last_current = self.last_current_by_engine.get(engine.__name__)
 
         if engine != KustoEngine:
-            conn_engine = engine(connect_str, user_ns, last_current)
+            conn_engine = engine(connect_str, user_ns, last_current,options.get("cloud") )
         else:
             if "://" in connect_str:
                 if last_current:
                     last_cluster_friendly_name = last_current.get_cluster_friendly_name()
                     last_current = self.connections.get("@" + last_cluster_friendly_name)
                 # TODO: if already exist, not need to create a new one, root one each time, will make some of cluster kind sso 
-                cluster_conn_engine = engine(connect_str, user_ns, last_current)
+                cluster_conn_engine = engine(connect_str, user_ns,options.get("cloud"), current = last_current)
 
                 cluster_friendly_name = cluster_conn_engine.get_cluster_friendly_name()
                 Connection._set_current(cluster_conn_engine, conn_name="@" + cluster_friendly_name)
@@ -70,14 +70,14 @@ class Connection(object):
                 alias = None
                 if len(database_name) < 1:
                     raise KqlEngineError("invalid connection_str, key {0} cannot be empty.".format(ConnStrKeys.DATABASE))
-            conn_engine = Connection._new_kusto_database_engine(database_name, cluster_friendly_name, alias, user_ns)
+            conn_engine = Connection._new_kusto_database_engine(database_name, cluster_friendly_name, alias, user_ns, **options)
 
-        if kwargs.get("use_cache") and engine != CacheEngine:
-            conn_engine = CacheEngine(conn_engine, user_ns, last_current, cache_name=kwargs.get("use_cache"))
+        if options.get("use_cache") and engine != CacheEngine:
+            conn_engine = CacheEngine(conn_engine, user_ns, last_current, cache_name=options.get("use_cache"))
         Connection._set_current(conn_engine)
 
     @classmethod
-    def _new_kusto_database_engine(cls, database_name, cluster_friendly_name, alias, user_ns: dict):
+    def _new_kusto_database_engine(cls, database_name, cluster_friendly_name, alias, user_ns: dict, **options):
         if cluster_friendly_name in cls._ENGINE_MAP.keys():
             raise KqlEngineError(
                 'invalid connection_str, connection_str pattern "database@cluster" cannot be used for "appinsights", "loganalytics" and "cache"'
@@ -95,7 +95,9 @@ class Connection(object):
             ConnStrKeys.ALIAS: alias,
             "cluster_friendly_name": cluster_friendly_name
         }
-        return KustoEngine(details, user_ns, conn_class=Connection)
+
+        cloud = options.get("cloud")
+        return KustoEngine(details, user_ns, cloud, conn_class=Connection)
 
     @classmethod
     def _set_current(cls, conn_engine, conn_name=None):
@@ -114,14 +116,14 @@ class Connection(object):
         return cls.connections.get(name)
 
     @classmethod
-    def get_connection(cls, descriptor, user_ns, **kwargs):
+    def get_connection(cls, descriptor, user_ns, **options):
         "Sets the current database connection"
         if descriptor:
             if isinstance(descriptor, Connection):
                 cls.current = descriptor
             else:
                 # either exist or create a new one
-                cls.current = cls.connections.get(descriptor) or Connection(descriptor, user_ns, **kwargs).current
+                cls.current = cls.connections.get(descriptor) or Connection(descriptor, user_ns, **options).current
         elif not cls.current:
             raise ConnectionError("No current connection set yet.")
         cls.last_current_by_engine[cls.current.__class__.__name__] = cls.current        

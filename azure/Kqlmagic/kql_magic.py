@@ -126,6 +126,18 @@ class Kqlmagic(Magics, Configurable):
         "a kql connection string is formed from the "
         "matching section in the DSN file. Abbreviation: dl",
     )
+
+    cloud = Enum(
+            ["public","mooncake","fairfax","blackforest","usnat","ussec"],
+            "public",
+            config=True,
+            help="Default cloud "
+            "the kql connection will use the cloud as specified "
+        )
+
+    login_code_destination = Unicode("browser", config = True, help = 
+    "set login code destination, default: browser. non interactive mode: email, needs to be in format \"name@example.com")
+
     timeout = Int(None, config=True, allow_none=True, help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait")
     plot_package = Enum(["matplotlib", "plotly"], "plotly", config=True, help="Set the plot package. Abbreviation: pp")
     table_package = Enum(
@@ -157,8 +169,8 @@ class Kqlmagic(Magics, Configurable):
     cache_folder_name = Unicode("{0}_cache_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name for cache files")
 
     # valid values: jupyterlab or jupyternotebook
-    notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "auto", config=True, help="Set notebook application used.")
-    test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.")
+    notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "papermill"], "auto", config=True, help="Set notebook application used.")
+    test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "papermill"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.")
 
     add_kql_ref_to_help = Bool(True, config=True, help="On {} load auto add kql reference to Help menu.".format(Constants.MAGIC_CLASS_NAME))
     add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
@@ -166,6 +178,20 @@ class Kqlmagic(Magics, Configurable):
     use_cache = Unicode(None, config=True, allow_none=True, help="Use cached query results from the specified folder, instead of executing the query.")
 
     logger().debug("Kqlmagic:: - define class code")
+
+    @validate("login_code_destination")
+    def _valid_value_login_code_destination(self, proposal):
+        dest = proposal["value"]
+        if dest != "browser":
+            if not self.check_mailto(dest):
+                message = "The 'login_code_destination' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+                raise TraitError(message)
+        return proposal["value"]
+
+    def check_mailto(self, dest):
+        if dest.find("@")!= -1:
+            return True
+        return False
 
     @validate("palette_name")
     def _valid_value_palette_name(self, proposal):
@@ -848,7 +874,7 @@ def _override_default_configuration(ip, load_mode):
     if app is not None:
         lookup_key = app.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
         app = {"jupyterlab": "jupyterlab", "jupyternotebook": "jupyternotebook", "ipython": "ipython", "visualstudiocode": "visualstudiocode", 
-                "lab": "jupyterlab", "notebook": "jupyternotebook", "ipy": "ipython", "vsc": "visualstudiocode"}.get(lookup_key)
+                "lab": "jupyterlab", "notebook": "jupyternotebook", "ipy": "ipython", "vsc": "visualstudiocode", "papermill":"papermill"}.get(lookup_key)
         if app is not None:
             ip.run_line_magic("config", '{0}.notebook_app = "{1}"'.format(Constants.MAGIC_CLASS_NAME, app.strip()))
 

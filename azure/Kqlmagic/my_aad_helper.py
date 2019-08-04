@@ -22,6 +22,7 @@ from Kqlmagic.display import Display
 from Kqlmagic.constants import ConnStrKeys
 from Kqlmagic.adal_token_cache import AdalTokenCache
 
+import smtplib
 
 class AuthenticationError(Exception):
     pass
@@ -138,8 +139,10 @@ class _MyAadHelper(object):
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
             
+            if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
+                raise Exception("error: using papermill without an email specified is not supported")
 
-            if options.get("login_code_destination") !="browser" or  options.get("notebook_app")=="papermill":
+            if options.get("login_code_destination") !="browser":
                 email_message = "Copy code: "+ device_code + " and authenticate in: " + url
                 self.send_email(email_message, options.get("login_code_destination"))
                
@@ -227,16 +230,19 @@ class _MyAadHelper(object):
 
     def send_email(self, message, mailto):
 
-        port = 465  # For SSL
-        smtp_server = "smtp.gmail.com"
-        sender_email = "dev.kql.test@gmail.com"  # Enter your address
+        port = 587  # For SSL
+        smtp_server = "smtp-mail.outlook.com"
+        sender_email = "kqlmagic@outlook.com"  # Enter your address
 
         receiver_email = mailto # Enter receiver address
 
-        password = "Kc0qpELOz8V3"
+        password = "Kql_Magic1"
 
-        context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+        # context = ssl.create_default_context()
+        # with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+
+        with smtplib.SMTP(smtp_server, port) as server:
+            server.starttls() 
             server.login(sender_email, password)
             server.sendmail(sender_email, receiver_email, "\n"+message)
 

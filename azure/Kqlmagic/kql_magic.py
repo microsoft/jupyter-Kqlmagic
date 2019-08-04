@@ -9,6 +9,7 @@ import atexit
 import time
 import logging
 import hashlib
+import re
 
 from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
 from Kqlmagic.help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
@@ -191,7 +192,7 @@ class Kqlmagic(Magics, Configurable):
 
     def validate_cloud(self, cloud):
         valid_set =  {"public","mooncake","fairfax","blackforest","usnat","ussec"}
-        if not (cloud.find("@")>=0 or cloud in valid_set):
+        if not (cloud.find("@")>=0 or cloud.lower() in valid_set):
             raise ValueError(
                 "must be a known cloud name or custom URL, but a value of {0} was specified.".format(cloud)
             )
@@ -199,17 +200,25 @@ class Kqlmagic(Magics, Configurable):
 
     @validate("login_code_destination")
     def _valid_value_login_code_destination(self, proposal):
-        dest = proposal["value"]
-        if dest != "browser":
+        try:
+            dest = proposal["value"]
+            self.validate_login_code(dest)
+        except (AttributeError, ValueError) as e:
+            message = "The 'login_code_destination' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            raise TraitError(message)
+        return proposal["value"].lower()
+
+    def validate_login_code(self, dest):
+        if (dest != "browser"):
             if not self.check_mailto(dest):
-                message = "The 'login_code_destination' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
-                raise TraitError(message)
-        return proposal["value"]
+                raise ValueError(
+                    "must be a known cloud name or custom email, but a value of {0} was specified.".format(dest)
+                )
+
 
     def check_mailto(self, dest):
-        if dest.find("@")!= -1:
-            return True
-        return False
+        
+        return re.match( "^.+@(\[?)[a-zA-Z0-9-.]+.([a-zA-Z]{2,3}|[0-9]{1,3})(]?)$", dest)
 
     @validate("palette_name")
     def _valid_value_palette_name(self, proposal):

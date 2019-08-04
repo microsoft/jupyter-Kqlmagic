@@ -73,7 +73,7 @@ class Kusto_Client(object):
 
     _WEB_CLIENT_VERSION = VERSION
 
-    def __init__(self, conn_kv:dict, cloud:str= None):
+    def __init__(self, conn_kv:dict, **options):
         """
         Kusto Client constructor.
 
@@ -94,6 +94,7 @@ class Kusto_Client(object):
         authority : 'microsoft.com', optional
             In case your tenant is not microsoft please use this param.
         """
+        cloud = options.get("cloud")
 
         cluster_name = conn_kv[ConnStrKeys.CLUSTER]
 
@@ -117,7 +118,7 @@ class Kusto_Client(object):
                 raise Exception("error: url for cloud not supported")
             auth_resource = "https://kusto.kusto.{0}".format(self._CLOUD_URLS.get(cloud))
 
-        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), self._DEFAULT_CLIENTID, cloud) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
+        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), self._DEFAULT_CLIENTID, **options) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
 
 
     def getCloudFromHTTP(self, http):

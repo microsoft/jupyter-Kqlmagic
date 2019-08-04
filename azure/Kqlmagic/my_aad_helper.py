@@ -66,19 +66,18 @@ class AuthenticationMethod(Enum):
 _CLOUD_AAD_URLS={
         "public": "https://login.microsoftonline.com",
         "mooncake": "https://login.partner.microsoftonline.cn",
-        "mooncake": "https://login.partner.microsoftonline.cn",
         "fairfax": "https://login.microsoftonline.us",
         "blackforest": "https://login.microsoftonline.de",
 }
 
 
 class _MyAadHelper(object):
-    def __init__(self, kcsb, default_clientid, cloud):
-        cloud = cloud or "public"
+    def __init__(self, kcsb, default_clientid, **options):
+        cloud = options.get("cloud") or "public"
         if cloud.find("://") >= 0:
-            cloud_url = cloud
+            aad_login_url = cloud
         else:
-            cloud_url = _CLOUD_AAD_URLS.get(cloud)
+            aad_login_url = _CLOUD_AAD_URLS.get(cloud)
 
 
         authority = kcsb.authority_id or "common"
@@ -88,7 +87,7 @@ class _MyAadHelper(object):
         isSso = "FALSE" # os.getenv("{0}_ENABLE_SSO".format(Constants.MAGIC_CLASS_NAME.upper()))
         if (isSso and isSso.upper() == "TRUE"):
             token_cache = AdalTokenCache()
-        self._adal_context = AuthenticationContext("{0}/{1}".format(cloud_url, authority), cache=token_cache)
+        self._adal_context = AuthenticationContext("{0}/{1}".format(aad_login_url, authority), cache=token_cache)
         self._username = None
         if all([kcsb.aad_user_id, kcsb.password]):
             self._authentication_method = AuthenticationMethod.aad_username_password

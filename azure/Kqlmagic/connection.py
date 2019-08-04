@@ -52,14 +52,14 @@ class Connection(object):
         last_current = self.last_current_by_engine.get(engine.__name__)
 
         if engine != KustoEngine:
-            conn_engine = engine(connect_str, user_ns, last_current,options.get("cloud") )
+            conn_engine = engine(connect_str, user_ns, last_current,**options)
         else:
             if "://" in connect_str:
                 if last_current:
                     last_cluster_friendly_name = last_current.get_cluster_friendly_name()
                     last_current = self.connections.get("@" + last_cluster_friendly_name)
                 # TODO: if already exist, not need to create a new one, root one each time, will make some of cluster kind sso 
-                cluster_conn_engine = engine(connect_str, user_ns,options.get("cloud"), current = last_current)
+                cluster_conn_engine = engine(connect_str, user_ns, **options, current = last_current)
 
                 cluster_friendly_name = cluster_conn_engine.get_cluster_friendly_name()
                 Connection._set_current(cluster_conn_engine, conn_name="@" + cluster_friendly_name)
@@ -96,8 +96,8 @@ class Connection(object):
             "cluster_friendly_name": cluster_friendly_name
         }
 
-        cloud = options.get("cloud")
-        return KustoEngine(details, user_ns, cloud, conn_class=Connection)
+        
+        return KustoEngine(details, user_ns, **options, conn_class=Connection)
 
     @classmethod
     def _set_current(cls, conn_engine, conn_name=None):

@@ -47,7 +47,7 @@ class KustoEngine(KqlEngine):
     # Instance methods
     # ----------------
 
-    def __init__(self, conn_str, user_ns: dict, cloud, current=None, conn_class=None):
+    def __init__(self, conn_str, user_ns: dict, current=None, conn_class=None,  **options):
         super().__init__()
         if isinstance(conn_str, dict):
             self.conn_class = conn_class
@@ -64,7 +64,7 @@ class KustoEngine(KqlEngine):
                 conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
             )
 
-            self.client = Kusto_Client(self._parsed_conn, cloud)
+            self.client = Kusto_Client(self._parsed_conn, **options)
 
     def get_client(self):
         if self.client is None:

@@ -52,7 +52,7 @@ class Connection(object):
         last_current = self.last_current_by_engine.get(engine.__name__)
 
         if engine != KustoEngine:
-            conn_engine = engine(connect_str, user_ns, last_current,**options)
+            conn_engine = engine(connect_str, user_ns,**options,current =  last_current,)
         else:
             if "://" in connect_str:
                 if last_current:

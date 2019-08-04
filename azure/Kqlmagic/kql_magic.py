@@ -192,7 +192,7 @@ class Kqlmagic(Magics, Configurable):
 
     def validate_cloud(self, cloud):
         valid_set =  {"public","mooncake","fairfax","blackforest","usnat","ussec"}
-        if not (cloud.find("@")>=0 or cloud.lower() in valid_set):
+        if not (cloud.find("://")>=0 or cloud.lower() in valid_set):
             raise ValueError(
                 "must be a known cloud name or custom URL, but a value of {0} was specified.".format(cloud)
             )
@@ -201,7 +201,7 @@ class Kqlmagic(Magics, Configurable):
     @validate("login_code_destination")
     def _valid_value_login_code_destination(self, proposal):
         try:
-            dest = proposal["value"]
+            dest = proposal["value"].lower()
             self.validate_login_code(dest)
         except (AttributeError, ValueError) as e:
             message = "The 'login_code_destination' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))

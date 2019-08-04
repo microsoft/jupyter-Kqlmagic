@@ -16,7 +16,7 @@ class LoganalyticsEngine(KqlEngine):
 
     _URI_SCHEMA_NAME = "loganalytics" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
     _DOMAIN = "workspaces"
-    _DATA_SOURCE = "https://api.loganalytics.{0}"
+    _DATA_SOURCE = "https://api.loganalytics.io"
     
 
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME]

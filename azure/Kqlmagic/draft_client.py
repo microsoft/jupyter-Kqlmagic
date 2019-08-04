@@ -42,10 +42,10 @@ class DraftClient(object):
     _GET_SCHEMA_QUERY = ".show schema"
 
     _CLOUD_AAD_URLS={
-    "public": "https://api.applicationinsights.io",
-    "mooncake":"https://api.applicationinsights.azure.cn",
-    "fairfax":"https://api.applicationinsights.us",
-    "blackforest":"https://api.applicationinsights.de",
+    "public": "https://api.{0}.io",
+    "mooncake":"https://api.{0}.azure.cn",
+    "fairfax":"https://api.{0}.us",
+    "blackforest":"https://api.{0}.de",
 }
 
 
@@ -54,7 +54,10 @@ class DraftClient(object):
 
         cloud = options.get("cloud") or "public"
         self._domain = domain
-        self._data_source = self._CLOUD_AAD_URLS.get(cloud)
+        if data_source.find("loganalytics") >= 0:
+            self._data_source = self._CLOUD_AAD_URLS.get(cloud).format("loganalytics")
+        elif data_source.find("applicationinsights") >= 0:
+            self._data_source = self._CLOUD_AAD_URLS.get(cloud).format("applicationinsights")            
 
         self._appkey = conn_kv.get(ConnStrKeys.APPKEY)
 

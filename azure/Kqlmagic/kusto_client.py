@@ -50,30 +50,16 @@ class Kusto_Client(object):
     _QUERY_ENDPOINT_VERSION = "v2"
     _MGMT_ENDPOINT_TEMPLATE = "{0}/{1}/rest/mgmt"
     _QUERY_ENDPOINT_TEMPLATE = "{0}/{1}/rest/query"
-
     _PUBLIC_CLOUD_DATA_SOURCE = "windows.net"
     _MOONCAKE_CLOUD_DATA_SOURCE = "chinacloudapi.cn"
     _BLACKFOREST_CLOUD_DATA_SOURCE = "cloudapi.de"
     _FAIRFAX_CLOUD_DATA_SOURCE = "usgovcloudapi.net"
-    _USNAT_CLOUD_DATA_SOURCE = "core.eaglex.ic.gov"
-    _USSEC_CLOUD_DATA_SOURCE = "core.microsoft.scloud"
 
-
-
-    _CLOUD_URLS = {
-        "public":_PUBLIC_CLOUD_DATA_SOURCE,
-        "mooncake":_MOONCAKE_CLOUD_DATA_SOURCE,
-        "fairfax":_FAIRFAX_CLOUD_DATA_SOURCE,
-        "blackforest":_BLACKFOREST_CLOUD_DATA_SOURCE,
-        "usnet":_USNAT_CLOUD_DATA_SOURCE,
-        "ussec":_USSEC_CLOUD_DATA_SOURCE
-    }
-
-    _DATA_SOURCE_TEMPLATE = "https://{0}.kusto.{1}"
+    _DATA_SOURCE_TEMPLATE = "https://{0}.kusto.windows.net"
 
     _WEB_CLIENT_VERSION = VERSION
 
-    def __init__(self, conn_kv:dict, cloud:str= None):
+    def __init__(self, conn_kv:dict):
         """
         Kusto Client constructor.
 
@@ -96,44 +82,17 @@ class Kusto_Client(object):
         """
 
         cluster_name = conn_kv[ConnStrKeys.CLUSTER]
-
-        if cluster_name.find("://") >= 0:
-            data_source = cluster_name
-            cloud = cloud or self.getCloudFromHTTP(data_source)
-
-        else:
-            cloud = cloud or "public"
-            if cloud.find("://") >=0:
-                raise Exception("error: use url for cluster name")
-            data_source = self._DATA_SOURCE_TEMPLATE.format(cluster_name, self._CLOUD_URLS.get(cloud))
+        data_source = cluster_name if cluster_name.find("://") >= 0 else self._DATA_SOURCE_TEMPLATE.format(cluster_name)
 
         self._mgmt_endpoint = self._MGMT_ENDPOINT_TEMPLATE.format(data_source, self._MGMT_ENDPOINT_VERSION)
         self._query_endpoint = self._QUERY_ENDPOINT_TEMPLATE.format(data_source, self._QUERY_ENDPOINT_VERSION)
-        _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.(io|cn|us|de).*$")
+        _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.io.*$")
         auth_resource = data_source
 
         if _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
-            if cloud.find("://") >=0:
-                raise Exception("error: url for cloud not supported")
-            auth_resource = "https://kusto.kusto.{0}".format(self._CLOUD_URLS.get(cloud))
+            auth_resource = "https://kusto.kusto.windows.net"
 
-        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), self._DEFAULT_CLIENTID, cloud) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
-
-
-    def getCloudFromHTTP(self, http):
-        if http.find(self._PUBLIC_CLOUD_DATA_SOURCE)>=0:
-            return "public"
-        if http.find(self._MOONCAKE_CLOUD_DATA_SOURCE)>=0:
-            return "mooncake"
-        if http.find(self._FAIRFAX_CLOUD_DATA_SOURCE)>=0:
-            return "fairfax"
-        if http.find(self._BLACKFOREST_CLOUD_DATA_SOURCE)>=0:
-            return "blackforest"
-        if http.find(self._USNAT_CLOUD_DATA_SOURCE)>=0:
-            return "usnet"
-        if http.find(self._USSEC_CLOUD_DATA_SOURCE)>=0:
-            return "ussec"
-        return "public"
+        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), self._DEFAULT_CLIENTID) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
 
     def execute(self, kusto_database, kusto_query, accept_partial_results=False, **options):
         """ Execute a simple query or management command

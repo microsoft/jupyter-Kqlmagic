@@ -41,27 +41,12 @@ class DraftClient(object):
     _API_VERSION = "v1"
     _GET_SCHEMA_QUERY = ".show schema"
 
-    _CLOUD_AAD_URLS={
-    "public": "io",
-    "mooncake":"azure.cn",
-    "fairfax":"us",
-    "blackforest":"de",
-}
-
-
-
-    def __init__(self, conn_kv: dict, domain: str, data_source: str, cloud: str = None):
-
-        cloud = cloud or "public"
+    def __init__(self, conn_kv: dict, domain: str, data_source: str):
         self._domain = domain
-        self._data_source = data_source.format(self._CLOUD_AAD_URLS.get(cloud))
-
+        self._data_source = data_source
         self._appkey = conn_kv.get(ConnStrKeys.APPKEY)
-
-
-
         if self._appkey is None and conn_kv.get(ConnStrKeys.ANONYMOUS) is None:
-            self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID, cloud)
+            self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID)
         else:
             self._aad_helper = None
 

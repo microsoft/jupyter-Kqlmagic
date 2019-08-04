@@ -267,7 +267,7 @@ class Display(object):
             msg_str = str(msg)
         if len(msg_str) > 0:
             # success_style
-            msg_str = msg_str.replace('"', "&quot;").replace("'", "&apos;").replace("\n", "<br>").replace(" ", "&nbsp")
+            msg_str = msg_str.replace('"', "&quot;").replace("'", "&apos;").replace("\n", "<br>").replace(" ", "&nbsp;")
             body = "<div><p style='padding: 10px; color: {0}; background-color: {1}; border-color: {2}'>{3}</p></div>".format(
                 palette["color"], palette["background-color"], palette["border-color"], msg_str
             )

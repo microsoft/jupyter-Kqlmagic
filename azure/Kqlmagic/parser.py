@@ -32,7 +32,7 @@ class Parser(object):
          # split to max 2 parts. First part, parts[0], is the first string.
         # parts = [part.strip() for part in cell.split(None, 1)]
         parts = split_lex(cell)
-
+        
         # print(parts)
         if not parts:
             parsed_queries.append({"connection": "", "query": "", "options": {}, "command": {}})
@@ -381,6 +381,8 @@ class Parser(object):
         "addschematohelp": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
         "notebookapp": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
         "testnotebookapp": {"flag": "test_notebook_app", "readonly": "True", "config": "config.test_notebook_app"},
+        "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},
+
         "saveas": {"flag": "save_as", "type": "str", "init": "None"},
         "saveto": {"flag": "save_to", "type": "str", "init": "None"},
         "query": {"flag": "query", "type": "str", "init": "None"},
@@ -487,7 +489,7 @@ class Parser(object):
                 saved = eval(option_config)
                 exec(option_config + "=" + (template.format(str(options[opt_key]).replace("'", "\\'")) if options[opt_key] is not None else "None"))
                 exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else "None"))
-
+            
         if not key_state:
             raise ValueError("last option is missing parameter")
 

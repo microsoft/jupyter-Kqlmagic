@@ -126,6 +126,14 @@ class Kqlmagic(Magics, Configurable):
         "a kql connection string is formed from the "
         "matching section in the DSN file. Abbreviation: dl",
     )
+
+    cloud = Unicode(
+            "public",
+            config=True,
+            help="Default cloud "
+            "the kql connection will use the cloud as specified "
+        )
+
     timeout = Int(None, config=True, allow_none=True, help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait")
     plot_package = Enum(["matplotlib", "plotly"], "plotly", config=True, help="Set the plot package. Abbreviation: pp")
     table_package = Enum(
@@ -157,8 +165,8 @@ class Kqlmagic(Magics, Configurable):
     cache_folder_name = Unicode("{0}_cache_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name for cache files")
 
     # valid values: jupyterlab or jupyternotebook
-    notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "auto", config=True, help="Set notebook application used.")
-    test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.")
+    notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "papermill"], "auto", config=True, help="Set notebook application used.")
+    test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "papermill"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.")
 
     add_kql_ref_to_help = Bool(True, config=True, help="On {} load auto add kql reference to Help menu.".format(Constants.MAGIC_CLASS_NAME))
     add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
@@ -166,6 +174,26 @@ class Kqlmagic(Magics, Configurable):
     use_cache = Unicode(None, config=True, allow_none=True, help="Use cached query results from the specified folder, instead of executing the query.")
 
     logger().debug("Kqlmagic:: - define class code")
+
+    @validate("cloud")
+    def _valid_cloud(self, proposal):
+        try:
+            cloud  = proposal["value"]
+            self.validate_cloud(cloud)
+        except (AttributeError, ValueError) as e:
+            message = "The 'cloud' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            raise TraitError(message)
+        return proposal["value"] 
+
+
+    def validate_cloud(self, cloud):
+        valid_set =  {"public","mooncake","fairfax","blackforest","usnat","ussec"}
+        if not (cloud.find("@")>=0 or cloud in valid_set):
+            raise ValueError(
+                "must be a known cloud name or custom URL, but a value of {0} was specified.".format(cloud)
+            )
+
+
 
     @validate("palette_name")
     def _valid_value_palette_name(self, proposal):

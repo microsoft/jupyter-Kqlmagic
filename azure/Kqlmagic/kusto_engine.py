@@ -23,7 +23,10 @@ class KustoEngine(KqlEngine):
     _MANDATORY_KEY = ConnStrKeys.DATABASE
     _VALID_KEYS_COMBINATIONS = [
         [ConnStrKeys.TENANT, ConnStrKeys.ANONYMOUS, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+
         [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+
+
         [ConnStrKeys.TENANT, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
         [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
         [
@@ -33,7 +36,7 @@ class KustoEngine(KqlEngine):
             ConnStrKeys.CERTIFICATE_THUMBPRINT,
             ConnStrKeys.CLUSTER,
             ConnStrKeys.DATABASE,
-            ConnStrKeys.ALIAS,
+            ConnStrKeys.ALIAS
         ],
     ]
 
@@ -43,7 +46,7 @@ class KustoEngine(KqlEngine):
     # Instance methods
     # ----------------
 
-    def __init__(self, conn_str, user_ns: dict, current=None, conn_class=None):
+    def __init__(self, conn_str, user_ns: dict, cloud, current=None, conn_class=None):
         super().__init__()
         if isinstance(conn_str, dict):
             self.conn_class = conn_class
@@ -59,7 +62,8 @@ class KustoEngine(KqlEngine):
             self._parsed_conn = self._parse_common_connection_str(
                 conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
             )
-            self.client = Kusto_Client(self._parsed_conn)
+
+            self.client = Kusto_Client(self._parsed_conn, cloud)
 
     def get_client(self):
         if self.client is None:

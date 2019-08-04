@@ -138,6 +138,12 @@ class _MyAadHelper(object):
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
             
+
+            if options.get("login_code_destination") !="browser" or  options.get("notebook_app")=="papermill":
+                email_message = "Copy code: "+ device_code + " and authenticate in: " + url
+                self.send_email(email_message, options.get("login_code_destination"))
+               
+            else:
                 html_str = (
                     """<!DOCTYPE html>
                     <html><body>
@@ -217,6 +223,22 @@ class _MyAadHelper(object):
         else:
             raise AuthenticationError("Unknown authentication method.")
         return self._get_header(token)
+
+
+    def send_email(self, message, mailto):
+
+        port = 465  # For SSL
+        smtp_server = "smtp.gmail.com"
+        sender_email = "dev.kql.test@gmail.com"  # Enter your address
+
+        receiver_email = mailto # Enter receiver address
+
+        password = "Kc0qpELOz8V3"
+
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, "\n"+message)
 
     def _get_header(self, token):
         return "{0} {1}".format(token[TokenResponseFields.TOKEN_TYPE], token[TokenResponseFields.ACCESS_TOKEN])

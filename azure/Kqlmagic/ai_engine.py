@@ -24,7 +24,9 @@ class AppinsightsEngine(KqlEngine):
     _MANDATORY_KEY = ConnStrKeys.APPID
     _VALID_KEYS_COMBINATIONS = [
         [ConnStrKeys.TENANT, ConnStrKeys.ANONYMOUS, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
-        [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.CODE,ConnStrKeys.CLIENTID, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.CODE,ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS],
+
         [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.APPID, ConnStrKeys.ALIAS],
         [ConnStrKeys.APPID, ConnStrKeys.APPKEY, ConnStrKeys.ALIAS],
     ]

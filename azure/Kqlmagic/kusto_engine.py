@@ -25,6 +25,7 @@ class KustoEngine(KqlEngine):
         [ConnStrKeys.TENANT, ConnStrKeys.ANONYMOUS, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
 
         [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.CODE,ConnStrKeys.CLIENTID, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
 
 
         [ConnStrKeys.TENANT, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],

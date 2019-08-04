@@ -23,7 +23,8 @@ class LoganalyticsEngine(KqlEngine):
     _MANDATORY_KEY = ConnStrKeys.WORKSPACE
     _VALID_KEYS_COMBINATIONS = [
         [ConnStrKeys.TENANT, ConnStrKeys.ANONYMOUS, ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS],
-        [ConnStrKeys.TENANT, ConnStrKeys.CODE, ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.CODE,ConnStrKeys.CLIENTID, ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS],
+        [ConnStrKeys.TENANT, ConnStrKeys.CODE,ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS],
         [ConnStrKeys.TENANT, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.APPKEY, ConnStrKeys.ALIAS],  # only for demo, if workspace = "DEMO_WORKSPACE"
     ]

@@ -12,7 +12,7 @@ from enum import Enum, unique
 from datetime import timedelta, datetime
 
 from six.moves.urllib.parse import urlparse
-
+import re
 import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
@@ -21,6 +21,8 @@ from Kqlmagic.log import logger
 from Kqlmagic.display import Display
 from Kqlmagic.constants import ConnStrKeys
 from Kqlmagic.adal_token_cache import AdalTokenCache
+
+from Kqlmagic.parser import Parser
 
 import smtplib
 
@@ -141,9 +143,12 @@ class _MyAadHelper(object):
             if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
                 raise Exception("error: using papermill without an email specified is not supported")
 
-            if options.get("login_code_destination") !="browser":
+            if options.get("login_code_destination") =="email":
                 email_message = "Copy code: "+ device_code + " and authenticate in: " + url
-                self.send_email(email_message, options.get("login_code_destination"))
+
+                kv = Parser.parse_and_get_kv_string(options.get('code_notification_email'), {})
+                
+                self.send_email(email_message, kv)
                
             else:
                 html_str = (
@@ -226,16 +231,31 @@ class _MyAadHelper(object):
             raise AuthenticationError("Unknown authentication method.")
         return self._get_header(token)
 
+    def email_format(self, dest):
+        return re.match( r'[\w\.-]+@[\w\.-]+(\.[\w]+)+', dest)
 
-    def send_email(self, message, mailto):
+    def check_email_params(self, port, smtp_server, sender_email, receiver_email, password):
+        if port and smtp_server and sender_email and receiver_email and password:
+            if self.email_format(sender_email) and self.email_format(receiver_email):
+                return True
+        return False
+    
 
-        port = 587  # For SSL
-        smtp_server = "smtp-mail.outlook.com"
-        sender_email = "kqlmagic@outlook.com"  # Enter your address
+    def send_email(self, message, key_vals):
 
-        receiver_email = mailto # Enter receiver address
+        port = key_vals.get("smtpport")  
+        smtp_server = key_vals.get("smtpendpoint")
+        sender_email = key_vals.get("sendfrom")
 
-        password = "Kql_Magic1"
+        receiver_email = key_vals.get("sendto") 
+
+        password = key_vals.get("sendfrompassword")
+
+        if not self.check_email_params(port,smtp_server, sender_email, receiver_email, password):
+            raise ValueError("""
+                cannot send login code to email because of missing or invalid environmental parameters. 
+                Set KQLMAGIC_CODE_NOTIFICATION_EMAIL in the following way: SMTPEndPoint: \" email server\"; SMTPPort: \"email port\"; 
+                sendFrom: \"sender email address \"; sendFromPassword: \"email address password \"; sendTo:\" email address to send to\"""" )
 
         # context = ssl.create_default_context()
         # with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:

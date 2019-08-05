@@ -9,7 +9,6 @@ import atexit
 import time
 import logging
 import hashlib
-import re
 
 from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
 from Kqlmagic.help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
@@ -136,7 +135,7 @@ class Kqlmagic(Magics, Configurable):
         )
 
     login_code_destination = Unicode("browser", config = True, help = 
-    "set login code destination, default: browser. non interactive mode: email, needs to be in format \"name@example.com")
+    "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
 
     timeout = Int(None, config=True, allow_none=True, help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait")
     plot_package = Enum(["matplotlib", "plotly"], "plotly", config=True, help="Set the plot package. Abbreviation: pp")
@@ -170,6 +169,9 @@ class Kqlmagic(Magics, Configurable):
 
     # valid values: jupyterlab or jupyternotebook
     notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "papermill"], "auto", config=True, help="Set notebook application used.")
+
+    code_notification_email = Unicode("", config=True, help="Required parameters: SMTPEndPoint, SMTPPort, sendFrom, sendFromPassword, sendTo.")
+
     test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "papermill"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.")
 
     add_kql_ref_to_help = Bool(True, config=True, help="On {} load auto add kql reference to Help menu.".format(Constants.MAGIC_CLASS_NAME))
@@ -209,16 +211,12 @@ class Kqlmagic(Magics, Configurable):
         return proposal["value"].lower()
 
     def validate_login_code(self, dest):
-        if (dest != "browser"):
-            if not self.check_mailto(dest):
+        if (dest != "browser") and (dest !="email"):
                 raise ValueError(
-                    "must be a known cloud name or custom email, but a value of {0} was specified.".format(dest)
+                    "must be either \"browser\" or \"email\", but a value of {0} was specified.".format(dest)
                 )
 
 
-    def check_mailto(self, dest):
-        
-        return re.match( "^.+@(\[?)[a-zA-Z0-9-.]+.([a-zA-Z]{2,3}|[0-9]{1,3})(]?)$", dest)
 
     @validate("palette_name")
     def _valid_value_palette_name(self, proposal):
@@ -904,6 +902,11 @@ def _override_default_configuration(ip, load_mode):
                 "lab": "jupyterlab", "notebook": "jupyternotebook", "ipy": "ipython", "vsc": "visualstudiocode"}.get(lookup_key)
         if app is not None:
             ip.run_line_magic("config", '{0}.notebook_app = "{1}"'.format(Constants.MAGIC_CLASS_NAME, app.strip()))
+
+    email_config = os.getenv("{0}_CODE_NOTIFICATION_EMAIL".format(Constants.MAGIC_CLASS_NAME.upper()))
+    if email_config is not None:
+        lookup_key = email_config.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
+        ip.run_line_magic("config", '{0}.code_notification_email = "{1}"'.format(Constants.MAGIC_CLASS_NAME, email_config.strip()))
 
 
 def _get_kql_magic_load_mode():

@@ -435,7 +435,7 @@ class Kqlmagic(Magics, Configurable):
                     app = "ipython"
             ip.run_line_magic("config", "{0}.notebook_app='{1}'".format(Constants.MAGIC_CLASS_NAME, app))
             # print("notebook_app: {0}".format(app))
-        
+
         if app != "jupyterlab":
             logger().debug("Kqlmagic::__init__ - discover notebook url")
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
@@ -899,7 +899,7 @@ def _override_default_configuration(ip, load_mode):
     if app is not None:
         lookup_key = app.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
         app = {"jupyterlab": "jupyterlab", "jupyternotebook": "jupyternotebook", "ipython": "ipython", "visualstudiocode": "visualstudiocode", 
-                "lab": "jupyterlab", "notebook": "jupyternotebook", "ipy": "ipython", "vsc": "visualstudiocode"}.get(lookup_key)
+                "lab": "jupyterlab", "notebook": "jupyternotebook", "ipy": "ipython", "vsc": "visualstudiocode", "papermill":"papermill"}.get(lookup_key)
         if app is not None:
             ip.run_line_magic("config", '{0}.notebook_app = "{1}"'.format(Constants.MAGIC_CLASS_NAME, app.strip()))
 

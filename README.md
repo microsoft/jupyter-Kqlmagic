@@ -37,7 +37,7 @@ python setup.py install
 Download a zip of the code via GitHub or PyPI. Then follow the same instructions as in option 2.
 
 ## Minimum Requirements
-* Python 3.4, 3.5, or 3.6.
+* Python 3.6+
 * See setup.py for dependencies
 
 ## Load

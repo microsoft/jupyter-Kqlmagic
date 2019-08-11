@@ -182,25 +182,6 @@ class Kqlmagic(Magics, Configurable):
 
     logger().debug("Kqlmagic:: - define class code")
 
-    @validate("cloud")
-    def _valid_cloud(self, proposal):
-        try:
-            cloud  = proposal["value"]
-            self.validate_cloud(cloud)
-        except (AttributeError, ValueError) as e:
-            message = "The 'cloud' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
-            raise TraitError(message)
-        return proposal["value"].lower()
-
-
-    def validate_cloud(self, cloud):
-        valid_set =  {"public","mooncake","fairfax","blackforest","usnat","ussec"}
-        if not  cloud.lower() in valid_set:
-            raise ValueError(
-                "must be a known cloud name, but a value of {0} was specified.".format(cloud)
-            )
-
-
     # @validate("login_code_destination")
     # def _valid_value_login_code_destination(self, proposal):
 

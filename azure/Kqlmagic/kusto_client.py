@@ -112,8 +112,6 @@ class Kusto_Client(object):
         auth_resource = data_source
 
         if _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
-            if cloud.find("://") >=0:
-                raise Exception("error: url for cloud not supported")
             auth_resource = "https://kusto.kusto.{0}".format(self._CLOUD_URLS.get(cloud))
 
         self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), self._DEFAULT_CLIENTID, **options) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None

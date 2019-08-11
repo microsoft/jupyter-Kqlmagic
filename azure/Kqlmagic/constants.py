@@ -27,6 +27,13 @@ class Constants(object):
     TICK_TO_INT_FACTOR = int(SEC_NANOS // TICK_NANOS)
 
 
+class Cloud(object):
+    PUBLIC = "public"
+    MOONCAKE = "mooncake"
+    FAIRFAX = "fairfax"
+    BLACKFOREST = "blackforest"
+    USNAT = "usnat"
+    USSEC = "ussec"
 
 class ConnStrKeys(object):
     # make sure all keys are lowercase, without spaces, underscores, and hyphen-minus
@@ -49,6 +56,8 @@ class ConnStrKeys(object):
     FOLDER = "folder"
     AAD_URL = "aadurl"
     DATA_SOURCE_URL = "datasourceurl"
+
+
 
 
     ALIAS = "alias"

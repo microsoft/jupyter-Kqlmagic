@@ -77,10 +77,14 @@ _CLOUD_AAD_URLS={
 class _MyAadHelper(object):
     def __init__(self, kcsb, default_clientid, **options):
         cloud = options.get("cloud") or "public"
-        if kcsb.conn_kv.get("aadurl"):
-            aad_login_url = kcsb.conn_kv.get("aadurl")
+        if kcsb.conn_kv.get(ConnStrKeys.AAD_URL):
+            aad_login_url = kcsb.conn_kv.get(ConnStrKeys.AAD_URL)
         else:
             aad_login_url = _CLOUD_AAD_URLS.get(cloud)
+
+            if not aad_login_url:
+                raise KqlError("AAD is not known for this cloud {0}, please use aadurl property in connection string.".format(cloud))
+
 
 
         authority = kcsb.authority_id or "common"

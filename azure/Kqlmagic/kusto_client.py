@@ -100,13 +100,11 @@ class Kusto_Client(object):
 
         if cluster_name.find("://") >= 0:
             data_source = cluster_name
-            cloud = cloud or self.getCloudFromHTTP(data_source)
-
         else:
-            cloud = cloud or "public"
-            if cloud.find("://") >=0:
-                raise Exception("error: use url for cluster name")
-            data_source = self._DATA_SOURCE_TEMPLATE.format(cluster_name, self._CLOUD_URLS.get(cloud))
+            cloud_url = self._CLOUD_URLS.get(cloud)
+            if not cloud_url:
+                raise KqlError("adx not supported in cloud {0}".format(cloud))
+            data_source = self._DATA_SOURCE_TEMPLATE.format(cluster_name,cloud_url)
 
         self._mgmt_endpoint = self._MGMT_ENDPOINT_TEMPLATE.format(data_source, self._MGMT_ENDPOINT_VERSION)
         self._query_endpoint = self._QUERY_ENDPOINT_TEMPLATE.format(data_source, self._QUERY_ENDPOINT_VERSION)

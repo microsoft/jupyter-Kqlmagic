@@ -190,7 +190,7 @@ class Kqlmagic(Magics, Configurable):
         except (AttributeError, ValueError) as e:
             message = "The 'cloud' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
             raise TraitError(message)
-        return proposal["value"] 
+        return proposal["value"].lower()
 
 
     def validate_cloud(self, cloud):

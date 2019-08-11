@@ -40,6 +40,7 @@ class ConnKeysKCSB(object):
         self.data_source = data_source
         self.translate_map = {
             "authority_id": ConnStrKeys.TENANT,
+            "aad_url": ConnStrKeys.AAD_URL,
             "aad_user_id": ConnStrKeys.USERNAME,
             "password": ConnStrKeys.PASSWORD,
             "application_client_id": ConnStrKeys.CLIENTID,
@@ -76,8 +77,8 @@ _CLOUD_AAD_URLS={
 class _MyAadHelper(object):
     def __init__(self, kcsb, default_clientid, **options):
         cloud = options.get("cloud") or "public"
-        if cloud.find("://") >= 0:
-            aad_login_url = cloud
+        if kcsb.conn_kv.get("aadurl"):
+            aad_login_url = kcsb.conn_kv.get("aadurl")
         else:
             aad_login_url = _CLOUD_AAD_URLS.get(cloud)
 

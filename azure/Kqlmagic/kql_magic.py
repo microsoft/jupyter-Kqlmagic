@@ -9,6 +9,7 @@ import atexit
 import time
 import logging
 import hashlib
+import re
 
 from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
 from Kqlmagic.help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
@@ -127,7 +128,7 @@ class Kqlmagic(Magics, Configurable):
         "matching section in the DSN file. Abbreviation: dl",
     )
 
-    cloud = Unicode(
+    cloud = Enum(["public", "mooncake", "fairfax", "blackforest", "usnet", "ussec"],
             "public",
             config=True,
             help="Default cloud "
@@ -194,16 +195,18 @@ class Kqlmagic(Magics, Configurable):
 
     def validate_cloud(self, cloud):
         valid_set =  {"public","mooncake","fairfax","blackforest","usnat","ussec"}
-        if not (cloud.find("://")>=0 or cloud.lower() in valid_set):
+        if not  cloud.lower() in valid_set:
             raise ValueError(
-                "must be a known cloud name or custom URL, but a value of {0} was specified.".format(cloud)
+                "must be a known cloud name, but a value of {0} was specified.".format(cloud)
             )
 
 
     @validate("login_code_destination")
     def _valid_value_login_code_destination(self, proposal):
+
         try:
             dest = proposal["value"].lower()
+
             self.validate_login_code(dest)
         except (AttributeError, ValueError) as e:
             message = "The 'login_code_destination' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
@@ -211,11 +214,11 @@ class Kqlmagic(Magics, Configurable):
         return proposal["value"].lower()
 
     def validate_login_code(self, dest):
+
         if (dest != "browser") and (dest !="email"):
                 raise ValueError(
                     "must be either \"browser\" or \"email\", but a value of {0} was specified.".format(dest)
                 )
-
 
 
     @validate("palette_name")
@@ -435,7 +438,7 @@ class Kqlmagic(Magics, Configurable):
                     app = "ipython"
             ip.run_line_magic("config", "{0}.notebook_app='{1}'".format(Constants.MAGIC_CLASS_NAME, app))
             # print("notebook_app: {0}".format(app))
-
+        
         if app != "jupyterlab":
             logger().debug("Kqlmagic::__init__ - discover notebook url")
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
@@ -558,11 +561,11 @@ class Kqlmagic(Magics, Configurable):
         user_ns = self.shell.user_ns.copy()
         user_ns.update(local_ns)
 
-        logger().debug("To Parsed: \n\rline: {}\n\rcell:\n\r{}".format(line, cell))
+        logger().debug("Kqlmagic::To Parsed: \n\rline: {}\n\rcell:\n\r{}".format(line, cell))
         try:
             parsed = None
             parsed_queries = Parser.parse("%s\n%s" % (line, cell), self, _ENGINES, user_ns)
-            logger().debug("Parsed: {}".format(parsed_queries))
+            logger().debug("Kqlmagic::Parsed: {}".format(parsed_queries))
             result = None
             for parsed in parsed_queries:
                 parsed["line"] = line

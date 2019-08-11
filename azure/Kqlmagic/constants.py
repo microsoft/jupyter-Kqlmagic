@@ -47,6 +47,8 @@ class ConnStrKeys(object):
     WORKSPACE = "workspace"
     APPID = "appid"
     FOLDER = "folder"
+    AAD_URL = "aadurl"
+    DATA_SOURCE_URL = "datasourceurl"
 
 
     ALIAS = "alias"

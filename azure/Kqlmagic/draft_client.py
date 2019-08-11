@@ -54,19 +54,32 @@ class DraftClient(object):
 
         cloud = options.get("cloud") or "public"
         self._domain = domain
+        logger().debug("draft_client.py :: __init__ :  self._domain: {0}".format(self._domain))
+
         if data_source.find("loganalytics") >= 0:
             self._data_source = self._CLOUD_AAD_URLS.get(cloud).format("loganalytics")
+            logger().debug("draft_client.py :: __init__ :  self._data_source from _CLOUD_AAD_URLS: {0}".format(self._data_source))
+
         elif data_source.find("applicationinsights") >= 0:
-            self._data_source = self._CLOUD_AAD_URLS.get(cloud).format("applicationinsights")            
+            self._data_source = self._CLOUD_AAD_URLS.get(cloud).format("applicationinsights")  
+            logger().debug("draft_client.py :: __init__ :  self._data_source from _CLOUD_AAD_URLS: {0}".format(self._data_source))
+
+
+        logger().debug("draft_client.py :: __init__ :  conn_kv[\"datasourceurl\"]: {0}".format(conn_kv.get("datasourceurl")))
+
+        if conn_kv.get("datasourceurl"):
+            self._data_source =  conn_kv.get("datasourceurl")  
+            logger().debug("draft_client.py :: __init__ :  self._data_source from conn_kv[\"datasourceurl\"]: {0}".format(self._data_source))
 
         self._appkey = conn_kv.get(ConnStrKeys.APPKEY)
-
+        logger().debug("draft_client.py :: __init__ :  self._appkey: {0}".format(self._appkey))
 
 
         if self._appkey is None and conn_kv.get(ConnStrKeys.ANONYMOUS) is None:
             self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID, **options)
         else:
             self._aad_helper = None
+        logger().debug("""draft_client.py :: __init__ :  self._aad_helper: {0} ;""".format(self._aad_helper ))
 
     def execute(self, id: str, query: str, accept_partial_results: bool = False, **options) -> object:
         """ Execute a simple query or a metadata query

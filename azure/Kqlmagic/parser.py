@@ -386,9 +386,9 @@ class Parser(object):
         "testnotebookapp": {"flag": "test_notebook_app", "readonly": "True", "config": "config.test_notebook_app"},
         "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},
 
-        "logincodedestination": {"flag": "login_code_destination", "type": "str", "config": "config.login_code_destination"},
+        # "logincodedestination": {"flag": "login_code_destination", "type": "str", "config": "config.login_code_destination"},
 
-        "codenotificationemail": {"flag": "code_notification_email", "readonly": "True", "config": "config.code_notification_email"},
+        # "codenotificationemail": {"flag": "code_notification_email", "readonly": "True", "config": "config.code_notification_email"},
 
         "saveas": {"flag": "save_as", "type": "str", "init": "None"},
         "saveto": {"flag": "save_to", "type": "str", "init": "None"},

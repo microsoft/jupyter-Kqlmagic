@@ -14,7 +14,7 @@ from pygments import highlight
 from pygments.lexers.data import JsonLexer
 from pygments.formatters.terminal import TerminalFormatter
 import datetime
-from Kqlmagic.my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
+from .my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -137,7 +137,7 @@ class Display(object):
         text_file.write(html_str)
         text_file.close()
         # ipython will delete file at shutdown or by restart
-        ip = get_ipython()  # pylint: disable=E0602
+        ip = get_ipython()  # pylint: disable=undefined-variable
         ip.tempfiles.append(full_file_name)
         return file_path
 

@@ -13,12 +13,13 @@ import adal
 import dateutil.parser
 import requests
 
-from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
+from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
 
-from Kqlmagic.kql_client import KqlQueryResponse, KqlError
-from Kqlmagic.constants import Constants, ConnStrKeys
-from Kqlmagic.version import VERSION
-from Kqlmagic.log import logger
+from .kql_client import KqlQueryResponse, KqlError
+from .constants import Constants, ConnStrKeys, Cloud
+from .version import VERSION
+from .log import logger
+from .kql_engine import KqlEngineError
 
 
 class Kusto_Client(object):
@@ -51,22 +52,23 @@ class Kusto_Client(object):
     _MGMT_ENDPOINT_TEMPLATE = "{0}/{1}/rest/mgmt"
     _QUERY_ENDPOINT_TEMPLATE = "{0}/{1}/rest/query"
 
-    _PUBLIC_CLOUD_DATA_SOURCE = "windows.net"
-    _MOONCAKE_CLOUD_DATA_SOURCE = "chinacloudapi.cn"
-    _BLACKFOREST_CLOUD_DATA_SOURCE = "cloudapi.de"
-    _FAIRFAX_CLOUD_DATA_SOURCE = "usgovcloudapi.net"
-    _USNAT_CLOUD_DATA_SOURCE = "core.eaglex.ic.gov"
-    _USSEC_CLOUD_DATA_SOURCE = "core.microsoft.scloud"
+
+    _PUBLIC_CLOUD_URL_SUFFIX =      "windows.net"
+    _MOONCAKE_CLOUD_URL_SUFFIX =    "chinacloudapi.cn"
+    _BLACKFOREST_CLOUD_URL_SUFFIX = "cloudapi.de"
+    _FAIRFAX_CLOUD_URL_SUFFIX =     "usgovcloudapi.net"
+    _USNAT_CLOUD_URL_SUFFIX =       "core.eaglex.ic.gov"
+    _USSEC_CLOUD_URL_SUFFIX =       "core.microsoft.scloud"
 
 
 
     _CLOUD_URLS = {
-        "public":_PUBLIC_CLOUD_DATA_SOURCE,
-        "mooncake":_MOONCAKE_CLOUD_DATA_SOURCE,
-        "fairfax":_FAIRFAX_CLOUD_DATA_SOURCE,
-        "blackforest":_BLACKFOREST_CLOUD_DATA_SOURCE,
-        "usnet":_USNAT_CLOUD_DATA_SOURCE,
-        "ussec":_USSEC_CLOUD_DATA_SOURCE
+        Cloud.PUBLIC:      _PUBLIC_CLOUD_URL_SUFFIX,
+        Cloud.MOONCAKE:    _MOONCAKE_CLOUD_URL_SUFFIX,
+        Cloud.FAIRFAX:     _FAIRFAX_CLOUD_URL_SUFFIX,
+        Cloud.BLACKFOREST: _BLACKFOREST_CLOUD_URL_SUFFIX,
+        Cloud.USNAT:       _USNAT_CLOUD_URL_SUFFIX,
+        Cloud.USSEC:       _USSEC_CLOUD_URL_SUFFIX
     }
 
     _DATA_SOURCE_TEMPLATE = "https://{0}.kusto.{1}"
@@ -103,34 +105,36 @@ class Kusto_Client(object):
         else:
             cloud_url = self._CLOUD_URLS.get(cloud)
             if not cloud_url:
-                raise KqlError("adx not supported in cloud {0}".format(cloud))
+                raise KqlEngineError("adx not supported in cloud {0}".format(cloud))
             data_source = self._DATA_SOURCE_TEMPLATE.format(cluster_name,cloud_url)
 
         self._mgmt_endpoint = self._MGMT_ENDPOINT_TEMPLATE.format(data_source, self._MGMT_ENDPOINT_VERSION)
         self._query_endpoint = self._QUERY_ENDPOINT_TEMPLATE.format(data_source, self._QUERY_ENDPOINT_VERSION)
         _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.(io|cn|us|de).*$")
-        auth_resource = data_source
+
 
         if _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
             auth_resource = "https://kusto.kusto.{0}".format(self._CLOUD_URLS.get(cloud))
-
+        else:
+            auth_resource = data_source
+            
         self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), self._DEFAULT_CLIENTID, **options) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
 
 
-    def getCloudFromHTTP(self, http):
-        if http.find(self._PUBLIC_CLOUD_DATA_SOURCE)>=0:
-            return "public"
-        if http.find(self._MOONCAKE_CLOUD_DATA_SOURCE)>=0:
-            return "mooncake"
-        if http.find(self._FAIRFAX_CLOUD_DATA_SOURCE)>=0:
-            return "fairfax"
-        if http.find(self._BLACKFOREST_CLOUD_DATA_SOURCE)>=0:
-            return "blackforest"
-        if http.find(self._USNAT_CLOUD_DATA_SOURCE)>=0:
-            return "usnet"
-        if http.find(self._USSEC_CLOUD_DATA_SOURCE)>=0:
-            return "ussec"
-        return "public"
+    def getCloudFromHTTP(self, http: str):
+        if http.endswith(self._PUBLIC_CLOUD_URL_SUFFIX):
+            return Cloud.PUBLIC
+        if http.endswith(self._MOONCAKE_CLOUD_URL_SUFFIX):
+            return Cloud.MOONCAKE
+        if http.endswith(self._FAIRFAX_CLOUD_URL_SUFFIX):
+            return Cloud.FAIRFAX
+        if http.endswith(self._BLACKFOREST_CLOUD_URL_SUFFIX):
+            return Cloud.BLACKFOREST
+        if http.endswith(self._USNAT_CLOUD_URL_SUFFIX):
+            return Cloud.USNAT
+        if http.endswith(self._USSEC_CLOUD_URL_SUFFIX):
+            return Cloud.USSEC
+        return Cloud.PUBLIC
 
     def execute(self, kusto_database, kusto_query, accept_partial_results=False, **options):
         """ Execute a simple query or management command

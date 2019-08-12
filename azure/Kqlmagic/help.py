@@ -7,7 +7,7 @@
 """A module that manage package version.
 """
 
-from Kqlmagic.constants import Constants
+from .constants import Constants
 from bs4 import BeautifulSoup
 from markdown import markdown
 

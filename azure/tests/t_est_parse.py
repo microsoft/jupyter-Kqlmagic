@@ -5,8 +5,8 @@
 #--------------------------------------------------------------------------
 
 import os
-from Kqlmagic.parser import Parser
-from Kqlmagic.kusto_engine import KustoEngine
+from azure.Kqlmagic.parser import Parser
+from azure.Kqlmagic.kusto_engine import KustoEngine
 from six.moves import configparser
 try:
     from traitlets.config.configurable import Configurable

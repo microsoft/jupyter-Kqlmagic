@@ -45,7 +45,7 @@ def _get_cache_key(entry):
 
 class AdalTokenCache(object):
     def __init__(self, state=None):
-        ip = get_ipython()  # pylint: disable=E0602
+        ip = get_ipython()  # pylint: disable=undefined-variable
         self.db = ip.db
         self._cache = {}
         self._lock = threading.RLock()

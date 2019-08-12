@@ -5,14 +5,14 @@
 #--------------------------------------------------------------------------
 
 import pytest
-from Kqlmagic.constants import Constants
-from Kqlmagic.kql_magic import Kqlmagic as Magic
+from azure.Kqlmagic.constants import Constants
+from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
 from textwrap import dedent
 import os.path
 import re
 import tempfile
 
-ip = get_ipython() # pylint: disable=E0602
+ip = get_ipython() # pylint:disable=undefined-variable
 
 
 @pytest.fixture 

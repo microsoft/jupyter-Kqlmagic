@@ -18,13 +18,13 @@ import prettytable
 # import base64
 # from IPython.display import Image
 
-from Kqlmagic.constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
-from Kqlmagic.my_utils import get_valid_filename, adjust_path
-from Kqlmagic.column_guesser import ColumnGuesserMixin
+from .constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
+from .my_utils import get_valid_filename, adjust_path
+from .column_guesser import ColumnGuesserMixin
 
-from Kqlmagic.display import Display
+from .display import Display
 
-from Kqlmagic.palette import Palette, Palettes
+from .palette import Palette, Palettes
 
 import plotly
 

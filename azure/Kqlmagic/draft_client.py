@@ -12,11 +12,12 @@ import adal
 import dateutil.parser
 import requests
 
-from Kqlmagic.constants import Constants, ConnStrKeys
-from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse, KqlError
-from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
-from Kqlmagic.version import VERSION
-from Kqlmagic.log import logger
+from .constants import Constants, ConnStrKeys, Cloud, Schema
+from .kql_client import KqlQueryResponse, KqlSchemaResponse, KqlError
+from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
+from .version import VERSION
+from .log import logger
+from .kql_engine import KqlEngineError
 
 
 class DraftClient(object):
@@ -42,25 +43,26 @@ class DraftClient(object):
     _GET_SCHEMA_QUERY = ".show schema"
 
     _CLOUD_AAD_URLS_APPINSIGHTS={
-    "public": "https://api.applicationinsights.io",
-    "mooncake":"https://api.applicationinsights.azure.cn",
-    "fairfax":"https://api.applicationinsights.us",
-    "blackforest":"https://api.applicationinsights.de",
-}
+        Cloud.PUBLIC:      "https://api.applicationinsights.io",
+        Cloud.MOONCAKE:    "https://api.applicationinsights.azure.cn",
+        Cloud.FAIRFAX:     "https://api.applicationinsights.us",
+        Cloud.BLACKFOREST: "https://api.applicationinsights.de",
+    }
+
     _CLOUD_AAD_URLS_LOGANALYTICS={
-        "public": "https://api.loganalytics.io",
-        "mooncake":"https://api.loganalytics.azure.cn",
-        "fairfax":"https://api.loganalytics.us",
-        "blackforest":"https://api.loganalytics.de",
+        Cloud.PUBLIC:      "https://api.loganalytics.io",
+        Cloud.MOONCAKE:    "https://api.loganalytics.azure.cn",
+        Cloud.FAIRFAX:     "https://api.loganalytics.us",
+        Cloud.BLACKFOREST: "https://api.loganalytics.de",
     }
 
 
     _CLOUD_AAD_URLS = {
-        "applicationinsights" : _CLOUD_AAD_URLS_APPINSIGHTS,
-        "loganalytics" : _CLOUD_AAD_URLS_LOGANALYTICS
+        Schema.APPLICATION_INSIGHTS : _CLOUD_AAD_URLS_APPINSIGHTS,
+        Schema.LOG_ANALYTICS : _CLOUD_AAD_URLS_LOGANALYTICS
     }
 
-    def __init__(self, conn_kv: dict, domain: str, data_source: str, **options):
+    def __init__(self, conn_kv: dict, domain: str, data_source: str, schema: str, **options):
         self._domain = domain
 
 
@@ -70,19 +72,10 @@ class DraftClient(object):
 
         else:
             cloud = options.get("cloud")
-            if data_source.find("loganalytics") >= 0:
-                service = "loganalytics"
-
-            elif data_source.find("applicationinsights") >= 0:
-                service = "applicationinsights"
-                logger().debug("draft_client.py :: __init__ :  self._data_source from conn_kv[\"datasourceurl\"]: {0}".format(self._data_source))
-
-            else:
-                raise KqlError("the service  is unknown")
-            self._data_source = self._CLOUD_AAD_URLS.get(service).get(cloud)
+            self._data_source = self._CLOUD_AAD_URLS.get(schema).get(cloud)
                 
             if not self._data_source:
-                raise KqlError("the service {0} is not supported in cloud {1}".format(service, cloud))
+                raise KqlEngineError("the service {0} is not supported in cloud {1}".format(schema, cloud))
 
 
         logger().debug("draft_client.py :: __init__ :  conn_kv[\"datasourceurl\"]: {0}".format(conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)))

@@ -20,47 +20,47 @@ class Constants(object):
 
     # conversion constants
     MINUTE_SECS = 60
-    HOUR_SECS = 60 * MINUTE_SECS 
-    DAY_SECS = 24 * HOUR_SECS
-    SEC_NANOS = 1000000000
-    TICK_NANOS = 100 # 1 tick is 100ns
+    HOUR_SECS =   60 * MINUTE_SECS 
+    DAY_SECS =    24 * HOUR_SECS
+    SEC_NANOS =   1000000000
+    TICK_NANOS =  100 # 1 tick is 100ns
     TICK_TO_INT_FACTOR = int(SEC_NANOS // TICK_NANOS)
 
+class Schema(object):
+    APPLICATION_INSIGHTS = "applicationinsights"
+    LOG_ANALYTICS =        "loganalytics"
+    AZURE_DATA_EXPLORER =  "azuredataexplorer" 
 
 class Cloud(object):
-    PUBLIC = "public"
-    MOONCAKE = "mooncake"
-    FAIRFAX = "fairfax"
+    PUBLIC =      "public"
+    MOONCAKE =    "mooncake"
+    FAIRFAX =     "fairfax"
     BLACKFOREST = "blackforest"
-    USNAT = "usnat"
-    USSEC = "ussec"
+    USNAT =       "usnat"
+    USSEC =       "ussec"
 
 class ConnStrKeys(object):
     # make sure all keys are lowercase, without spaces, underscores, and hyphen-minus
     # because they are ignored
-    TENANT = "tenant"
-    USERNAME = "username"
-    PASSWORD = "password"
-    CLIENTID = "clientid"
-    CLIENTSECRET = "clientsecret"
-    CERTIFICATE = "certificate"
-    CERTIFICATE_PEM_FILE = "certificatepemfile"
+    TENANT =                 "tenant"
+    USERNAME =               "username"
+    PASSWORD =               "password"
+    CLIENTID =               "clientid"
+    CLIENTSECRET =           "clientsecret"
+    CERTIFICATE =            "certificate"
+    CERTIFICATE_PEM_FILE =   "certificatepemfile"
     CERTIFICATE_THUMBPRINT = "certificatethumbprint"
-    APPKEY = "appkey"
-    CODE = "code"
-    ANONYMOUS = "anonymous"
-    CLUSTER = "cluster"
-    DATABASE = "database"
-    WORKSPACE = "workspace"
-    APPID = "appid"
-    FOLDER = "folder"
-    AAD_URL = "aadurl"
-    DATA_SOURCE_URL = "datasourceurl"
-
-
-
-
-    ALIAS = "alias"
+    APPKEY =                 "appkey"
+    CODE =                   "code"
+    ANONYMOUS =              "anonymous"
+    CLUSTER =                "cluster"
+    DATABASE =               "database"
+    WORKSPACE =              "workspace"
+    APPID =                  "appid"
+    FOLDER =                 "folder"
+    AAD_URL =                "aadurl"
+    DATA_SOURCE_URL =        "datasourceurl"
+    ALIAS =                  "alias"
 
 class VisualizationKeys(object):
     "list of keys as they appear in response from kusto or draft"
@@ -150,19 +150,19 @@ class VisualizationKeys(object):
     ANOMALY_COLUMNS = "AnomalyColumns"
  
 class VisualizationValues(object):
-    TABLE = "table"
-    PIE_CHART = "piechart"
-    BAR_CHART = "barchart"
-    COLUMN_CHART = "columnchart"
-    AREA_CHART = "areachart"
-    LINE_CHART = "linechart"
-    TIME_CHART = "timechart"
-    ANOMALY_CHART = "anomalychart"
+    TABLE =              "table"
+    PIE_CHART =          "piechart"
+    BAR_CHART =          "barchart"
+    COLUMN_CHART =       "columnchart"
+    AREA_CHART =         "areachart"
+    LINE_CHART =         "linechart"
+    TIME_CHART =         "timechart"
+    ANOMALY_CHART =      "anomalychart"
     STACKED_AREA_CHART = "stackedareachart"
-    LADDER_CHART = "ladderchart"
-    TIME_PIVOT = "timepivot"
-    PIVOT_CHART = "pivotchart"
-    SCATTER_CHART = "scatterchart"
+    LADDER_CHART =       "ladderchart"
+    TIME_PIVOT =         "timepivot"
+    PIVOT_CHART =        "pivotchart"
+    SCATTER_CHART =      "scatterchart"
 
 class VisualizationKinds(object):
     DEFAULT = "default"
@@ -189,10 +189,10 @@ class VisualizationSplits(object):
 
 class VisualizationScales(object):
     LINEAR = "linear"
-    LOG = "log"
+    LOG =    "log"
 
 class VisualizationLegends(object):
-    HIDDEN = "hidden"
+    HIDDEN =  "hidden"
     VISIBLE = "visible"
 
 

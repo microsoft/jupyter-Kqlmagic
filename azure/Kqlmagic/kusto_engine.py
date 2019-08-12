@@ -4,9 +4,9 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
-from Kqlmagic.kusto_client import Kusto_Client
-from Kqlmagic.constants import ConnStrKeys
+from .kql_engine import KqlEngine, KqlEngineError
+from .kusto_client import Kusto_Client
+from .constants import ConnStrKeys, Schema
 
 
 class KustoEngine(KqlEngine):
@@ -14,7 +14,7 @@ class KustoEngine(KqlEngine):
     # Constants
     # ---------
 
-    _URI_SCHEMA_NAME = "azuredataexplorer" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
+    _URI_SCHEMA_NAME = Schema.AZURE_DATA_EXPLORER # no spaces, underscores, and hyphe-minus, because they are ignored in parser
     _ALT_URI_SCHEMA1_NAME = "adx" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
     _ALT_URI_SCHEMA2_NAME = "ade" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
     _ALT_URI_SCHEMA3_NAME = "kusto" # no spaces, underscores, and hyphe-minus, because they are ignored in parser
@@ -22,24 +22,13 @@ class KustoEngine(KqlEngine):
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME, _ALT_URI_SCHEMA1_NAME, _ALT_URI_SCHEMA2_NAME, _ALT_URI_SCHEMA3_NAME]
     _MANDATORY_KEY = ConnStrKeys.DATABASE
     _VALID_KEYS_COMBINATIONS = [
-        [ConnStrKeys.TENANT,ConnStrKeys.ANONYMOUS, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
-
-        [ConnStrKeys.TENANT,ConnStrKeys.AAD_URL,  ConnStrKeys.CODE, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
-        [ConnStrKeys.TENANT,ConnStrKeys.AAD_URL,  ConnStrKeys.CODE,ConnStrKeys.CLIENTID, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
-
-
-        [ConnStrKeys.TENANT,ConnStrKeys.AAD_URL,  ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
-        [ConnStrKeys.TENANT,ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET, ConnStrKeys.CLUSTER, ConnStrKeys.DATABASE, ConnStrKeys.ALIAS],
-        [
-            ConnStrKeys.TENANT,
-            ConnStrKeys.AAD_URL, 
-            ConnStrKeys.CLIENTID,
-            ConnStrKeys.CERTIFICATE,
-            ConnStrKeys.CERTIFICATE_THUMBPRINT,
-            ConnStrKeys.CLUSTER,
-            ConnStrKeys.DATABASE,
-            ConnStrKeys.ALIAS
-        ],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CERTIFICATE, ConnStrKeys.CERTIFICATE_THUMBPRINT],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CODE],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.CODE],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT,                                            ConnStrKeys.ANONYMOUS],
     ]
 
     # Class methods

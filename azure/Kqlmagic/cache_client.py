@@ -4,9 +4,9 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from Kqlmagic.constants import Constants
-from Kqlmagic.my_utils import get_valid_filename, adjust_path
-from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse
+from .constants import Constants
+from .my_utils import get_valid_filename, adjust_path
+from .kql_client import KqlQueryResponse, KqlSchemaResponse
 import hashlib
 import json
 import os
@@ -26,7 +26,7 @@ class CacheClient(object):
             folder that contains all the database_folders that contains the query result files
         """
 
-        ip = get_ipython()  # pylint: disable=E0602
+        ip = get_ipython()  # pylint: disable=undefined-variable
         root_path = ip.starting_dir
         cache_folder_name = ip.run_line_magic("config", "{0}.cache_folder_name".format(Constants.MAGIC_CLASS_NAME))
         self.files_folder = adjust_path(root_path + "/" + cache_folder_name)

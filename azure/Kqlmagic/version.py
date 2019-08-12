@@ -7,12 +7,12 @@
 """A module that manage package version.
 """
 
-VERSION = "0.1.100"
+VERSION = "0.1.101"
 
 import sys
 import requests
-from Kqlmagic.constants import Constants
-from Kqlmagic.help import MarkdownString
+from .constants import Constants
+from .help import MarkdownString
 
 
 def execute_version_command():

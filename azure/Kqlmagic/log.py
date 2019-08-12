@@ -10,7 +10,7 @@ import datetime
 import uuid
 import traceback
 from ipykernel import (get_connection_info)
-from Kqlmagic.constants import Constants
+from .constants import Constants
 
 def _get_kql_magic_log_level():
     log_level = os.getenv("{0}_LOG_LEVEL".format(Constants.MAGIC_CLASS_NAME.upper()))

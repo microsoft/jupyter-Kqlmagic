@@ -35,6 +35,18 @@ smart_split_re = re.compile(r"""
     ) | \S+)
 """, re.VERBOSE)
 
+smart_split_lines_re = re.compile(r"""
+    ((?:
+        [^\s\n\r\f\t'"]*
+        (?:
+            (?:"(?:[^"\\]|\\.)*" | '(?:[^'\\]|\\.)*')
+            [^\s\n\r\f\t'"]*
+        )+
+    ) | \S+)
+""", re.VERBOSE)
+
+
+
 
 def smart_split(text):
     r"""

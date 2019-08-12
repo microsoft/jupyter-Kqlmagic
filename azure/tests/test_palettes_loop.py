@@ -6,14 +6,14 @@
 
 """ Test for current default color palette. """
 import pytest
-from Kqlmagic.constants import Constants
-from Kqlmagic.kql_magic import Kqlmagic as Magic
+from azure.Kqlmagic.constants import Constants
+from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
 from bs4 import BeautifulSoup
 import os.path
 import re
 import tempfile
 
-ip = get_ipython() # pylint: disable=E0602
+ip = get_ipython() # pylint: disable=undefined-variable
 
 @pytest.fixture 
 def register_magic():

@@ -4,9 +4,9 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from Kqlmagic.constants import Constants
-from Kqlmagic.log import logger
-from Kqlmagic.kql_magic import Kqlmagic as Magic
+from .constants import Constants
+from .log import logger
+from .kql_magic import Kqlmagic as Magic
 
 
 def load_ipython_extension(ip):

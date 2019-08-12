@@ -6,7 +6,7 @@
 
 from datetime import timedelta, datetime
 import pytz
-from Kqlmagic.constants import Constants, VisualizationKeys
+from .constants import Constants, VisualizationKeys
 
 
 """

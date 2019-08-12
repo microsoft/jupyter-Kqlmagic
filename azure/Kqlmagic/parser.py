@@ -6,11 +6,12 @@
 
 import itertools
 import os
+import re
 import six
 import json
 import configparser as CP
-from Kqlmagic.log import Logger, logger
-from Kqlmagic.my_utils import split_lex, get_valid_filename, adjust_path
+from .log import Logger, logger
+from .my_utils import split_lex, get_valid_filename, adjust_path
 from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
 
 
@@ -20,6 +21,7 @@ class Parser(object):
     def parse(cls, cell, config, engines: list, user_ns: dict):
         """Separate input into (connection info, KQL statements, options)"""
 
+        cell = cell.strip()
         parsed_queries = []
         cell, command = cls._parse_kql_command(cell, user_ns)
         if len(command) > 0 and command.get("command") != "submit":
@@ -29,7 +31,7 @@ class Parser(object):
             parsed_queries.append({"connection": "", "query": "", "options": options, "command": command})
             return parsed_queries
 
-         # split to max 2 parts. First part, parts[0], is the first string.
+        # split to max 2 parts. First part, parts[0], is the first string.
         # parts = [part.strip() for part in cell.split(None, 1)]
         parts = split_lex(cell)
         
@@ -37,60 +39,62 @@ class Parser(object):
         if not parts:
             parsed_queries.append({"connection": "", "query": "", "options": {}, "command": {}})
             return parsed_queries
-        
 
         #
         # replace substring of the form $name or ${name}, in windows also %name% if found in env variabes
         #
 
         connection = None
-        # assume connection is specified and will be found
-        code = parts[1] if len(parts) == 2 else ""
+
+
         conn_str = parts[0].strip()
-        if conn_str.startswith('"') and conn_str.endswith('"') or conn_str.startswith("'") and conn_str.endswith("'"):
-            conn_str = conn_str[1:-1]
+        if not conn_str.startswith('-') and not conn_str.startswith('+'):
+            if conn_str.startswith('"') and conn_str.endswith('"') or conn_str.startswith("'") and conn_str.endswith("'"):
+                conn_str = conn_str[1:-1]
 
-        sub_parts = conn_str.strip().split("://", 1)
-        #
-        # connection taken from a section in  dsn file (file name have to be define in config.dsn_filename or specified as a parameter)
-        #
-        if conn_str.startswith("[") and conn_str.endswith("]"):
-            section = conn_str[1:-1].strip()
+            #
+            # connection taken from a section in  dsn file (file name have to be define in config.dsn_filename or specified as a parameter)
+            #
+            if conn_str.startswith("[") and conn_str.endswith("]"):
+                section = conn_str[1:-1].strip()
 
-            # parse to get flag, for the case that the file nema is specified in the options
-            kql, options = cls._parse_kql_options(code, config, user_ns)
+                # parse to get flag, for the case that the file nema is specified in the options
+                code = cell[len(parts[0]) :]
+                kql, options = cls._parse_kql_options(code, config, user_ns)
 
-            parser = CP.ConfigParser()
-            dsn_filename = adjust_path(options.get("dsn_filename", config.dsn_filename))
-            parser.read(dsn_filename)
-            cfg_dict = dict(parser.items(section))
+                parser = CP.ConfigParser()
+                dsn_filename = adjust_path(options.get("dsn_filename", config.dsn_filename))
+                parser.read(dsn_filename)
+                cfg_dict = dict(parser.items(section))
 
-            cfg_dict_lower = {k.lower().replace("_", "").replace("-", ""): v for (k, v) in cfg_dict.items()}
-            for e in engines:
-                if e._MANDATORY_KEY in cfg_dict_lower.keys():
-                    all_keys = set(itertools.chain(*e._VALID_KEYS_COMBINATIONS))
-                    connection_kv = ["{0}='{1}'".format(k, v) for k, v in cfg_dict_lower.items() if v and k in all_keys]
-                    connection = "{0}://{1}".format(e._URI_SCHEMA_NAME, ";".join(connection_kv))
-                    break
+                cfg_dict_lower = {k.lower().replace("_", "").replace("-", ""): v for (k, v) in cfg_dict.items()}
+                for e in engines:
+                    if e._MANDATORY_KEY in cfg_dict_lower.keys():
+                        all_keys = set(itertools.chain(*e._VALID_KEYS_COMBINATIONS))
+                        connection_kv = ["{0}='{1}'".format(k, v) for k, v in cfg_dict_lower.items() if v and k in all_keys]
+                        connection = "{0}://{1}".format(e._URI_SCHEMA_NAME, ";".join(connection_kv))
+                        break
 
-        #
-        # connection specified starting with one of the supported prefixes
-        #
-        elif (len(sub_parts) == 2 and not sub_parts[0].startswith("-") and 
-        sub_parts[0].lower().replace("_", "").replace("-", "") in list(itertools.chain(*[e._ALT_URI_SCHEMA_NAMES for e in engines]))):
-
-            connection = conn_str
-        #
-        # connection specified as database@cluster
-        #
-        elif "@" in conn_str and "|" not in conn_str and "'" not in conn_str and '"' not in conn_str:
-            connection = conn_str
+            #
+            # connection specified starting with one of the supported prefixes
+            #
+            elif "://" in conn_str:
+                sub_parts = conn_str.strip().split("://", 1)
+                if (len(sub_parts) == 2 and sub_parts[0].lower().replace("_", "").replace("-", "") in list(itertools.chain(*[e._ALT_URI_SCHEMA_NAMES for e in engines]))):
+                    connection = conn_str
+            #
+            # connection specified as database@cluster
+            #
+            elif "@" in conn_str and "|" not in conn_str and "'" not in conn_str and '"' not in conn_str:
+                connection = conn_str
         #
         # connection not specified, override default
         #
         if connection is None:
             connection = ""
             code = cell
+        else:
+            code = cell[len(parts[0]) :]
 
         #
         # split string to queries

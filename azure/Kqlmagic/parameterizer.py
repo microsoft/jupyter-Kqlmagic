@@ -8,7 +8,7 @@ import six
 import json
 from datetime import timedelta, datetime
 from pandas import DataFrame
-from Kqlmagic.constants import Constants
+from .constants import Constants
 
 class ExtendedJSONEncoder(json.JSONEncoder):
     def defaultt(self, o):

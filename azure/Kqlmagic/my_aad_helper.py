@@ -16,13 +16,14 @@ from six.moves.urllib.parse import urlparse
 import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
-from Kqlmagic.constants import Constants
-from Kqlmagic.log import logger
-from Kqlmagic.display import Display
-from Kqlmagic.constants import ConnStrKeys
-from Kqlmagic.adal_token_cache import AdalTokenCache
+from .constants import Constants, Cloud
+from .log import logger
+from .display import Display
+from .constants import ConnStrKeys
+from .adal_token_cache import AdalTokenCache
+from .kql_engine import KqlEngineError
 
-# from Kqlmagic.parser import Parser
+# from .parser import Parser
 
 import smtplib
 
@@ -66,24 +67,24 @@ class AuthenticationMethod(Enum):
     aad_device_login = "aad_device_login"
 
 
-_CLOUD_AAD_URLS={
-        "public": "https://login.microsoftonline.com",
-        "mooncake": "https://login.partner.microsoftonline.cn",
-        "fairfax": "https://login.microsoftonline.us",
-        "blackforest": "https://login.microsoftonline.de",
+_CLOUD_AAD_URLS= {
+        Cloud.PUBLIC :     "https://login.microsoftonline.com",
+        Cloud.MOONCAKE:    "https://login.partner.microsoftonline.cn",
+        Cloud.FAIRFAX:     "https://login.microsoftonline.us",
+        Cloud.BLACKFOREST: "https://login.microsoftonline.de",
 }
 
 
 class _MyAadHelper(object):
     def __init__(self, kcsb, default_clientid, **options):
-        cloud = options.get("cloud") or "public"
+        cloud = options.get("cloud")
         if kcsb.conn_kv.get(ConnStrKeys.AAD_URL):
             aad_login_url = kcsb.conn_kv.get(ConnStrKeys.AAD_URL)
         else:
             aad_login_url = _CLOUD_AAD_URLS.get(cloud)
 
             if not aad_login_url:
-                raise KqlError("AAD is not known for this cloud {0}, please use aadurl property in connection string.".format(cloud))
+                raise KqlEngineError("AAD is not known for this cloud {0}, please use aadurl property in connection string.".format(cloud))
 
 
 

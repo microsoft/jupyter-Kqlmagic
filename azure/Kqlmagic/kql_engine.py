@@ -6,12 +6,12 @@
 import re
 import itertools
 import getpass
-from Kqlmagic.kql_proxy import KqlResponse
+from .kql_proxy import KqlResponse
 import functools
-from Kqlmagic.constants import ConnStrKeys
-from Kqlmagic.my_utils import get_valid_filename, adjust_path
-from Kqlmagic.parser import Parser
-from Kqlmagic.log import logger
+from .constants import ConnStrKeys
+from .my_utils import get_valid_filename, adjust_path
+from .parser import Parser
+from .log import logger
 
 
 

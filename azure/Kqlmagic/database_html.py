@@ -5,13 +5,13 @@
 # --------------------------------------------------------------------------
 
 import re
-from Kqlmagic.display import Display
-from Kqlmagic.kusto_engine import KustoEngine
-from Kqlmagic.ai_engine import AppinsightsEngine
-from Kqlmagic.la_engine import LoganalyticsEngine
-from Kqlmagic.cache_engine import CacheEngine
-from Kqlmagic.cache_client import CacheClient
-from Kqlmagic.help_html import Help_html
+from .display import Display
+from .kusto_engine import KustoEngine
+from .ai_engine import AppinsightsEngine
+from .la_engine import LoganalyticsEngine
+from .cache_engine import CacheEngine
+from .cache_client import CacheClient
+from .help_html import Help_html
 
 
 class Database_html(object):

@@ -7,11 +7,11 @@
 import re
 import os
 
-from Kqlmagic.kql_engine import KqlEngine, KqlEngineError
-from Kqlmagic.cache_client import CacheClient
-from Kqlmagic.kql_proxy import KqlResponse
-from Kqlmagic.constants import ConnStrKeys
-from Kqlmagic.my_utils import get_valid_filename, adjust_path
+from .kql_engine import KqlEngine, KqlEngineError
+from .cache_client import CacheClient
+from .kql_proxy import KqlResponse
+from .constants import ConnStrKeys
+from .my_utils import get_valid_filename, adjust_path
 
 
 class CacheEngine(KqlEngine):

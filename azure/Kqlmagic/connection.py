@@ -5,13 +5,13 @@
 # --------------------------------------------------------------------------
 
 import os
-from Kqlmagic.kql_engine import KqlEngineError
-from Kqlmagic.kusto_engine import KustoEngine
-from Kqlmagic.ai_engine import AppinsightsEngine
-from Kqlmagic.la_engine import LoganalyticsEngine
-from Kqlmagic.cache_engine import CacheEngine
-from Kqlmagic.display import Display
-from Kqlmagic.constants import ConnStrKeys
+from .kql_engine import KqlEngineError
+from .kusto_engine import KustoEngine
+from .ai_engine import AppinsightsEngine
+from .la_engine import LoganalyticsEngine
+from .cache_engine import CacheEngine
+from .display import Display
+from .constants import ConnStrKeys
 
 
 class ConnectionError(Exception):
@@ -25,6 +25,8 @@ class Connection(object):
 
     _ENGINES = [KustoEngine, AppinsightsEngine, LoganalyticsEngine, CacheEngine]
     _ENGINE_MAP = {}
+    
+    n = e = None
     for e in _ENGINES:
         for n in e._ALT_URI_SCHEMA_NAMES:
             _ENGINE_MAP[n] = e

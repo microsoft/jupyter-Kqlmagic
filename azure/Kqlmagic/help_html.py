@@ -69,7 +69,7 @@ class Help_html(object):
             url = None
 
         if url:
-            ip = get_ipython()  # pylint: disable=E0602
+            ip = get_ipython()  # pylint: disable=undefined-variable
             help_links = ip.kernel._trait_values["help_links"]
             found = False
             for link in help_links:

@@ -11,11 +11,11 @@ import logging
 import hashlib
 # import re
 
-from Kqlmagic.version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
-from Kqlmagic.help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
-from Kqlmagic.constants import Constants
-from Kqlmagic.my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
-from Kqlmagic.log import logger
+from .version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
+from .help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
+from .constants import Constants, Cloud
+from .my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
+from .log import logger
 
 logger().debug("kql_magic.py - import Magics, magics_class, cell_magic, line_magic, needs_local_scope from IPython.core.magic")
 from IPython.core.magic import Magics, magics_class, cell_magic, line_magic, needs_local_scope
@@ -36,48 +36,48 @@ from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate
 
 
 
-logger().debug("kql_magic.py - import ResultSet from Kqlmagic.results")
-from Kqlmagic.results import ResultSet
+logger().debug("kql_magic.py - import ResultSet from .results")
+from .results import ResultSet
 
-logger().debug("kql_magic.py - import Connection from Kqlmagic.connection")
-from Kqlmagic.connection import Connection
+logger().debug("kql_magic.py - import Connection from .connection")
+from .connection import Connection
 
 
-logger().debug("kql_magic.py - import Parser from Kqlmagic.parser")
-from Kqlmagic.parser import Parser
+logger().debug("kql_magic.py - import Parser from .parser")
+from .parser import Parser
 
-logger().debug("kql_magic.py - import Parameterizer from Kqlmagic.parameterizer")
-from Kqlmagic.parameterizer import Parameterizer
+logger().debug("kql_magic.py - import Parameterizer from .parameterizer")
+from .parameterizer import Parameterizer
 
-logger().debug("kql_magic.py - import Display from Kqlmagic.display")
-from Kqlmagic.display import Display
+logger().debug("kql_magic.py - import Display from .display")
+from .display import Display
 
-logger().debug("kql_magic.py - import Database_html from Kqlmagic.database_html")
-from Kqlmagic.database_html import Database_html
+logger().debug("kql_magic.py - import Database_html from .database_html")
+from .database_html import Database_html
 
-logger().debug("kql_magic.py - import Help_html from Kqlmagic.help_html")
-from Kqlmagic.help_html import Help_html
+logger().debug("kql_magic.py - import Help_html from .help_html")
+from .help_html import Help_html
 
-logger().debug("kql_magic.py - import KustoEngine from Kqlmagic.kusto_engine")
-from Kqlmagic.kusto_engine import KustoEngine
+logger().debug("kql_magic.py - import KustoEngine from .kusto_engine")
+from .kusto_engine import KustoEngine
 
-logger().debug("kql_magic.py - import AppinsightsEngine from Kqlmagic.ai_engine")
-from Kqlmagic.ai_engine import AppinsightsEngine
+logger().debug("kql_magic.py - import AppinsightsEngine from .ai_engine")
+from .ai_engine import AppinsightsEngine
 
-logger().debug("kql_magic.py - import LoganalyticsEngine from Kqlmagic.la_engine")
-from Kqlmagic.la_engine import LoganalyticsEngine
+logger().debug("kql_magic.py - import LoganalyticsEngine from .la_engine")
+from .la_engine import LoganalyticsEngine
 
-logger().debug("kql_magic.py - import KqlEngineError from Kqlmagic.kql_engine")
-from Kqlmagic.kql_engine import KqlEngineError
+logger().debug("kql_magic.py - import KqlEngineError from .kql_engine")
+from .kql_engine import KqlEngineError
 
-logger().debug("kql_magic.py - import Palettes, Palette from Kqlmagic.palette")
-from Kqlmagic.palette import Palettes, Palette
+logger().debug("kql_magic.py - import Palettes, Palette from .palette")
+from .palette import Palettes, Palette
 
-logger().debug("kql_magic.py - import CacheEngine from Kqlmagic.cache_engine")
-from Kqlmagic.cache_engine import CacheEngine
+logger().debug("kql_magic.py - import CacheEngine from .cache_engine")
+from .cache_engine import CacheEngine
 
-logger().debug("kql_magic.py - import CacheClient from Kqlmagic.cache_client")
-from Kqlmagic.cache_client import CacheClient
+logger().debug("kql_magic.py - import CacheClient from .cache_client")
+from .cache_client import CacheClient
 
 
 _MAGIC_NAME = "kql"
@@ -128,12 +128,12 @@ class Kqlmagic(Magics, Configurable):
         "matching section in the DSN file. Abbreviation: dl",
     )
 
-    cloud = Enum(["public", "mooncake", "fairfax", "blackforest", "usnet", "ussec"],
-            "public",
-            config=True,
-            help="Default cloud "
-            "the kql connection will use the cloud as specified "
-        )
+    cloud = Enum([Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST, Cloud.USNAT, Cloud.USSEC],
+        Cloud.PUBLIC,
+        config=True,
+        help="Default cloud "
+        "the kql connection will use the cloud as specified "
+    )
 
     # login_code_destination = Unicode("browser", config = True, help = 
     # "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
@@ -319,7 +319,7 @@ class Kqlmagic(Magics, Configurable):
 
 
 
-        ip = get_ipython()  # pylint: disable=E0602
+        ip = get_ipython()  # pylint: disable=undefined-variable
 
         # Add ourself to the list of module configurable via %config
         self.shell.configurables.append(self)

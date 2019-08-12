@@ -1,10 +1,13 @@
 {
-    "python.pythonPath": "C:\\Users\\michabin\\AppData\\Local\\Continuum\\anaconda3\\envs\\py36\\python.exe",
+    "python.pythonPath": "C:\\Users\\michabin\\AppData\\Local\\Continuum\\anaconda3\\python.exe",
     "python.condaPath": "C:\\Users\\michabin\\AppData\\Local\\Continuum\\Anaconda3\\Scripts",
     "python.terminal.activateEnvironment": true,
     "restructuredtext.confPath": "",
     "python.linting.pylintEnabled": true,
     "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\cmd.exe",
-    "terminal.integrated.shellArgs.windows": ["/K", "C:\\Users\\michabin\\AppData\\Local\\Continuum\\anaconda3\\Scripts\\activate.bat", "py36"],
-    "terminal.integrated.env.windows": {"PYTHONPATH": "C:\\MyProjects\\KqlmagicAtMicrosoftGithub\\jupyter-Kqlmagic\\azure"}
+    "terminal.integrated.shellArgs.windows": ["/K", "C:\\Users\\michabin\\AppData\\Local\\Continuum\\anaconda3\\Scripts\\activate.bat"],
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "C:\\MyProjects\\KqlmagicAtMicrosoftGithub\\jupyter-Kqlmagic\\azure"
+    },
+    "python.linting.enabled": true
 }

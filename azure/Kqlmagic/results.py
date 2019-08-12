@@ -15,6 +15,9 @@ import re
 import uuid
 import prettytable
 
+# import base64
+# from IPython.display import Image
+
 from Kqlmagic.constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
 from Kqlmagic.my_utils import get_valid_filename, adjust_path
 from Kqlmagic.column_guesser import ColumnGuesserMixin
@@ -462,6 +465,7 @@ class ResultSet(list, ColumnGuesserMixin):
         "display the chart that was specified in the query"
         options = {**self.options, **kwargs}
         window_mode = options is not None and options.get("popup_window")
+
         if window_mode and not options.get("button_text"):
             options["button_text"] = "popup " + self.visualization + ((" - " + self.title) if self.title else "") + " "
         c = self._getChartHtml(window_mode)
@@ -469,23 +473,51 @@ class ResultSet(list, ColumnGuesserMixin):
             html = Display.toHtml(**c)
             Display.show(html, **options)
         elif c.get("fig"):
-            if not ipywidgets_installed or Display.notebooks_host or options.get("notebook_app") in ["jupyterlab", "visualstudiocode", "ipython"]:
+            # if options.get("notebook_app")=="papermill" or not ipywidgets_installed or Display.notebooks_host or options.get("notebook_app") in ["jupyterlab", "visualstudiocode", "ipython"]:
+            if options.get("notebook_app")=="papermill" or not ipywidgets_installed or Display.notebooks_host or options.get("notebook_app") in ["jupyterlab", "visualstudiocode", "ipython"]:  #TODO: delete this
+
+                # if options.get("notebook_app")=="papermill":
+                #     x = self.to_image(**options)
+                #     x1= base64.b64encode(x)
+                #     s1 = x1.decode("utf-8")
+
+                #     self.display_image(s1)
+                #     return
                 plotly.offline.init_notebook_mode(connected=True)
                 plotly.offline.iplot(c.get("fig"), filename="plotlychart")
+ 
             else:
                 Display.show(c.get("fig"), **options)
         else:
             return self.show_table(**kwargs)
 
+    # def display_image(self, string):
+    #     image = "data:image/png;base64,"+ str(string)
+
+    #     html_str = (
+    #         """<html>
+    #     <head>
+    #     </head>
+    #     <body>
+    #             <div><img src='"""+image+"""'></div>
+    #     </body>
+    #     </html>"""
+    #     )
+    #     Display.show_html(html_str)
+        
     def to_image(self, **kwargs):
         "export image of the chart that was specified in the query to a file"
         params = kwargs or {}
         fig = self._getChartHtml().get("fig")
         if fig is not None:
             filename = params.get("filename")
-            filename = adjust_path(filename)
+            # filename = adjust_path(filename) if filename else None
+            
+            filename = adjust_path(filename) #TODO: delete this
+
             image = self._export_chart_image_plotly(fig, filename, **kwargs)
-            return FileResultDescriptor(image, message="image results", format=params.get("format"), show=params.get("show"))
+            # return image
+            return FileResultDescriptor(image, message="image results", format=params.get("format"), show=params.get("show")) #TODO: delete this
 
     def _export_chart_image_plotly(self, fig, file, **kwargs):
         params = kwargs or {}
@@ -493,7 +525,7 @@ class ResultSet(list, ColumnGuesserMixin):
             plotly.io.write_image(
                 fig, file, format=params.get("format"), scale=params.get("scale"), width=params.get("width"), height=params.get("height")
             )
-            return file
+            return file        
         else:
             return plotly.io.to_image(
                 fig, format=params.get("format"), scale=params.get("scale"), width=params.get("width"), height=params.get("height")

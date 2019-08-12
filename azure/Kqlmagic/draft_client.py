@@ -41,14 +41,61 @@ class DraftClient(object):
     _API_VERSION = "v1"
     _GET_SCHEMA_QUERY = ".show schema"
 
-    def __init__(self, conn_kv: dict, domain: str, data_source: str):
+    _CLOUD_AAD_URLS_APPINSIGHTS={
+    "public": "https://api.applicationinsights.io",
+    "mooncake":"https://api.applicationinsights.azure.cn",
+    "fairfax":"https://api.applicationinsights.us",
+    "blackforest":"https://api.applicationinsights.de",
+}
+    _CLOUD_AAD_URLS_LOGANALYTICS={
+        "public": "https://api.loganalytics.io",
+        "mooncake":"https://api.loganalytics.azure.cn",
+        "fairfax":"https://api.loganalytics.us",
+        "blackforest":"https://api.loganalytics.de",
+    }
+
+
+    _CLOUD_AAD_URLS = {
+        "applicationinsights" : _CLOUD_AAD_URLS_APPINSIGHTS,
+        "loganalytics" : _CLOUD_AAD_URLS_LOGANALYTICS
+    }
+
+    def __init__(self, conn_kv: dict, domain: str, data_source: str, **options):
         self._domain = domain
-        self._data_source = data_source
+
+
+        if conn_kv.get(ConnStrKeys.DATA_SOURCE_URL):
+            self._data_source =  conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)  
+            logger().debug("draft_client.py :: __init__ :  self._data_source from conn_kv[\"datasourceurl\"]: {0}".format(self._data_source))
+
+        else:
+            cloud = options.get("cloud")
+            if data_source.find("loganalytics") >= 0:
+                service = "loganalytics"
+
+            elif data_source.find("applicationinsights") >= 0:
+                service = "applicationinsights"
+                logger().debug("draft_client.py :: __init__ :  self._data_source from conn_kv[\"datasourceurl\"]: {0}".format(self._data_source))
+
+            else:
+                raise KqlError("the service  is unknown")
+            self._data_source = self._CLOUD_AAD_URLS.get(service).get(cloud)
+                
+            if not self._data_source:
+                raise KqlError("the service {0} is not supported in cloud {1}".format(service, cloud))
+
+
+        logger().debug("draft_client.py :: __init__ :  conn_kv[\"datasourceurl\"]: {0}".format(conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)))
+
         self._appkey = conn_kv.get(ConnStrKeys.APPKEY)
+        logger().debug("draft_client.py :: __init__ :  self._appkey: {0}".format(self._appkey))
+
+
         if self._appkey is None and conn_kv.get(ConnStrKeys.ANONYMOUS) is None:
-            self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID)
+            self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID, **options)
         else:
             self._aad_helper = None
+        logger().debug("""draft_client.py :: __init__ :  self._aad_helper: {0} ;""".format(self._aad_helper ))
 
     def execute(self, id: str, query: str, accept_partial_results: bool = False, **options) -> object:
         """ Execute a simple query or a metadata query

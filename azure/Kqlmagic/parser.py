@@ -32,7 +32,7 @@ class Parser(object):
          # split to max 2 parts. First part, parts[0], is the first string.
         # parts = [part.strip() for part in cell.split(None, 1)]
         parts = split_lex(cell)
-
+        
         # print(parts)
         if not parts:
             parsed_queries.append({"connection": "", "query": "", "options": {}, "command": {}})
@@ -380,7 +380,16 @@ class Parser(object):
         "addkqlreftohelp": {"flag": "add_kql_ref_to_help", "readonly": "True", "config": "config.add_kql_ref_to_help"},
         "addschematohelp": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
         "notebookapp": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
+
+
+
         "testnotebookapp": {"flag": "test_notebook_app", "readonly": "True", "config": "config.test_notebook_app"},
+        "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},
+
+        # "logincodedestination": {"flag": "login_code_destination", "type": "str", "config": "config.login_code_destination"},
+
+        # "codenotificationemail": {"flag": "code_notification_email", "readonly": "True", "config": "config.code_notification_email"},
+
         "saveas": {"flag": "save_as", "type": "str", "init": "None"},
         "saveto": {"flag": "save_to", "type": "str", "init": "None"},
         "query": {"flag": "query", "type": "str", "init": "None"},
@@ -487,7 +496,7 @@ class Parser(object):
                 saved = eval(option_config)
                 exec(option_config + "=" + (template.format(str(options[opt_key]).replace("'", "\\'")) if options[opt_key] is not None else "None"))
                 exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else "None"))
-
+            
         if not key_state:
             raise ValueError("last option is missing parameter")
 
@@ -507,9 +516,9 @@ class Parser(object):
         matched_kv = {}
         rest = conn_str
         delimiter_required = False
-        lp_idx = rest.find("(")
-        eq_idx = rest.find("=")
-        sc_idx = rest.find(";")
+        lp_idx = rest.find("(") 
+        eq_idx = rest.find("=") 
+        sc_idx = rest.find(";") 
         l_char = "(" if eq_idx < 0 and sc_idx < 0 else "=" if lp_idx < 0 else "(" if lp_idx < eq_idx and lp_idx < sc_idx else "="
         r_char = ")" if l_char == "(" else ";"
         extra_delimiter = None if r_char == ";" else "."

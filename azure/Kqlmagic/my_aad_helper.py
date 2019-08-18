@@ -100,12 +100,13 @@ class _MyAadHelper(object):
         username_SSO = key_vals_SSO.get("username")  
         secret_key_SSO = key_vals_SSO.get("secretkey")
         uuid_salt = key_vals_SSO.get("uuid")
+        if uuid_salt and secret_key_SSO:
         try:
             uuid_salt = UUID(uuid_salt, version=4)
         except ValueError:
             raise ValueError("please enter a valid uuid for enabling SSO")
 
-        if  len(secret_key_SSO)<8:
+            if len(secret_key_SSO)<8:
             raise ValueError("the secret key you have entered is too short. please use at least 8 characters.")
 
         salt_bytes = str(uuid_salt).encode()

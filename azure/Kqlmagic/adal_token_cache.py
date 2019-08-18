@@ -6,12 +6,24 @@
 import json
 import threading
 
+import time
+
+import base64
+import os
+from cryptography.fernet import Fernet
+from cryptography.fernet import InvalidToken
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+from Kqlmagic.log import logger
 from adal.constants import TokenResponseFields
 
 def _string_cmp(str1, str2):
     '''Case insensitive comparison. Return true if both are None'''
-    str1 = str1 if str1 is not None else ''
-    str2 = str2 if str2 is not None else ''
+    str1 = str1 or ''
+    str2 = str2 or ''
     return str1.lower() == str2.lower()
 
 class AdalTokenCacheKey(object): # pylint: disable=too-few-public-methods
@@ -44,11 +56,33 @@ def _get_cache_key(entry):
 
 
 class AdalTokenCache(object):
-    def __init__(self, state=None):
-        ip = get_ipython()  # pylint: disable=undefined-variable
+    def __init__(self, user_id, encryption_key,salt, state=None):
+        ip = get_ipython()  # pylint: disable=E0602
         self.db = ip.db
         self._cache = {}
         self._lock = threading.RLock()
+
+        self.user_id = user_id
+        self.salt  = salt
+        self.encryption_key = encryption_key
+
+        #init fernet
+        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(),length=34,salt=salt,iterations=100000,backend=default_backend())
+        encryption_key_as_bytes = str.encode(self.encryption_key)
+        key = kdf.derive(encryption_key_as_bytes)
+        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(),length=34,salt=salt,iterations=100000,backend=default_backend()) #PBKDF2 instances can only be used once
+        kdf.verify(encryption_key_as_bytes, key)
+        
+
+        last_two_bytes = [b for b in key[-2:]]
+        result = last_two_bytes[0]*256 + last_two_bytes[1]
+
+        self.user_id = user_id + str(result)
+        key = key[:-2]
+        key = base64.urlsafe_b64encode(key)
+        
+        self.key = key
+        self.fernet = Fernet(key)
         if state:
             self.deserialize(state)
         else:
@@ -58,7 +92,6 @@ class AdalTokenCache(object):
 
     def find(self, query):
         with self._lock:
-            # print("--##-- find token --##--")
             return self._query_cache(
                 query.get(TokenResponseFields.IS_MRRT), 
                 query.get(TokenResponseFields.USER_ID), 
@@ -66,7 +99,6 @@ class AdalTokenCache(object):
 
     def remove(self, entries):
         with self._lock:
-            # print("--##-- remove token --##--")
             for e in entries:
                 key = _get_cache_key(e)
                 removed = self._cache.pop(key, None)
@@ -76,7 +108,6 @@ class AdalTokenCache(object):
 
     def add(self, entries):
         with self._lock:
-            # print("--##-- add token --##--")
             for e in entries:
                 key = _get_cache_key(e)
                 self._cache[key] = e
@@ -117,14 +148,45 @@ class AdalTokenCache(object):
                 matches.append(v)
         return matches
 
+    def clear_db(self):
+
+        items = self.db.items()
+
+        for token_tuple in items:
+
+            db_key = token_tuple[0] # 'kqlmagicstore/tokens/USER_ID' address
+            data = token_tuple[1] #encrypted token
+            time_created, _unused = Fernet._get_unverified_token_data(data)  #get token timestamp 
+            EXP_TIME = 1000 #in seconds
+            if(time_created <time.time()- EXP_TIME):
+                del self.db[db_key]
+
     def _save(self):
+        ####
+        self.clear_db()
+        #####
         data = self.serialize()
-        self.db['kqlmagicstore/tokens'] = data
+        data_as_bytes = data.encode()
+
+        #init fernet
+        fernet = self.fernet
+
+        #encrypt 
+        data_encrypted = fernet.encrypt(data_as_bytes)
+        
+        self.db['kqlmagicstore/tokens/'+ str(self.user_id)] = data_encrypted
 
     def _restore(self):
         try:
-            data = self.db['kqlmagicstore/tokens']
+            data_encrypted = self.db['kqlmagicstore/tokens/'+ str(self.user_id)]
+            fernet = self.fernet
+
+            #decrypt
+            data_decrypted_as_bytes = fernet.decrypt(data_encrypted)
+            data = data_decrypted_as_bytes.decode()
         except KeyError:
-            print("no stored tokens")
-        else:
-            self.deserialize(data)
+            # print("no stored tokens")
+            return
+        except InvalidToken:
+            return
+        self.deserialize(data)

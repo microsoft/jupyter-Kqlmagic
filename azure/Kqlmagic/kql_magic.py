@@ -195,10 +195,10 @@ class Kqlmagic(Magics, Configurable):
         return proposal["value"].lower()
 
     def validate_login_code(self, dest):
-
-        if (dest != "browser") and (dest !="email"):
+        
+        if dest not in ["email", "browser", "browser_in_server"]:
                 raise ValueError(
-                    "must be either \"browser\" or \"email\", but a value of {0} was specified.".format(dest)
+                   f"must be \"browser\" or \"email\" or \"browser_in_server\", but a value of {dest} was specified.")
                 )
 
 

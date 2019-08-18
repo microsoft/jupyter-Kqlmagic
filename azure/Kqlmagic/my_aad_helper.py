@@ -14,6 +14,8 @@ from datetime import timedelta, datetime
 from six.moves.urllib.parse import urlparse
 import re
 
+import webbrowser
+import pyperclip
 import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
@@ -136,27 +138,32 @@ class _MyAadHelper(object):
             logger().debug("_MyAadHelper::acquire_token - aad/client-secret - resource: '%s', client: '%s', secret: '...'", self._resource, self._client_id)
             token = self._adal_context.acquire_token_with_client_credentials(self._resource, self._client_id, self._client_secret)
         elif self._authentication_method is AuthenticationMethod.aad_device_login:
-            # print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
-            # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
-            # token = self._adal_context.acquire_token_with_device_code(
-            #     self._resource, code, self._client_id
-            # )
             logger().debug("_MyAadHelper::acquire_token - aad/code - resource: '%s', client: '%s'", self._resource, self._client_id)
             code: dict = self._adal_context.acquire_user_code(self._resource, self._client_id)
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
             
             if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
-                raise Exception("error: using papermill without an email specified is not supported")
+                raise Exception("error: using papermill is only supported with the email option or browser in server option. Choose between: login_code_destination=\"browser_in_server\" or login_code_destination=\"email\" ")
 
-            if options.get("login_code_destination") =="email":
+
+            if options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser_in_server":
+                print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
+                webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                pyperclip.copy(device_code)
+                token = self._adal_context.acquire_token_with_device_code(
+                    self._resource, code, self._client_id)
+                return self._get_header(token)
+
+                
+
+            if options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="email":
                 email_message = "Copy code: "+ device_code + " and authenticate in: " + url
 
                 kv = Parser.parse_and_get_kv_string(os.getenv("KQLMAGIC_CODE_NOTIFICATION_EMAIL"), {})
                 
                 self.send_email(email_message, kv)
                
-
             else:
                 html_str = (
                     """<!DOCTYPE html>

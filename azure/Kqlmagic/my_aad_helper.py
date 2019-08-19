@@ -13,7 +13,6 @@ from datetime import timedelta, datetime
 
 from six.moves.urllib.parse import urlparse
 # import re
-from uuid import UUID
 
 import dateutil.parser
 from adal import AuthenticationContext
@@ -22,7 +21,7 @@ from .constants import Constants, Cloud
 from .log import logger
 from .display import Display
 from .constants import ConnStrKeys
-from .adal_token_cache import AdalTokenCache
+from Kqlmagic.adal_token_cache import AdalTokenCache
 from .kql_engine import KqlEngineError
 
 from .parser import Parser
@@ -94,25 +93,13 @@ class _MyAadHelper(object):
         client_id = kcsb.application_client_id or default_clientid
         self._resource = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
         token_cache = None
-        SSO_id_enc_key = os.getenv("{0}_ENABLE_SSO".format(Constants.MAGIC_CLASS_NAME.upper()))
-        key_vals_SSO = Parser.parse_and_get_kv_string(SSO_id_enc_key, {}) if SSO_id_enc_key else {}
 
-        username_SSO = key_vals_SSO.get("username")  
-        secret_key_SSO = key_vals_SSO.get("secretkey")
-        uuid_salt = key_vals_SSO.get("uuid")
-        if uuid_salt and secret_key_SSO:
-        try:
-            uuid_salt = UUID(uuid_salt, version=4)
-        except ValueError:
-            raise ValueError("please enter a valid uuid for enabling SSO")
-
-            if len(secret_key_SSO)<8:
-            raise ValueError("the secret key you have entered is too short. please use at least 8 characters.")
-
-        salt_bytes = str(uuid_salt).encode()
-    
-        if username_SSO and secret_key_SSO and salt_bytes:
-            token_cache = AdalTokenCache(username_SSO, secret_key_SSO, salt_bytes)
+        SSO_encrypt_keys = AdalTokenCache.get_params_SSO()
+        if SSO_encrypt_keys[0] and options.get("enablesso"):
+            username_SSO = SSO_encrypt_keys[1]
+            secret_key_SSO = SSO_encrypt_keys[2]
+            salt_bytes = SSO_encrypt_keys[3]
+            token_cache = AdalTokenCache(username_SSO, secret_key_SSO, salt_bytes, options.get("tokencleanuptime"))
 
         self._adal_context = AuthenticationContext("{0}/{1}".format(aad_login_url, authority), cache=token_cache)
         self._username = None

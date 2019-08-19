@@ -18,7 +18,19 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from Kqlmagic.log import logger
+from Kqlmagic.parser import Parser
+from uuid import UUID
+from password_strength import PasswordPolicy
+
+from password_strength import tests
+
+from Kqlmagic.display import Display
+
+from Kqlmagic.constants import Constants
+
+
 from adal.constants import TokenResponseFields
+TIME_BETWEEN_CLEANUPS = 3600 #an hour in seconds
 
 def _string_cmp(str1, str2):
     '''Case insensitive comparison. Return true if both are None'''
@@ -56,15 +68,30 @@ def _get_cache_key(entry):
 
 
 class AdalTokenCache(object):
-    def __init__(self, user_id, encryption_key,salt, state=None):
-        ip = get_ipython()  # pylint: disable=E0602
+    LAST_CLEAR_TIME = int(time.time())
+
+    def __init__(self, user_id, encryption_key,salt,token_exp_time, state=None):
+
+        ip = get_ipython()  # pylint: disable=undefined-variable
         self.db = ip.db
         self._cache = {}
         self._lock = threading.RLock()
 
+
+        self.init_fernet(user_id, encryption_key, salt)
+        self.token_exp_time = token_exp_time
+
+        if state:
+            self.deserialize(state)
+        else:
+            self._restore()
+        self.has_state_changed = False
+
+
+    def init_fernet(self, user_id, encryption_key, salt):
         self.user_id = user_id
         self.salt  = salt
-        self.encryption_key = encryption_key
+        self.encryption_key = user_id + encryption_key
 
         #init fernet
         kdf = PBKDF2HMAC(algorithm=hashes.SHA256(),length=34,salt=salt,iterations=100000,backend=default_backend())
@@ -80,15 +107,9 @@ class AdalTokenCache(object):
         self.user_id = user_id + str(result)
         key = key[:-2]
         key = base64.urlsafe_b64encode(key)
-        
+
         self.key = key
         self.fernet = Fernet(key)
-        if state:
-            self.deserialize(state)
-        else:
-            self._restore()
-        self.has_state_changed = False
-
 
     def find(self, query):
         with self._lock:
@@ -155,16 +176,21 @@ class AdalTokenCache(object):
         for token_tuple in items:
 
             db_key = token_tuple[0] # 'kqlmagicstore/tokens/USER_ID' address
+            user_id = db_key[len("kqlmagicstore/tokens/"):]
+
             data = token_tuple[1] #encrypted token
-            time_created, _unused = Fernet._get_unverified_token_data(data)  #get token timestamp 
-            EXP_TIME = 1000 #in seconds
-            if(time_created <time.time()- EXP_TIME):
-                del self.db[db_key]
+            if not data:
+                return
+            try:
+                time_created, _unused = Fernet._get_unverified_token_data(data)  #get token timestamp 
+            except InvalidToken:
+                Display.showWarningMessage("Warning: found an illegal token, deleting the token")
+                del self.db["kqlmagicstore/tokens/" + user_id ]
+            EXP_TIME = self.token_exp_time  
+            if(time_created +EXP_TIME < int(time.time()) ):
+                del self.db["kqlmagicstore/tokens/" + user_id ]
 
     def _save(self):
-        ####
-        self.clear_db()
-        #####
         data = self.serialize()
         data_as_bytes = data.encode()
 
@@ -177,16 +203,73 @@ class AdalTokenCache(object):
         self.db['kqlmagicstore/tokens/'+ str(self.user_id)] = data_encrypted
 
     def _restore(self):
-        try:
-            data_encrypted = self.db['kqlmagicstore/tokens/'+ str(self.user_id)]
-            fernet = self.fernet
 
-            #decrypt
-            data_decrypted_as_bytes = fernet.decrypt(data_encrypted)
-            data = data_decrypted_as_bytes.decode()
-        except KeyError:
-            # print("no stored tokens")
+        if(AdalTokenCache.LAST_CLEAR_TIME + TIME_BETWEEN_CLEANUPS < int(time.time()) ):
+            AdalTokenCache.LAST_CLEAR_TIME = int(time.time())
+            self.clear_db()
+
+        data_encrypted = self.db.get('kqlmagicstore/tokens/'+ str(self.user_id))
+        if not data_encrypted:
             return
-        except InvalidToken:
+        fernet = self.fernet
+        try:
+            data_decrypted_as_bytes = fernet.decrypt(data_encrypted)   
+        except InvalidToken: #Either token has bad form or it cannot be decrypted
+            try: 
+                Fernet._get_unverified_token_data(data_encrypted)
+            except: #the token has bad form
+                Display.showWarningMessage("Warning: found an illegal token, deleting the token")
+                del self.db['kqlmagicstore/tokens/'+ str(self.user_id)]
+                return
+            Display.showWarningMessage("Invalid token, could not activate Single Sign On") #the token cannot be decrypted
             return
+        data = data_decrypted_as_bytes.decode()
         self.deserialize(data)
+
+    
+    @staticmethod
+    def get_params_SSO(): #pylint: disable=no-method-argument
+        SSO_id_enc_key = os.getenv("{0}_SSO_ENCRYPTION_KEYS".format(Constants.MAGIC_CLASS_NAME.upper()))
+        key_vals_SSO = Parser.parse_and_get_kv_string(SSO_id_enc_key, {}) if SSO_id_enc_key else {}
+
+        username_SSO = key_vals_SSO.get("username")  
+        secret_key_SSO = key_vals_SSO.get("secretkey")
+        uuid_salt = key_vals_SSO.get("uuid")
+        if uuid_salt and secret_key_SSO:
+            try:
+                uuid_salt = UUID(uuid_salt, version=4)
+            except ValueError:
+                raise ValueError("please enter a valid uuid (version 4) for enabling SSO")
+
+            hint = check_password_strength(secret_key_SSO)
+            if hint:
+                raise ValueError(hint)
+
+        salt_bytes = str(uuid_salt).encode()
+    
+        if username_SSO and secret_key_SSO and salt_bytes:
+            return (True, username_SSO, secret_key_SSO, salt_bytes)
+        else:
+            return (False, username_SSO, secret_key_SSO, salt_bytes)
+
+def check_password_strength(password):
+    password_hints = {
+            tests.Length: "please use at least 8 characters.",
+            tests.Uppercase: "please use at least one uppercase letter.",
+            tests.Numbers: "please use at least 2 digits.",
+            tests.NonLetters: "please use at least one non-letter character"
+        }
+    policy = PasswordPolicy.from_names(
+            length=8,  # min length: 8
+            uppercase=1,  # need min. 1 uppercase letters
+            numbers=2,  # need min. 2 digits
+            nonletters=1,  # need min. 2 non-letter characters (digits, specials, anything) 
+            )
+    results = policy.test(password)
+    if len(results)>0:
+        hint = "The secret key you have entered is too easy: " + os.linesep 
+        for i,policy in enumerate(results,1):
+            hint= hint+ str(i)+". "+ password_hints.get(type(policy)) + os.linesep            
+        return hint
+    return None
+    

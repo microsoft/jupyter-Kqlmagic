@@ -135,6 +135,10 @@ class Kqlmagic(Magics, Configurable):
         "the kql connection will use the cloud as specified "
     )
 
+
+    enablesso = Bool(True, config = True, help="enbale or disable SSO")
+    
+    token_cleanup_time = Int(3600, config=True,help= "specifies the time for a token to expire (to be deleted later, if SSO is enabled), in seconds. default is one hour.")
     # login_code_destination = Unicode("browser", config = True, help = 
     # "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
 
@@ -630,7 +634,7 @@ class Kqlmagic(Magics, Configurable):
             elif self.short_errors:
                 Display.showDangerMessage(str(e))
                 return None
-            raise
+            raise 
 
     def _get_connection_info(self, **options):
         mode = options.get("show_conn_info", self.show_conn_info)

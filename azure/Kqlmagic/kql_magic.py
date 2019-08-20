@@ -148,6 +148,9 @@ class Kqlmagic(Magics, Configurable):
     )
     enable_suppress_result = Bool(True, config=True, help="Suppress result when magic ends with a semicolon ;. Abbreviation: esr")
     show_query_time = Bool(True, config=True, help="Print query execution elapsed time. Abbreviation: sqt")
+
+    display_parametrized_query = Bool(True, config=True, help="display parametrized query")
+
     plotly_fs_includejs = Bool(
         False,
         config=True,
@@ -744,8 +747,10 @@ class Kqlmagic(Magics, Configurable):
             start_time = time.time()
 
             params_dict = options.get("params_dict") or user_ns
-            parametrized_query = Parameterizer(params_dict).expand(query) if result_set is None else result_set.parametrized_query
+            parametrized_query_dict = Parameterizer(params_dict).expand(query) if result_set is None else result_set.parametrized_query
+            parametrized_query = parametrized_query_dict.get('parametrized_query')
             raw_query_result = conn.execute(parametrized_query, user_ns, **options)
+
 
             end_time = time.time()
 
@@ -763,7 +768,7 @@ class Kqlmagic(Magics, Configurable):
             if result_set is None:
                 fork_table_id = 0
                 saved_result = ResultSet(
-                    raw_query_result, parametrized_query, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options
+                    raw_query_result, parametrized_query_dict, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options
                 )
                 saved_result.metadata["magic"] = self
                 saved_result.metadata["parsed"] = parsed
@@ -773,6 +778,12 @@ class Kqlmagic(Magics, Configurable):
                 saved_result = result_set.fork_result(0)
                 saved_result.feedback_info = []
                 saved_result._update(raw_query_result)
+
+            parametrized_query_str = parametrized_query_dict.get('query_management_prefix')  + ";"
+            for statement in parametrized_query_dict.get('statements'):
+                parametrized_query_str+=statement + os.linesep
+
+            saved_result.metadata["parametrized_query"] = parametrized_query_str
 
             result = saved_result
 
@@ -846,6 +857,7 @@ class Kqlmagic(Magics, Configurable):
 
             if result == saved_result:
                 result = saved_result.fork_result(fork_table_id)
+
             return result
 
         except Exception as e:

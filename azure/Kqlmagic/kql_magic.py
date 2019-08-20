@@ -199,7 +199,7 @@ class Kqlmagic(Magics, Configurable):
         if dest not in ["email", "browser", "browser_in_server"]:
                 raise ValueError(
                    f"must be \"browser\" or \"email\" or \"browser_in_server\", but a value of {dest} was specified.")
-                )
+
 
 
     @validate("palette_name")

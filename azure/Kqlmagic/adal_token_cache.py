@@ -68,9 +68,10 @@ def _get_cache_key(entry):
 
 
 class AdalTokenCache(object):
-    LAST_CLEAR_TIME = int(time.time())
+    last_clear_time = int(time.time())
+    key_prefix_db = f"{Constants.MAGIC_CLASS_NAME.lower()}store/tokens/"
 
-    def __init__(self, user_id, encryption_key,salt,token_exp_time, state=None):
+    def __init__(self, SSO_keys, state=None):
 
         ip = get_ipython()  # pylint: disable=undefined-variable
         self.db = ip.db
@@ -78,8 +79,14 @@ class AdalTokenCache(object):
         self._lock = threading.RLock()
 
 
-        self.init_fernet(user_id, encryption_key, salt)
-        self.token_exp_time = token_exp_time
+        cachename = SSO_keys.get("cachename")
+        token_exp_time = SSO_keys.get("token_cleanup_time")
+        salt = SSO_keys.get("salt_bytes")
+        encryption_key = SSO_keys.get("secret_key")
+
+
+        self.init_fernet(cachename, encryption_key, salt)
+        self.token_exp_time = token_exp_time * 3600 #convert from hours to seconds
 
         if state:
             self.deserialize(state)
@@ -88,10 +95,10 @@ class AdalTokenCache(object):
         self.has_state_changed = False
 
 
-    def init_fernet(self, user_id, encryption_key, salt):
-        self.user_id = user_id
+    def init_fernet(self, cachename, encryption_key, salt):
+        self.cachename = cachename
         self.salt  = salt
-        self.encryption_key = user_id + encryption_key
+        self.encryption_key = cachename + encryption_key
 
         #init fernet
         kdf = PBKDF2HMAC(algorithm=hashes.SHA256(),length=34,salt=salt,iterations=100000,backend=default_backend())
@@ -104,7 +111,7 @@ class AdalTokenCache(object):
         last_two_bytes = [b for b in key[-2:]]
         result = last_two_bytes[0]*256 + last_two_bytes[1]
 
-        self.user_id = user_id + str(result)
+        self.cachename = cachename + str(result)
         key = key[:-2]
         key = base64.urlsafe_b64encode(key)
 
@@ -172,12 +179,12 @@ class AdalTokenCache(object):
     def clear_db(self):
 
         items = self.db.items()
-
+        
         for token_tuple in items:
 
-            db_key = token_tuple[0] # 'kqlmagicstore/tokens/USER_ID' address
-            user_id = db_key[len("kqlmagicstore/tokens/"):]
+            db_key = token_tuple[0] # 'kqlmagicstore/tokens/cachename' address
 
+            cachename = db_key[len(AdalTokenCache.key_prefix_db):]
             data = token_tuple[1] #encrypted token
             if not data:
                 return
@@ -185,10 +192,10 @@ class AdalTokenCache(object):
                 time_created, _unused = Fernet._get_unverified_token_data(data)  #get token timestamp 
             except InvalidToken:
                 Display.showWarningMessage("Warning: found an illegal token, deleting the token")
-                del self.db["kqlmagicstore/tokens/" + user_id ]
+                del self.db[f"{AdalTokenCache.key_prefix_db}{cachename}"]
             EXP_TIME = self.token_exp_time  
             if(time_created +EXP_TIME < int(time.time()) ):
-                del self.db["kqlmagicstore/tokens/" + user_id ]
+                del self.db[f"{AdalTokenCache.key_prefix_db}{cachename}"]
 
     def _save(self):
         data = self.serialize()
@@ -200,15 +207,15 @@ class AdalTokenCache(object):
         #encrypt 
         data_encrypted = fernet.encrypt(data_as_bytes)
         
-        self.db['kqlmagicstore/tokens/'+ str(self.user_id)] = data_encrypted
+        self.db[f"{AdalTokenCache.key_prefix_db}{self.cachename}"] = data_encrypted
 
     def _restore(self):
 
-        if(AdalTokenCache.LAST_CLEAR_TIME + TIME_BETWEEN_CLEANUPS < int(time.time()) ):
-            AdalTokenCache.LAST_CLEAR_TIME = int(time.time())
+        if(AdalTokenCache.last_clear_time + TIME_BETWEEN_CLEANUPS < int(time.time()) ):
+            AdalTokenCache.last_clear_time = int(time.time())
             self.clear_db()
 
-        data_encrypted = self.db.get('kqlmagicstore/tokens/'+ str(self.user_id))
+        data_encrypted = self.db.get(f"{AdalTokenCache.key_prefix_db}{self.cachename}")
         if not data_encrypted:
             return
         fernet = self.fernet
@@ -219,38 +226,47 @@ class AdalTokenCache(object):
                 Fernet._get_unverified_token_data(data_encrypted)
             except: #the token has bad form
                 Display.showWarningMessage("Warning: found an illegal token, deleting the token")
-                del self.db['kqlmagicstore/tokens/'+ str(self.user_id)]
+                del self.db[f"{AdalTokenCache.key_prefix_db}{self.cachename}"]
                 return
             Display.showWarningMessage("Invalid token, could not activate Single Sign On") #the token cannot be decrypted
             return
         data = data_decrypted_as_bytes.decode()
         self.deserialize(data)
 
-    
     @staticmethod
-    def get_params_SSO(): #pylint: disable=no-method-argument
+    def get_params_SSO(**options): #pylint: disable=no-method-argument
+
         SSO_id_enc_key = os.getenv("{0}_SSO_ENCRYPTION_KEYS".format(Constants.MAGIC_CLASS_NAME.upper()))
         key_vals_SSO = Parser.parse_and_get_kv_string(SSO_id_enc_key, {}) if SSO_id_enc_key else {}
 
-        username_SSO = key_vals_SSO.get("username")  
+        cachename_SSO = key_vals_SSO.get("cachename")  
         secret_key_SSO = key_vals_SSO.get("secretkey")
         uuid_salt = key_vals_SSO.get("uuid")
+        token_cleanup_time = options.get('token_cleanup_time')
         if uuid_salt and secret_key_SSO:
             try:
                 uuid_salt = UUID(uuid_salt, version=4)
             except ValueError:
-                raise ValueError("please enter a valid uuid (version 4) for enabling SSO")
+                Display.showWarningMessage("SSO could not be activated. please enter a valid uuid (version 4) for enabling SSO")
+                return
 
             hint = check_password_strength(secret_key_SSO)
             if hint:
-                raise ValueError(hint)
+                Display.showWarningMessage(hint)
+                return
 
         salt_bytes = str(uuid_salt).encode()
+
+
     
-        if username_SSO and secret_key_SSO and salt_bytes:
-            return (True, username_SSO, secret_key_SSO, salt_bytes)
+        if cachename_SSO and secret_key_SSO and salt_bytes:
+            return {"cachename": cachename_SSO,
+            "secret_key": secret_key_SSO,
+            "salt_bytes": salt_bytes,
+            "token_cleanup_time": token_cleanup_time}
         else:
-            return (False, username_SSO, secret_key_SSO, salt_bytes)
+            Display.showWarningMessage(f"SSO could not be activated. the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is not properly set.")
+            return None
 
 def check_password_strength(password):
     password_hints = {
@@ -267,7 +283,7 @@ def check_password_strength(password):
             )
     results = policy.test(password)
     if len(results)>0:
-        hint = "The secret key you have entered is too easy: " + os.linesep 
+        hint = "SSO could not be activated. The secret key you have entered is too simple: " + os.linesep 
         for i,policy in enumerate(results,1):
             hint= hint+ str(i)+". "+ password_hints.get(type(policy)) + os.linesep            
         return hint

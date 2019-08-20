@@ -390,9 +390,9 @@ class Parser(object):
         "testnotebookapp": {"flag": "test_notebook_app", "readonly": "True", "config": "config.test_notebook_app"},
 
         "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},
-        "enablesso": {"flag": "enablesso", "type": "bool", "config": "config.enablesso"},
+        "enablesso": {"flag": "enable_sso", "type": "bool", "config": "config.enable_sso"},
 
-        "tokencleanuptime": {"flag": "enablesso", "type": "bool", "config": "config.token_cleanup_time"},
+        "tokencleanuptime": {"flag": "token_cleanup_time", "type": "int", "config": "config.token_cleanup_time"},
         # "logincodedestination": {"flag": "login_code_destination", "type": "str", "config": "config.login_code_destination"},
 
         # "codenotificationemail": {"flag": "code_notification_email", "readonly": "True", "config": "config.code_notification_email"},

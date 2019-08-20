@@ -94,12 +94,10 @@ class _MyAadHelper(object):
         self._resource = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
         token_cache = None
 
-        SSO_encrypt_keys = AdalTokenCache.get_params_SSO()
-        if SSO_encrypt_keys[0] and options.get("enablesso"):
-            username_SSO = SSO_encrypt_keys[1]
-            secret_key_SSO = SSO_encrypt_keys[2]
-            salt_bytes = SSO_encrypt_keys[3]
-            token_cache = AdalTokenCache(username_SSO, secret_key_SSO, salt_bytes, options.get("tokencleanuptime"))
+        if options.get("enable_sso"):
+                SSO_encrypt_keys = AdalTokenCache.get_params_SSO(**options)
+                if SSO_encrypt_keys:
+                    token_cache = AdalTokenCache(SSO_encrypt_keys)
 
         self._adal_context = AuthenticationContext("{0}/{1}".format(aad_login_url, authority), cache=token_cache)
         self._username = None

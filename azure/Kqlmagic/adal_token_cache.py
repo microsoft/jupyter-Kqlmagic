@@ -237,12 +237,14 @@ class AdalTokenCache(object):
     def get_params_SSO(**options): #pylint: disable=no-method-argument
 
         SSO_id_enc_key = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS")
+        if not SSO_id_enc_key:
+            Display.showWarningMessage(f"Warning: SSO is not activated because environment variable {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is not set")
+            return None
         key_vals_SSO = Parser.parse_and_get_kv_string(SSO_id_enc_key, {}) if SSO_id_enc_key else {}
-
         cachename_SSO = key_vals_SSO.get("cachename")  
         secret_key_SSO = key_vals_SSO.get("secretkey")
-        uuid_salt = key_vals_SSO.get("secret_salt_uuid")
-        sso_cleanup_interval = options.get('sso_cleanup_interval')
+        uuid_salt = key_vals_SSO.get("secretsaltuuid")
+        sso_cleanup_interval = options.get('ssocleanupinterval')
         if uuid_salt and secret_key_SSO:
             try:
                 uuid_salt = UUID(uuid_salt, version=4)
@@ -256,9 +258,6 @@ class AdalTokenCache(object):
                 return
 
         salt_bytes = str(uuid_salt).encode()
-
-
-    
         if cachename_SSO and secret_key_SSO and salt_bytes:
             return {"cachename": cachename_SSO,
             "secret_key": secret_key_SSO,

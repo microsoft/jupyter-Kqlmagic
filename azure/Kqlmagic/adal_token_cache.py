@@ -191,8 +191,7 @@ class AdalTokenCache(object):
             try:
                 time_created, _unused = Fernet._get_unverified_token_data(data)  #get token timestamp 
             except InvalidToken:
-                Display.showWarningMessage("Warning: found an illegal token, deleting the token")
-                del self.db[f"{AdalTokenCache.key_prefix_db}{cachename}"]
+                continue
             EXP_TIME = self.token_exp_time  
             if(time_created +EXP_TIME < int(time.time()) ):
                 del self.db[f"{AdalTokenCache.key_prefix_db}{cachename}"]

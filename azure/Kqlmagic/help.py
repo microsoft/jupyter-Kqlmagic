@@ -297,9 +297,9 @@ he would be able to query that data resource.
 - It is possible to activate Single Sign On, which will allow a user to go through the authentication process once and remain autheticated for a certain amount of time. 
 - To activate Single Sign On:
     1. Set the environmental parameter KQLMAGIC_SSO_ENCRYPTION_KEYS with the following parameters:
-        a. cachename = an identifying name for your SSO cache.
-        b. secretkey = a password for encryption, for the Single Sign On. Should be at least 8 characters, at least one uppercase Letter, at least 2 digits and at least one non-letter character. Please choose a strong password.
-        c. secret_salt_uuid = a valid UUID (version 4).
+        - cachename = an identifying name for your SSO cache.
+        - secretkey = a password for encryption, for the Single Sign On. Should be at least 8 characters, at least one uppercase Letter, at least 2 digits and at least one non-letter character. Please choose a strong password.
+        - secret_salt_uuid = a valid UUID (version 4).
     2. Authenticate normally.
     3. Use this environmental parameter again (with your parameters) to use SSO and authenticate automatically. 
 - Additional settings:

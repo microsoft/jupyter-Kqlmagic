@@ -244,28 +244,27 @@ class AdalTokenCache(object):
         cachename_SSO = key_vals_SSO.get("cachename")  
         secret_key_SSO = key_vals_SSO.get("secretkey")
         uuid_salt = key_vals_SSO.get("secretsaltuuid")
-        sso_cleanup_interval = options.get('ssocleanupinterval')
-        if uuid_salt and secret_key_SSO:
-            try:
-                uuid_salt = UUID(uuid_salt, version=4)
-            except ValueError:
-                Display.showWarningMessage(f"Warning: SSO is not activated because secret_salt_uuid key in environment variable {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is not set to a valid guid")
-                return
 
-            hint = check_password_strength(secret_key_SSO)
-            if hint:
-                Display.showWarningMessage(hint)
-                return
+        sso_cleanup_interval = options.get('sso_cleanup_interval')
+        if not(uuid_salt and secret_key_SSO and cachename_SSO):
+            Display.showWarningMessage(f"SSO could not be activated. the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is not set properly.")
+            return None
+
+        try:
+            uuid_salt = UUID(uuid_salt, version=4)
+        except ValueError:
+            Display.showWarningMessage(f"Warning: SSO is not activated because secret_salt_uuid key in environment variable {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is not set to a valid guid")
+            return None
+        hint = check_password_strength(secret_key_SSO)
+        if hint:
+            Display.showWarningMessage(hint)
+            return None
 
         salt_bytes = str(uuid_salt).encode()
-        if cachename_SSO and secret_key_SSO and salt_bytes:
-            return {"cachename": cachename_SSO,
-            "secret_key": secret_key_SSO,
-            "salt_bytes": salt_bytes,
-            "sso_cleanup_interval": sso_cleanup_interval}
-        else:
-            Display.showWarningMessage(f"SSO could not be activated. the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is not properly set.")
-            return None
+        return {"cachename": cachename_SSO,
+        "secret_key": secret_key_SSO,
+        "salt_bytes": salt_bytes,
+        "sso_cleanup_interval": sso_cleanup_interval}
 
 def check_password_strength(password):
     password_hints = {

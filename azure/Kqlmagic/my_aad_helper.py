@@ -21,7 +21,7 @@ from .constants import Constants, Cloud
 from .log import logger
 from .display import Display
 from .constants import ConnStrKeys
-from Kqlmagic.adal_token_cache import AdalTokenCache
+from .adal_token_cache import AdalTokenCache
 from .kql_engine import KqlEngineError
 
 from .parser import Parser

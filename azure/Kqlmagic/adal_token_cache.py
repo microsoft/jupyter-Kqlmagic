@@ -80,7 +80,7 @@ class AdalTokenCache(object):
 
 
         cachename = SSO_keys.get("cachename")
-        token_exp_time = SSO_keys.get("token_cleanup_time")
+        token_exp_time = SSO_keys.get("sso_cleanup_interval")
         salt = SSO_keys.get("salt_bytes")
         encryption_key = SSO_keys.get("secret_key")
 
@@ -223,30 +223,31 @@ class AdalTokenCache(object):
         except InvalidToken: #Either token has bad form or it cannot be decrypted
             try: 
                 Fernet._get_unverified_token_data(data_encrypted)
+                Display.showWarningMessage("'Warning: SSO cache is already in use, cannot activate SSO'") #the token cannot be decrypted
+                return
             except: #the token has bad form
-                Display.showWarningMessage("Warning: found an illegal token, deleting the token")
+                Display.showWarningMessage("Warning: found invalid data in SSO cache, to enable SSO invalid data was deleted")
                 del self.db[f"{AdalTokenCache.key_prefix_db}{self.cachename}"]
                 return
-            Display.showWarningMessage("Invalid token, could not activate Single Sign On") #the token cannot be decrypted
-            return
+            
         data = data_decrypted_as_bytes.decode()
         self.deserialize(data)
 
     @staticmethod
     def get_params_SSO(**options): #pylint: disable=no-method-argument
 
-        SSO_id_enc_key = os.getenv("{0}_SSO_ENCRYPTION_KEYS".format(Constants.MAGIC_CLASS_NAME.upper()))
+        SSO_id_enc_key = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS")
         key_vals_SSO = Parser.parse_and_get_kv_string(SSO_id_enc_key, {}) if SSO_id_enc_key else {}
 
         cachename_SSO = key_vals_SSO.get("cachename")  
         secret_key_SSO = key_vals_SSO.get("secretkey")
-        uuid_salt = key_vals_SSO.get("uuid")
-        token_cleanup_time = options.get('token_cleanup_time')
+        uuid_salt = key_vals_SSO.get("secret_salt_uuid")
+        sso_cleanup_interval = options.get('sso_cleanup_interval')
         if uuid_salt and secret_key_SSO:
             try:
                 uuid_salt = UUID(uuid_salt, version=4)
             except ValueError:
-                Display.showWarningMessage("SSO could not be activated. please enter a valid uuid (version 4) for enabling SSO")
+                Display.showWarningMessage(f"Warning: SSO is not activated because secret_salt_uuid key in environment variable {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is not set to a valid guid")
                 return
 
             hint = check_password_strength(secret_key_SSO)
@@ -262,7 +263,7 @@ class AdalTokenCache(object):
             return {"cachename": cachename_SSO,
             "secret_key": secret_key_SSO,
             "salt_bytes": salt_bytes,
-            "token_cleanup_time": token_cleanup_time}
+            "sso_cleanup_interval": sso_cleanup_interval}
         else:
             Display.showWarningMessage(f"SSO could not be activated. the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is not properly set.")
             return None

@@ -291,12 +291,12 @@ Notes:<br>
 
 
 
-_HELP_SSO = """## Overview
+_HELP_SSO = f"""## Overview
 - To get data from Azure Monitor data resources, the user need to authenticate itself, and if it has the right permission, 
 he would be able to query that data resource.
 - It is possible to activate Single Sign On, which will allow a user to go through the authentication process once and remain autheticated for a certain amount of time. 
 - To activate Single Sign On:
-    1. Set the environmental parameter KQLMAGIC_SSO_ENCRYPTION_KEYS with the following parameters:
+    1. Set the environmental parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS with the following parameters:
         - cachename = an identifying name for your SSO cache.
         - secretkey = a password for encryption, for the Single Sign On. Should be at least 8 characters, at least one uppercase Letter, at least 2 digits and at least one non-letter character. Please choose a strong password.
         - secret_salt_uuid = a valid UUID (version 4).

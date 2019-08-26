@@ -11,7 +11,7 @@ import os
 from enum import Enum, unique
 from datetime import timedelta, datetime
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 # import re
 
 import dateutil.parser
@@ -23,6 +23,7 @@ from .display import Display
 from .constants import ConnStrKeys
 from .adal_token_cache import AdalTokenCache
 from .kql_engine import KqlEngineError
+from .sso_storage import SsoStorage, get_sso_store
 
 from .parser import Parser
 
@@ -95,9 +96,9 @@ class _MyAadHelper(object):
         token_cache = None
 
         if options.get("enable_sso"):
-                SSO_encrypt_keys = AdalTokenCache.get_params_SSO(**options)
-                if SSO_encrypt_keys:
-                    token_cache = AdalTokenCache(SSO_encrypt_keys)
+            sso_store = get_sso_store(**options)
+            if sso_store:
+                token_cache = AdalTokenCache(sso_store)
 
         self._adal_context = AuthenticationContext("{0}/{1}".format(aad_login_url, authority), cache=token_cache)
         self._username = None

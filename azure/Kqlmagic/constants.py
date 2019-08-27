@@ -26,6 +26,11 @@ class Constants(object):
     TICK_NANOS =  100 # 1 tick is 100ns
     TICK_TO_INT_FACTOR = int(SEC_NANOS // TICK_NANOS)
 
+    # SSO
+    SSO_GC_INTERVAL_IN_SECS = 1 * HOUR_SECS
+    SSO_ENV_VAR_NAME = f"{MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS"
+    SSO_DB_KEY_PREFIX = f"{MAGIC_CLASS_NAME.lower()}store/tokens/"
+
 class Schema(object):
     APPLICATION_INSIGHTS = "applicationinsights"
     LOG_ANALYTICS =        "loganalytics"
@@ -194,6 +199,26 @@ class VisualizationScales(object):
 class VisualizationLegends(object):
     HIDDEN =  "hidden"
     VISIBLE = "visible"
+
+# SSO Constants
+class CryptoParam(object):
+    PASSWORD =  "password"
+    SALT = "salt"
+    LENGTH = "length"
+    ITERATIONS = "iterations"
+    ALGORITHM = "algorithm"
+    BACKEND = "backend"
+
+class SsoStorageParam(object):
+    DB =  "db"
+    CRYPTO = "crypto"
+    CACHE_NAME = "cache_name"
+    GC_TTL_IN_SECS = "gc_ttl_in_secs"
+
+class SsoEnvVarParam(object):
+    CACHE_NAME = "cachename"
+    SECRET_KEY = "secretkey"
+    SECRET_SALT_UUID = "secretsaltuuid"
 
 
 

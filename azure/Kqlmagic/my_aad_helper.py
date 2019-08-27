@@ -11,8 +11,9 @@ import os
 from enum import Enum, unique
 from datetime import timedelta, datetime
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 # import re
+
 import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
@@ -22,8 +23,9 @@ from .display import Display
 from .constants import ConnStrKeys
 from .adal_token_cache import AdalTokenCache
 from .kql_engine import KqlEngineError
+from .sso_storage import SsoStorage, get_sso_store
 
-# from .parser import Parser
+from .parser import Parser
 
 import smtplib
 
@@ -92,9 +94,12 @@ class _MyAadHelper(object):
         client_id = kcsb.application_client_id or default_clientid
         self._resource = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
         token_cache = None
-        isSso = "FALSE" # os.getenv("{0}_ENABLE_SSO".format(Constants.MAGIC_CLASS_NAME.upper()))
-        if (isSso and isSso.upper() == "TRUE"):
-            token_cache = AdalTokenCache()
+
+        if options.get("enable_sso"):
+            sso_store = get_sso_store(**options)
+            if sso_store:
+                token_cache = AdalTokenCache(sso_store)
+
         self._adal_context = AuthenticationContext("{0}/{1}".format(aad_login_url, authority), cache=token_cache)
         self._username = None
         if all([kcsb.aad_user_id, kcsb.password]):

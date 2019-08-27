@@ -56,6 +56,10 @@ EXTRAS_REQUIRE      = {
     ],
     'widgets':[
         'ipywidgets'
+    ],
+    'sso': [
+        'cryptography>=2.7',
+        'password-strength>= 0.0.3',
     ]
 }
 

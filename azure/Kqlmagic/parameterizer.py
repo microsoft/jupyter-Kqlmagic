@@ -38,7 +38,7 @@ class Parameterizer(object):
         parameters = self._detect_parameters(query_let_statments)
         statements = self._build_let_statements(parameters)
         statements.append(query_body)
-        return query_management_prefix + ";".join(statements)
+        return query_management_prefix + ";\n".join(statements)
 
     def _object_to_kql(self, v) -> str:
         try:

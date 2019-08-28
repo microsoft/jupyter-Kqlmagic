@@ -220,5 +220,9 @@ class SsoEnvVarParam(object):
     SECRET_KEY = "secretkey"
     SECRET_SALT_UUID = "secretsaltuuid"
 
+class DpapiParam(object):
+    DESCRIPTION = "description"
+    SALT = "salt"
+
 
 

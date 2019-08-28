@@ -66,21 +66,21 @@ class Crypto(object):
             return self._cypto.encrypt(data_as_bytes) 
 
 
-    def decrypt(self, encrypted_data_as_bytes: bytes) -> str:
-        if encrypted_data_as_bytes:
-            data_as_bytes = self._cypto.decrypt(encrypted_data_as_bytes)
+    def decrypt(self, encrypted_data_bytes: bytes) -> str:
+        if encrypted_data_bytes:
+            data_as_bytes = self._cypto.decrypt(encrypted_data_bytes)
             return data_as_bytes.decode()
 
 
-    def verify(self, encrypted_data_as_bytes: bytes) -> None:
+    def verify(self, encrypted_data_bytes: bytes) -> None:
         "raise exception if metadata is invalid"
-        if encrypted_data_as_bytes:
-            Fernet._get_unverified_token_data(encrypted_data_as_bytes)
+        if encrypted_data_bytes:
+            Fernet._get_unverified_token_data(encrypted_data_bytes)
 
 
-    def timestamp(self, encrypted_data_as_bytes: bytes)-> int:
-        if encrypted_data_as_bytes:
-            timestamp, data = Fernet._get_unverified_token_data(encrypted_data_as_bytes) # pylint: disable=unused-variable
+    def timestamp(self, encrypted_data_bytes: bytes)-> int:
+        if encrypted_data_bytes:
+            timestamp, data = Fernet._get_unverified_token_data(encrypted_data_bytes) # pylint: disable=unused-variable
             return timestamp
         else:
             return 0

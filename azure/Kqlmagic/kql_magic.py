@@ -136,7 +136,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
 
-    enable_sso = Bool(True, config = True, help=f"Enables or disables SSO. if enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly")
+    enable_sso = Bool(False, config = True, help=f"Enables or disables SSO. if enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly")
     
     sso_cleanup_interval = Int(168, config=True,help= "Not updated/used data in SSO cache, for more than the time interval, will be removed. Default is one week.")
     # login_code_destination = Unicode("browser", config = True, help = 

@@ -47,7 +47,13 @@ class Crypto(object):
     def _init_crypto(self, key: bytes) -> Fernet:
         if key:
             key_len = len(key)
-            _key = key if len(key) == 32 else [(key[idx] if idx<key_len else 0) for idx in range(32)]
+            #make the key long enough or short enough 
+            diff = 32-key_len
+
+            if diff<0:
+                _key = key[:diff]
+            elif diff>0:
+                _key = key +  ("0"*diff).encode()
             _key = base64.urlsafe_b64encode(_key)
         else:
             _key = Fernet.generate_key()

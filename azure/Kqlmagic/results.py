@@ -192,11 +192,11 @@ class ResultSet(list, ColumnGuesserMixin):
     """
 
     # Object constructor
-    def __init__(self, queryResult, parametrized_query, fork_table_id, fork_table_resultSets, metadata, options):
+    def __init__(self, queryResult, parametrized_query_dict, fork_table_id, fork_table_resultSets, metadata, options):
 
         #         self.current_colors_palette = ['rgb(184, 247, 212)', 'rgb(111, 231, 219)', 'rgb(127, 166, 238)', 'rgb(131, 90, 241)']
 
-        self.parametrized_query = parametrized_query
+        self.parametrized_query_dict = parametrized_query_dict
         self.fork_table_id = fork_table_id
         self._fork_table_resultSets = fork_table_resultSets
         self.options = options
@@ -209,6 +209,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self.prettytable_style = prettytable.__dict__[self.options.get("prettytable_style", "DEFAULT").upper()]
 
         self.display_info = True
+        self.show_query = options.get("show_query")
         self.suppress_result = False
 
         self._update(queryResult)
@@ -229,6 +230,17 @@ class ResultSet(list, ColumnGuesserMixin):
         if idx < len(palette):
             return str(palette[idx])
         return None
+
+
+    @property 
+    def parametrized_query(self):
+        query_management_prefix: str = self.parametrized_query_dict.get('query_management_prefix')
+        if (query_management_prefix and len(query_management_prefix) > 0):
+            query_management_prefix += '\n'
+
+        statements: list = self.parametrized_query_dict.get('statements')
+        parametrized_query_str = query_management_prefix  + ";\n".join(statements)
+        return parametrized_query_str
 
     @property
     def query(self):
@@ -302,10 +314,11 @@ class ResultSet(list, ColumnGuesserMixin):
     def _create_fork_results(self):
         if self.fork_table_id == 0 and len(self._fork_table_resultSets) == 1:
             for fork_table_id in range(1, len(self._queryResult.tables)):
-                r = ResultSet(self._queryResult, self.parametrized_query, fork_table_id, self._fork_table_resultSets, self.metadata, self.options)
+                r = ResultSet(self._queryResult, self.parametrized_query_dict, fork_table_id, self._fork_table_resultSets, self.metadata, self.options)
                 if r.options.get("feedback"):
-                    minutes, seconds = divmod(self.elapsed_timespan, 60)
-                    r.feedback_info.append("Done ({:0>2}:{:06.3f}): {} records".format(int(minutes), seconds, r.records_count))
+                    if r.options.get("show_query_time"):
+                        minutes, seconds = divmod(self.elapsed_timespan, 60)
+                        r.feedback_info.append("Done ({:0>2}:{:06.3f}): {} records".format(int(minutes), seconds, r.records_count))
 
     def _update_fork_results(self):
         if self.fork_table_id == 0:
@@ -317,8 +330,9 @@ class ResultSet(list, ColumnGuesserMixin):
                     r.suppress_result = False
                     r.feedback_info = []
                     if r.options.get("feedback"):
-                        minutes, seconds = divmod(self.elapsed_timespan, 60)
-                        r.feedback_info.append("Done ({:0>2}:{:06.3f}): {} records".format(int(minutes), seconds, r.records_count))
+                        if r.options.get("show_query_time"):
+                            minutes, seconds = divmod(self.elapsed_timespan, 60)
+                            r.feedback_info.append("Done ({:0>2}:{:06.3f}): {} records".format(int(minutes), seconds, r.records_count))
 
     def fork_result(self, fork_table_id=0):
         # return self._fork_table_resultSets.get(str(fork_table_id))
@@ -345,6 +359,8 @@ class ResultSet(list, ColumnGuesserMixin):
         if not self.suppress_result:
             if self.display_info:
                 Display.showInfoMessage(self.metadata.get("conn_info"))
+                if self.show_query:
+                    Display.showInfoMessage(self.parametrized_query)
 
             if self.is_chart():
                 self.show_chart(**self.options)

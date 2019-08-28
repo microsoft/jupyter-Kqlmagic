@@ -341,6 +341,8 @@ class Parser(object):
         "columnstolocalvars": {"flag": "columns_to_local_vars", "type": "bool", "config": "config.columns_to_local_vars"},
         "sqt": {"abbreviation": "showquerytime"},
         "showquerytime": {"flag": "show_query_time", "type": "bool", "config": "config.show_query_time"},
+        "sq": {"abbreviation": "showquery"},
+        "showquery": {"flag": "show_query", "type": "bool", "config": "config.show_query"},
         "esr": {"abbreviation": "enablesuppressresult"},
         "enablesuppressresult": {"flag": "enable_suppress_result", "type": "bool", "config": "config.enable_suppress_result"},
         "pfi": {"abbreviation": "plotlyfsincludejs"},

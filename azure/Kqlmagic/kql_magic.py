@@ -16,6 +16,7 @@ from .help import execute_usage_command, execute_help_command, execute_faq_comma
 from .constants import Constants, Cloud
 from .my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
 from .log import logger
+from .results import ResultSet
 
 logger().debug("kql_magic.py - import Magics, magics_class, cell_magic, line_magic, needs_local_scope from IPython.core.magic")
 from IPython.core.magic import Magics, magics_class, cell_magic, line_magic, needs_local_scope
@@ -152,6 +153,9 @@ class Kqlmagic(Magics, Configurable):
     )
     enable_suppress_result = Bool(True, config=True, help="Suppress result when magic ends with a semicolon ;. Abbreviation: esr")
     show_query_time = Bool(True, config=True, help="Print query execution elapsed time. Abbreviation: sqt")
+
+    show_query = Bool(False, config=True, help="Print parametrized query. Abbreviation: sq")
+
     plotly_fs_includejs = Bool(
         False,
         config=True,
@@ -747,9 +751,12 @@ class Kqlmagic(Magics, Configurable):
             #
             start_time = time.time()
 
+            _result_set: ResultSet = result_set
             params_dict = options.get("params_dict") or user_ns
-            parametrized_query = Parameterizer(params_dict).expand(query) if result_set is None else result_set.parametrized_query
+            parametrized_query_dict = Parameterizer(params_dict).expand(query) if _result_set is None else _result_set.parametrized_query_dict
+            parametrized_query = parametrized_query_dict.get('parametrized_query')
             raw_query_result = conn.execute(parametrized_query, user_ns, **options)
+
 
             end_time = time.time()
 
@@ -764,17 +771,17 @@ class Kqlmagic(Magics, Configurable):
             #
             # model query results
             #
-            if result_set is None:
+            if _result_set is None:
                 fork_table_id = 0
                 saved_result = ResultSet(
-                    raw_query_result, parametrized_query, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options
+                    raw_query_result, parametrized_query_dict, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options
                 )
                 saved_result.metadata["magic"] = self
                 saved_result.metadata["parsed"] = parsed
                 saved_result.metadata["connection"] = conn.get_conn_name()
             else:
-                fork_table_id = result_set.fork_table_id
-                saved_result = result_set.fork_result(0)
+                fork_table_id = _result_set.fork_table_id
+                saved_result = _result_set.fork_result(0)
                 saved_result.feedback_info = []
                 saved_result._update(raw_query_result)
 
@@ -792,8 +799,9 @@ class Kqlmagic(Magics, Configurable):
                 Display.showWarningMessage("partial results, query had errors (see {0}.dataSetCompletion)".format(options.get("last_raw_result_var")))
 
             if options.get("feedback", self.feedback):
-                minutes, seconds = divmod(end_time - start_time, 60)
-                saved_result.feedback_info.append("Done ({:0>2}:{:06.3f}): {} records".format(int(minutes), seconds, saved_result.records_count))
+                if options.get("show_query_time", self.show_query_time):
+                    minutes, seconds = divmod(end_time - start_time, 60)
+                    saved_result.feedback_info.append("Done ({:0>2}:{:06.3f}): {} records".format(int(minutes), seconds, saved_result.records_count))
 
             if options.get("columns_to_local_vars", self.columns_to_local_vars):
                 # Instead of returning values, set variables directly in the
@@ -850,6 +858,7 @@ class Kqlmagic(Magics, Configurable):
 
             if result == saved_result:
                 result = saved_result.fork_result(fork_table_id)
+
             return result
 
         except Exception as e:

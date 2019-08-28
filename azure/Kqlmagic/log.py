@@ -147,8 +147,9 @@ class Logger(object):
         self._logging.exception(msg, *args, **kwargs)
 
 
+current_logger = None
+
 def logger():
-    global current_logger
     return current_logger
 
 

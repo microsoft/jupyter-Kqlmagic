@@ -6,6 +6,8 @@
 
 from ctypes import Structure, POINTER, byref, create_string_buffer, windll, cdll
 from ctypes.wintypes import DWORD, PCHAR
+from .log import logger
+import os
 
 from .constants import DpapiParam
 
@@ -23,11 +25,16 @@ class DATA_BLOB(Structure):
 class DPAPI(object):
 
     def __init__(self, **options):
-        _salt: str = options.get(DpapiParam.SALT)
+        _salt: str = options.get(DpapiParam.SALT) or "1"
         self.salt_blob_byref = byref(self._toBlob(_salt)) if _salt else None
         self.description: str = options.get(DpapiParam.DESCRIPTION)
+        # key = self.get_db_key()
+        self.suffix = os.getlogin()
+        self.key = "000000".encode()
 
-
+    def get_db_key(self):
+        return self.encrypt("kqlmagic")
+    
     def _getData(self, blob)-> bytes:
         blob_length = int(blob.cbData)
         pbData = blob.pbData
@@ -59,3 +66,5 @@ class DPAPI(object):
                                     CRYPTPROTECT_UI_FORBIDDEN, byref(data_blob)):
                 data_bytes = self._getData(data_blob)
                 return data_bytes.decode()
+    def verify(self, encrypted_data_bytes: bytes) -> None:
+        pass

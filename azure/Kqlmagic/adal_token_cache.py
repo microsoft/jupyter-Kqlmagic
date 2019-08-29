@@ -7,6 +7,7 @@ import json
 import threading
 from adal.constants import TokenResponseFields
 from .sso_storage import SsoStorage
+from .log import logger
 
 
 def _string_cmp(str1, str2):
@@ -19,6 +20,8 @@ def _string_cmp(str1, str2):
 # pylint: disable=too-few-public-methods
 class AdalTokenCacheKey(object): 
     def __init__(self, authority, resource, client_id, user_id):
+        logger().debug(f"AdalTokenCacheKey authority {authority} client_id {client_id}  user_id {user_id} ")
+        
         self.authority = authority
         self.resource = resource
         self.client_id = client_id
@@ -60,6 +63,8 @@ class AdalTokenCache(object):
 
 
     def find(self, query):
+        logger().debug(f"AdalTokenCache find(self, query)")
+
         '''find entries in cache'''
         with self._lock:
             state = self._store.restore()
@@ -72,6 +77,8 @@ class AdalTokenCache(object):
 
 
     def remove(self, entries):
+        logger().debug(f"AdalTokenCache remove(self, query)")
+
         '''remove entries from cache'''
         with self._lock:
             state = self._store.restore()
@@ -87,6 +94,8 @@ class AdalTokenCache(object):
 
 
     def add(self, entries):
+        logger().debug(f"AdalTokenCache add(self, entries")
+
         '''add entries to cache'''
         with self._lock:
             state = self._store.restore()

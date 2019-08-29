@@ -11,6 +11,8 @@ import logging
 import hashlib
 # import re
 
+from .sso_storage import get_sso_store
+
 from .version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
 from .help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
 from .constants import Constants, Cloud
@@ -139,6 +141,9 @@ class Kqlmagic(Magics, Configurable):
 
     enable_sso = Bool(False, config = True, help=f"Enables or disables SSO. if enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly")
     
+
+    clear_sso_db = Bool(False, config = True, help=f"")
+
     sso_cleanup_interval = Int(168, config=True,help= "Not updated/used data in SSO cache, for more than the time interval, will be removed. Default is one week.")
     # login_code_destination = Unicode("browser", config = True, help = 
     # "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
@@ -278,6 +283,13 @@ class Kqlmagic(Magics, Configurable):
         else:
             self.cache = None
             return MarkdownString("{0} cache was disabled.".format(Constants.MAGIC_PACKAGE_NAME))
+
+    def execute_clear_sso_db_command(self):
+        sso_storage = get_sso_store()
+        sso_storage.clear_sso_db()
+        return MarkdownString("sso db was cleared.")
+
+
 
     def execute_schema_command(self, connection_string:str, user_ns: dict, **options) -> dict:
         """ execute the schema command.
@@ -578,6 +590,8 @@ class Kqlmagic(Magics, Configurable):
                         result = self.execute_cache_command(param)
                     elif command == "use_cache":
                         result = self.execute_use_cache_command(param)
+                    elif command == "clear_sso_db":
+                        result = self.execute_clear_sso_db_command()
                     elif command == "schema":
                         result = self.execute_schema_command(param, user_ns, **options)
                         # the return is here, because it already handle the popupwindow option case

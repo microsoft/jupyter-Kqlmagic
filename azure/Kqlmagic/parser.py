@@ -145,6 +145,7 @@ class Parser(object):
         "cache": {"flag": "cache", "type": "str", "init": "None"},
         "usecache": {"flag": "use_cache", "type": "str", "init": "None"},
         "schema": {"flag": "schema", "type": "str", "init": "None", "default": "None"},
+        "clearssodb": {"flag": "clear_sso_db", "type": "bool", "init": "None", "default": "None"},
     }
     @classmethod
     def _parse_kql_command(cls, code, user_ns: dict):
@@ -393,6 +394,8 @@ class Parser(object):
 
         "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},
         "enablesso": {"flag": "enable_sso", "type": "bool", "config": "config.enable_sso"},
+        
+        "clearssodb": {"flag": "clear_sso_db", "type": "bool", "config": "config.clear_sso_db"},
 
         "ssocleanupinterval": {"flag": "sso_cleanup_interval", "type": "int", "config": "config.sso_cleanup_interval"},
         # "logincodedestination": {"flag": "login_code_destination", "type": "str", "config": "config.login_code_destination"},

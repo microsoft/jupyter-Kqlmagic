@@ -2,6 +2,7 @@ import os
 import uuid
 import base64
 from .constants import CryptoParam
+from .log import logger
 
 try:
     from cryptography.fernet import Fernet
@@ -23,13 +24,20 @@ class Crypto(object):
 
     def __init__(self, options: dict):
         self.key = self._create_encryption_key(options)
+        self.suffix = self._get_suffix(self.key)
         self._cypto = self._init_crypto(self.key)
 
+
+    def _get_suffix(self, key: bytes ) -> str:
+        last_two_bytes = [b for b in key[-2:]]
+        suffix = last_two_bytes[0]*256 + last_two_bytes[1]
+        return suffix
 
     def _create_encryption_key(self, options: dict) -> bytes:
         password = options.get(CryptoParam.PASSWORD, uuid.uuid4())
         password_as_bytes = password.encode()
         salt  = options.get(CryptoParam.SALT, uuid.uuid4())
+        logger().debug(f"_create_encryption_key {type(salt)}")
         salt_bytes = str(salt).encode()
         length = options.get(CryptoParam.LENGTH, 32)
         iterations = options.get(CryptoParam.ITERATIONS, 100000)
@@ -53,7 +61,10 @@ class Crypto(object):
             if diff<0:
                 _key = key[:diff]
             elif diff>0:
+                logger().debug(f"_init_crypto {type(_key)}")
                 _key = key +  ("0"*diff).encode()
+                logger().debug(f"_init_crypto {type(_key)}")
+
             _key = base64.urlsafe_b64encode(_key)
         else:
             _key = Fernet.generate_key()
@@ -61,9 +72,10 @@ class Crypto(object):
 
 
     def encrypt(self, data: str) -> bytes:
+        logger().debug(f"encrypt {type(data)}")
+
         if data:
-            data_as_bytes = data.encode()
-            return self._cypto.encrypt(data_as_bytes) 
+            return self._cypto.encrypt(data) 
 
 
     def decrypt(self, encrypted_data_bytes: bytes) -> str:

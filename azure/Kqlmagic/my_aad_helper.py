@@ -88,6 +88,7 @@ class _MyAadHelper(object):
 
         client_id = kcsb.application_client_id or default_clientid
         self._resource = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
+        self.sso_enabled = False
 
 
 
@@ -104,7 +105,6 @@ class _MyAadHelper(object):
         token_cache = None
 
         authority_key= f"{aad_login_url}/{authority}"
-
 
         self._adal_context = auth_context
         if self._adal_context is None:
@@ -125,7 +125,6 @@ class _MyAadHelper(object):
                         self.sso_enabled = False
                 self._adal_context_sso = global_adal_context_sso.get(authority_key)
 
-        logger().debug(f"_MyAadHelper::self._adal_context {self._adal_context} self._adal_context_sso {self._adal_context_sso}" )
         self._username = None
         if all([kcsb.aad_user_id, kcsb.password]):
             self._authentication_method = AuthenticationMethod.aad_username_password

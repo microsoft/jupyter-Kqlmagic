@@ -102,8 +102,9 @@ class Display(object):
             display(content)
 
     @staticmethod
-    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, **options):
-        if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]: 
+    #pass parameter 'open_window' to use this method for opening a new window 
+    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None,open_window=False, **options):
+        if open_window or (options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]): 
             url = file_path if file_path.startswith("http") else "file:///" + adjust_path_to_uri(Display.showfiles_base_path + "/" + file_path)
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage("opened popup window: {0}, see your browser".format(window_name))
@@ -113,8 +114,8 @@ class Display(object):
             return HTML(html_str)
 
     @staticmethod
-    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, **options):
-        html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, **options)
+    def show_window(window_name, file_path, button_text=None,open_window = False, onclick_visibility=None, **options):
+        html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, open_window=open_window, **options)
         if html_obj is not None:
             display(html_obj)
 
@@ -242,6 +243,7 @@ class Display(object):
         )
         # print(html_str)
         return html_str
+
 
     @staticmethod
     def toHtml(**kwargs):

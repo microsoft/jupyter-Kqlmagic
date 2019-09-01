@@ -161,6 +161,10 @@ class Kqlmagic(Magics, Configurable):
 
     show_query = Bool(False, config=True, help="Print parametrized query. Abbreviation: sq")
 
+
+    show_url = Bool(False, config=True, help="Show a button, click to open Azure Data Explorer and view query online")
+
+
     plotly_fs_includejs = Bool(
         False,
         config=True,

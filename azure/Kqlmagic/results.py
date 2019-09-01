@@ -211,6 +211,8 @@ class ResultSet(list, ColumnGuesserMixin):
         self.show_query = options.get("show_query")
         self.suppress_result = False
 
+        self.show_url = options.get("show_url")
+
         self._update(queryResult)
 
     def _get_palette(self, n_colors=None, desaturation=None):
@@ -370,9 +372,9 @@ class ResultSet(list, ColumnGuesserMixin):
             else:
                 self.show_table(**self.options)
             
-            url = self._build_url_kusto_explorer()
-            if url:
-                Display.show_window("window", url, "Click to view in Kusto Explorer", onclick_visibility="visible")
+            if self.show_url:
+                self.open_url_kusto_explorer()
+            
             if self.display_info:
                 Display.showInfoMessage(self.feedback_info)
 
@@ -383,13 +385,19 @@ class ResultSet(list, ColumnGuesserMixin):
         self.suppress_result = False
         return ""
 
-    def _build_url_kusto_explorer(self):
+    # use _.open_url_kusto_explorer(True) for opening the url automatically (no button)
+    # use _.open_url_kusto_explorer(web_app="app") for opening the url in Kusto Explorer (app) and not in Kusto Web Explorer
+    def open_url_kusto_explorer(self,browser=False, web_app=""):
         if isinstance(self.connection_str, KustoEngine): #only use deep links for kusto connection 
             database = (self.connection_str.database_friendly_name)
             cluster = self.connection_str.cluster_friendly_name
             query_url = urllib.parse.quote(self.parametrized_query)
-            url = "https://" + cluster+ ".kusto.windows.net/"+database+"?web=1&query="+ query_url #web=1 for Kusto Web Explorer, web=0 for Kusto Explorer (app)
-            return url
+            web_or_app = 0 if web_app=="app" else 1
+            url = f"https://{cluster}.kusto.windows.net/{database}?web={web_or_app}&query={query_url}" #web=1 for Kusto Web Explorer, web=0 for Kusto Explorer (app)
+            if not browser:
+                Display.show_window("window", url, "Click to view in Kusto Explorer", onclick_visibility="visible")
+            else:
+                Display.show_window("window", url, open_window=True)
         return None
 
     def _getTableHtml(self):

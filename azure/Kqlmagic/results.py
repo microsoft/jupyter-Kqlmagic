@@ -14,9 +14,8 @@ import os.path
 import re
 import uuid
 import prettytable
-
-# import base64
-# from IPython.display import Image
+import urllib.parse
+from .kusto_engine import KustoEngine
 
 from .constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
 from .my_utils import get_valid_filename, adjust_path
@@ -200,7 +199,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self.fork_table_id = fork_table_id
         self._fork_table_resultSets = fork_table_resultSets
         self.options = options
-
+        self.connection_str = None
         # set by caller
         self.metadata = metadata
         self.feedback_info = []
@@ -310,6 +309,10 @@ class ResultSet(list, ColumnGuesserMixin):
             list.__init__(self, [])
 
         self._fork_table_resultSets[str(self.fork_table_id)] = self
+    
+    def add_connection(self, connection):
+        self.connection_str = connection
+
 
     def _create_fork_results(self):
         if self.fork_table_id == 0 and len(self._fork_table_resultSets) == 1:
@@ -366,7 +369,10 @@ class ResultSet(list, ColumnGuesserMixin):
                 self.show_chart(**self.options)
             else:
                 self.show_table(**self.options)
-
+            
+            url = self._build_url_kusto_explorer()
+            if url:
+                Display.show_window("window", url, "Click to view in Kusto Explorer", onclick_visibility="visible")
             if self.display_info:
                 Display.showInfoMessage(self.feedback_info)
 
@@ -376,6 +382,15 @@ class ResultSet(list, ColumnGuesserMixin):
         # suppress results info only once
         self.suppress_result = False
         return ""
+
+    def _build_url_kusto_explorer(self):
+        if isinstance(self.connection_str, KustoEngine): #only use deep links for kusto connection 
+            database = (self.connection_str.database_friendly_name)
+            cluster = self.connection_str.cluster_friendly_name
+            query_url = urllib.parse.quote(self.parametrized_query)
+            url = "https://" + cluster+ ".kusto.windows.net/"+database+"?web=1&query="+ query_url #web=1 for Kusto Web Explorer, web=0 for Kusto Explorer (app)
+            return url
+        return None
 
     def _getTableHtml(self):
         "get query result in a table format as an HTML string"

@@ -161,6 +161,10 @@ class Kqlmagic(Magics, Configurable):
 
     show_query = Bool(False, config=True, help="Print parametrized query. Abbreviation: sq")
 
+
+    show_url = Bool(False, config=True, help="Show a button, click to open Azure Data Explorer and view query online")
+
+
     plotly_fs_includejs = Bool(
         False,
         config=True,
@@ -737,7 +741,7 @@ class Kqlmagic(Magics, Configurable):
                     conn = Connection.get_connection(connection_string, user_ns, **options)
                     conn.validate(**options)
                     conn.set_validation_result(True)
-
+                
             conn.options["validate_connection_string_done"] = True
 
             schema_file_path = None
@@ -800,6 +804,8 @@ class Kqlmagic(Magics, Configurable):
                 saved_result._update(raw_query_result)
 
             result = saved_result
+            ##add connection info to result object in order to display url for kusto explorer
+            result.add_connection(conn)
 
             if not connection_string and Connection.connections:
                 saved_result.metadata["conn_info"] = self._get_connection_info(**options)

@@ -344,6 +344,8 @@ class Parser(object):
         "showquerytime": {"flag": "show_query_time", "type": "bool", "config": "config.show_query_time"},
         "sq": {"abbreviation": "showquery"},
         "showquery": {"flag": "show_query", "type": "bool", "config": "config.show_query"},
+        "showurl": {"flag": "show_url", "type": "bool", "config": "config.show_url"},
+
         "esr": {"abbreviation": "enablesuppressresult"},
         "enablesuppressresult": {"flag": "enable_suppress_result", "type": "bool", "config": "config.enable_suppress_result"},
         "pfi": {"abbreviation": "plotlyfsincludejs"},

@@ -14,9 +14,8 @@ import os.path
 import re
 import uuid
 import prettytable
-
-# import base64
-# from IPython.display import Image
+import urllib.parse
+from .kusto_engine import KustoEngine
 
 from .constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
 from .my_utils import get_valid_filename, adjust_path
@@ -200,7 +199,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self.fork_table_id = fork_table_id
         self._fork_table_resultSets = fork_table_resultSets
         self.options = options
-
+        self.connection_str = None
         # set by caller
         self.metadata = metadata
         self.feedback_info = []
@@ -211,6 +210,8 @@ class ResultSet(list, ColumnGuesserMixin):
         self.display_info = True
         self.show_query = options.get("show_query")
         self.suppress_result = False
+
+        self.show_url = options.get("show_url")
 
         self._update(queryResult)
 
@@ -310,6 +311,10 @@ class ResultSet(list, ColumnGuesserMixin):
             list.__init__(self, [])
 
         self._fork_table_resultSets[str(self.fork_table_id)] = self
+    
+    def add_connection(self, connection):
+        self.connection_str = connection
+
 
     def _create_fork_results(self):
         if self.fork_table_id == 0 and len(self._fork_table_resultSets) == 1:
@@ -366,7 +371,10 @@ class ResultSet(list, ColumnGuesserMixin):
                 self.show_chart(**self.options)
             else:
                 self.show_table(**self.options)
-
+            
+            if self.show_url:
+                self.open_url_kusto_explorer()
+            
             if self.display_info:
                 Display.showInfoMessage(self.feedback_info)
 
@@ -376,6 +384,21 @@ class ResultSet(list, ColumnGuesserMixin):
         # suppress results info only once
         self.suppress_result = False
         return ""
+
+    # use _.open_url_kusto_explorer(True) for opening the url automatically (no button)
+    # use _.open_url_kusto_explorer(web_app="app") for opening the url in Kusto Explorer (app) and not in Kusto Web Explorer
+    def open_url_kusto_explorer(self,browser=False, web_app=""):
+        if isinstance(self.connection_str, KustoEngine): #only use deep links for kusto connection 
+            database = (self.connection_str.database_friendly_name)
+            cluster = self.connection_str.cluster_friendly_name
+            query_url = urllib.parse.quote(self.parametrized_query)
+            web_or_app = 0 if web_app=="app" else 1
+            url = f"https://{cluster}.kusto.windows.net/{database}?web={web_or_app}&query={query_url}" #web=1 for Kusto Web Explorer, web=0 for Kusto Explorer (app)
+            if not browser:
+                Display.show_window("window", url, "Click to view in Kusto Explorer", onclick_visibility="visible")
+            else:
+                Display.show_window("window", url, open_window=True)
+        return None
 
     def _getTableHtml(self):
         "get query result in a table format as an HTML string"

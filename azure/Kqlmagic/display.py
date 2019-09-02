@@ -107,7 +107,7 @@ class Display(object):
         if open_window or (options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]): 
             url = file_path if file_path.startswith("http") else "file:///" + adjust_path_to_uri(Display.showfiles_base_path + "/" + file_path)
             webbrowser.open(url, new=1, autoraise=True)
-            Display.showInfoMessage("opened popup window: {0}, see your browser".format(window_name))
+            Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
             return None
         else:
             html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, **options)
@@ -247,16 +247,14 @@ class Display(object):
 
     @staticmethod
     def toHtml(**kwargs):
-        return """<html>
+        return f"""<html>
         <head>
-        {0}
+        {kwargs.get('head', '')}
         </head>
         <body>
-        {1}
+        {kwargs.get('body', '')}
         </body>
-        </html>""".format(
-            kwargs.get("head", ""), kwargs.get("body", "")
-        )
+        </html>"""
 
     @staticmethod
     def _getMessageHtml(msg, palette):

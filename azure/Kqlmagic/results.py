@@ -14,8 +14,6 @@ import os.path
 import re
 import uuid
 import prettytable
-import urllib.parse
-from .kusto_engine import KustoEngine
 
 from .constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
 from .my_utils import get_valid_filename, adjust_path
@@ -191,7 +189,7 @@ class ResultSet(list, ColumnGuesserMixin):
     """
 
     # Object constructor
-    def __init__(self, queryResult, parametrized_query_dict, fork_table_id, fork_table_resultSets, metadata, options):
+    def __init__(self, queryResult, parametrized_query_dict, connection, fork_table_id, fork_table_resultSets, metadata, options):
 
         #         self.current_colors_palette = ['rgb(184, 247, 212)', 'rgb(111, 231, 219)', 'rgb(127, 166, 238)', 'rgb(131, 90, 241)']
 
@@ -199,7 +197,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self.fork_table_id = fork_table_id
         self._fork_table_resultSets = fork_table_resultSets
         self.options = options
-        self.connection_str = None
+        self.conn = connection
         # set by caller
         self.metadata = metadata
         self.feedback_info = []
@@ -208,10 +206,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self.prettytable_style = prettytable.__dict__[self.options.get("prettytable_style", "DEFAULT").upper()]
 
         self.display_info = True
-        self.show_query = options.get("show_query")
         self.suppress_result = False
-
-        self.show_url = options.get("show_url")
 
         self._update(queryResult)
 
@@ -312,14 +307,11 @@ class ResultSet(list, ColumnGuesserMixin):
 
         self._fork_table_resultSets[str(self.fork_table_id)] = self
     
-    def add_connection(self, connection):
-        self.connection_str = connection
-
 
     def _create_fork_results(self):
         if self.fork_table_id == 0 and len(self._fork_table_resultSets) == 1:
             for fork_table_id in range(1, len(self._queryResult.tables)):
-                r = ResultSet(self._queryResult, self.parametrized_query_dict, fork_table_id, self._fork_table_resultSets, self.metadata, self.options)
+                r = ResultSet(self._queryResult, self.parametrized_query_dict, self.conn, fork_table_id, self._fork_table_resultSets, self.metadata, self.options)
                 if r.options.get("feedback"):
                     if r.options.get("show_query_time"):
                         minutes, seconds = divmod(self.elapsed_timespan, 60)
@@ -364,7 +356,7 @@ class ResultSet(list, ColumnGuesserMixin):
         if not self.suppress_result:
             if self.display_info:
                 Display.showInfoMessage(self.metadata.get("conn_info"))
-                if self.show_query:
+                if self.options.get("show_query"):
                     Display.showInfoMessage(self.parametrized_query)
 
             if self.is_chart():
@@ -372,7 +364,7 @@ class ResultSet(list, ColumnGuesserMixin):
             else:
                 self.show_table(**self.options)
             
-            if self.show_url:
+            if self.options.get("show_query_link"):
                 self.open_url_kusto_explorer()
             
             if self.display_info:
@@ -387,17 +379,13 @@ class ResultSet(list, ColumnGuesserMixin):
 
     # use _.open_url_kusto_explorer(True) for opening the url automatically (no button)
     # use _.open_url_kusto_explorer(web_app="app") for opening the url in Kusto Explorer (app) and not in Kusto Web Explorer
-    def open_url_kusto_explorer(self,browser=False, web_app=""):
-        if isinstance(self.connection_str, KustoEngine): #only use deep links for kusto connection 
-            database = (self.connection_str.database_friendly_name)
-            cluster = self.connection_str.cluster_friendly_name
-            query_url = urllib.parse.quote(self.parametrized_query)
-            web_or_app = 0 if web_app=="app" else 1
-            url = f"https://{cluster}.kusto.windows.net/{database}?web={web_or_app}&query={query_url}" #web=1 for Kusto Web Explorer, web=0 for Kusto Explorer (app)
+    def open_url_kusto_explorer(self, browser=False):
+        deep_link = self.conn.get_deep_link(self.parametrized_query, self.options)
+        if deep_link is not None: #only use deep links for kusto connection 
             if not browser:
-                Display.show_window("window", url, "Click to view in Kusto Explorer", onclick_visibility="visible")
+                Display.show_window("window", deep_link, f"Click to view in {self.options.get('query_link_destination')}", onclick_visibility="visible")
             else:
-                Display.show_window("window", url, open_window=True)
+                Display.show_window("window", deep_link, open_window=True)
         return None
 
     def _getTableHtml(self):
@@ -488,7 +476,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return self._dataframe
 
     def submit(self):
-        "display the chart that was specified in the query"
+        "execute the query again"
         magic = self.metadata.get("magic")
         line = self.metadata.get("parsed").get("line")
         cell = self.metadata.get("parsed").get("cell")
@@ -904,9 +892,6 @@ class ResultSet(list, ColumnGuesserMixin):
         quantity_columns = [c for c in self.columns[1:] if c.is_quantity]
         ylabel = ", ".join([c.name for c in quantity_columns])
         xlabel = self.columns[0].name
-
-        # print("xlabel: {}".format(xlabel))
-        # print("ylabel: {}".format(ylabel))
 
         dim = len(quantity_columns)
         w = 0.8

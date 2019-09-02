@@ -13,7 +13,7 @@ import dateutil.parser
 import requests
 
 from .constants import Constants, ConnStrKeys, Cloud, Schema
-from .kql_client import KqlQueryResponse, KqlSchemaResponse, KqlError
+from .kql_response import KqlQueryResponse, KqlSchemaResponse, KqlError
 from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
 from .version import VERSION
 from .log import logger
@@ -68,27 +68,33 @@ class DraftClient(object):
 
         if conn_kv.get(ConnStrKeys.DATA_SOURCE_URL):
             self._data_source =  conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)  
-            logger().debug("draft_client.py :: __init__ :  self._data_source from conn_kv[\"datasourceurl\"]: {0}".format(self._data_source))
+            logger().debug(f"draft_client.py :: __init__ :  self._data_source from conn_kv[\"datasourceurl\"]: {self._data_source}")
 
         else:
             cloud = options.get("cloud")
             self._data_source = self._CLOUD_AAD_URLS.get(schema).get(cloud)
                 
             if not self._data_source:
-                raise KqlEngineError("the service {0} is not supported in cloud {1}".format(schema, cloud))
+                raise KqlEngineError(f"the service {schema} is not supported in cloud {cloud}")
 
 
-        logger().debug("draft_client.py :: __init__ :  conn_kv[\"datasourceurl\"]: {0}".format(conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)))
+        logger().debug(f"draft_client.py :: __init__ :  conn_kv[\"datasourceurl\"]: {conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)}")
 
         self._appkey = conn_kv.get(ConnStrKeys.APPKEY)
-        logger().debug("draft_client.py :: __init__ :  self._appkey: {0}".format(self._appkey))
+        logger().debug(f"draft_client.py :: __init__ :  self._appkey: {self._appkey}")
 
 
         if self._appkey is None and conn_kv.get(ConnStrKeys.ANONYMOUS) is None:
             self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID, **options)
         else:
             self._aad_helper = None
-        logger().debug("""draft_client.py :: __init__ :  self._aad_helper: {0} ;""".format(self._aad_helper ))
+        logger().debug(f"draft_client.py :: __init__ :  self._aad_helper: {self._aad_helper} ;")
+
+
+    @property
+    def data_source(self):
+        return self._data_source
+
 
     def execute(self, id: str, query: str, accept_partial_results: bool = False, **options) -> object:
         """ Execute a simple query or a metadata query
@@ -124,7 +130,7 @@ class DraftClient(object):
         #
 
         is_metadata = query == self._GET_SCHEMA_QUERY
-        api_url = "{0}/{1}/{2}/{3}/{4}".format(self._data_source, self._API_VERSION, self._domain, id, "metadata" if is_metadata else "query")
+        api_url = f"{self._data_source}/{self._API_VERSION}/{self._domain}/{id}/{'metadata' if is_metadata else 'query'}"
 
         #
         # create Prefer header
@@ -136,15 +142,15 @@ class DraftClient(object):
         
         timeout = options.get("timeout")
         if timeout is not None:
-            prefer_list.append("wait={0}".format(timeout))
+            prefer_list.append(f"wait={timeout}")
 
         #
         # create headers
         #
 
         request_headers = {
-            "x-ms-client-version": "{0}.Python.Client:{1}".format(Constants.MAGIC_CLASS_NAME, self._WEB_CLIENT_VERSION),
-            "x-ms-client-request-id": "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4())),
+            "x-ms-client-version": f"{Constants.MAGIC_CLASS_NAME}.Python.Client:{self._WEB_CLIENT_VERSION}",
+            "x-ms-client-request-id": f"{Constants.MAGIC_CLASS_NAME}.execute;{str(uuid.uuid4())}",
         }
         if self._aad_helper is not None:
             request_headers["Authorization"] = self._aad_helper.acquire_token(**options)

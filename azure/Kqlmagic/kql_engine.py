@@ -74,10 +74,14 @@ class KqlEngine(object):
             return self.conn_name
         # print('=',self.alias,'=', self.cluster_friendly_name, '=', self.database_friendly_name)
         if self.alias and self.cluster_friendly_name and self.database_friendly_name:
-            self.conn_name = "{0}@{1}".format(self.alias, self.cluster_friendly_name)
+            self.conn_name = f"{self.alias}@{self.cluster_friendly_name}"
             return self.conn_name
         else:
             raise KqlEngineError("Database and/or cluster is not defined.")
+
+
+    def get_deep_link(self, query: str, **options) -> str:
+        return None
 
 
     def createDatabaseFriendlyName(self, dname):
@@ -161,8 +165,7 @@ class KqlEngine(object):
     _SHOULD_BE_NULL_KEYS = {ConnStrKeys.CODE, ConnStrKeys.ANONYMOUS}
 
     def _parse_common_connection_str(
-        self, conn_str: str, current, uri_schema_name, mandatory_key: str, valid_keys_combinations: list, user_ns: dict
-    ):
+        self, conn_str: str, current, uri_schema_name, mandatory_key: str, valid_keys_combinations: list, user_ns: dict):
 
         logger().debug("kql_engine.py -_parse_common_connection_str - params:  conn_str: {0}; current: {1}, uri_schema_name: {2};mandatory_key: {3}, valid_keys_combinations: {4}, user_ns: {5}".format(conn_str, current, uri_schema_name, mandatory_key, valid_keys_combinations, user_ns))
 

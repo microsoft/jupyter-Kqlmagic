@@ -185,7 +185,7 @@ class Database_html(object):
                 database_name = connection.get_database()
 
             if engine_type == KustoEngine:
-                show_schema_query = ".show database ['{0}'] schema".format(Database_html.adjustToKustoEntityNameRules(database_name))
+                show_schema_query = f".show database ['{Database_html.adjustToKustoEntityNameRules(database_name)}'] schema"
                 raw_query_result = connection.execute(show_schema_query, **options)
                 raw_schema_table = raw_query_result.tables[0]
                 database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)

@@ -95,7 +95,7 @@ class KqlResponseTable(six.Iterator):
                 days=int(match.group("d") or 0), hours=int(match.group("h")), minutes=int(match.group("m")), seconds=float(match.group("s"))
             )
         else:
-            raise ValueError("Timespan value '{}' cannot be decoded".format(value))
+            raise ValueError(f"Timespan value '{value}' cannot be decoded")
 
     def __iter__(self):
         self.row_index = 0
@@ -215,7 +215,7 @@ class KqlQueryResponse(object):
                         ):
                             for row in table["Rows"]:
                                 if row[key_idx] == "Visualization":
-                                    # print('visualization raw properties for table {0}: {1}'.format(id_idx, row[value_idx]))
+                                    # print(f'visualization raw properties for table {id_idx}: {row[value_idx]}')
                                     value = row[value_idx]
                                     self.visualization[row[id_idx]] = self._dynamic_to_object(value)
             else:
@@ -225,7 +225,7 @@ class KqlQueryResponse(object):
                     for row in last_table["Rows"]:
                         if row[2] == "@ExtendedProperties" and row[1] == "QueryProperties":
                             table = self.json_response["Tables"][row[0]]
-                            # print('visualization raw properties for first table: {}'.format(table['Rows'][0][0]))
+                            # print(f'visualization raw properties for first table: {table['Rows'][0][0]}')
                             value = table["Rows"][0][0]
                             self.visualization[0] = self._dynamic_to_object(value)
         return self.visualization
@@ -253,7 +253,7 @@ class KqlQueryResponse(object):
                         for sr in t["Rows"]:
                             if sr[2] == "Info":
                                 info = {"StatusCode": sr[3], "StatusDescription": sr[4], "Count": sr[5]}
-                                # print('Info: {}'.format(info))
+                                # print(f'Info: {info}')
                                 return info
         return {}
 
@@ -280,7 +280,7 @@ class KqlQueryResponse(object):
                         for sr in t["Rows"]:
                             if sr[2] == "Stats":
                                 stats = sr[4]
-                                # print('stats: {}'.format(stats))
+                                # print(f'stats: {stats}')
                                 return self._dynamic_to_object(stats)
         return {}
 

@@ -13,7 +13,7 @@ from ipykernel import (get_connection_info)
 from .constants import Constants
 
 def _get_kql_magic_log_level():
-    log_level = os.getenv("{0}_LOG_LEVEL".format(Constants.MAGIC_CLASS_NAME.upper()))
+    log_level = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_LEVEL")
     if log_level:
         log_level = log_level.strip().upper().replace("_", "").replace("-", "")
         if log_level.startswith("'") or log_level.startswith('"'):
@@ -22,9 +22,9 @@ def _get_kql_magic_log_level():
 
 def initialize():
     log_level = _get_kql_magic_log_level()
-    log_file = os.getenv("{0}_LOG_FILE".format(Constants.MAGIC_CLASS_NAME.upper()))
-    log_file_prefix = os.getenv("{0}_LOG_FILE_PREFIX".format(Constants.MAGIC_CLASS_NAME.upper()))
-    log_file_mode = os.getenv("{0}_LOG_FILE_MODE".format(Constants.MAGIC_CLASS_NAME.upper()))
+    log_file = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_FILE")
+    log_file_prefix = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_FILE_PREFIX")
+    log_file_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_FILE_MODE")
     if log_level or log_file or log_file_mode or log_file_prefix:
         connection_info = get_connection_info(unpack=True)
         key = connection_info.get("key").decode(encoding="utf-8")
@@ -104,15 +104,15 @@ class Logger(object):
         if self.log_context:
             correlation_id = self.log_context.get("correlation_id")
             if correlation_id:
-                formatted = "{} - ".format(correlation_id)
+                formatted = f"{correlation_id} - "
 
         if self._component_name:
-            formatted += "{}:".format(self._component_name)
+            formatted += f"{self._component_name}:"
 
         formatted += msg
 
         if log_stack_trace:
-            formatted += "\nStack:\n{}".format(traceback.format_stack())
+            formatted += f"\nStack:\n{traceback.format_stack()}"
 
         return formatted
 

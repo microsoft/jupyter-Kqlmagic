@@ -7,6 +7,7 @@
 from .kql_engine import KqlEngine, KqlEngineError
 from .kusto_client import Kusto_Client
 from .constants import ConnStrKeys, Schema
+import urllib.parse
 
 
 class KustoEngine(KqlEngine):
@@ -46,9 +47,7 @@ class KustoEngine(KqlEngine):
             self.cluster_name = conn_str.get(ConnStrKeys.CLUSTER)
             self.alias = conn_str.get(ConnStrKeys.ALIAS) or self.database_friendly_name
             self.cluster_friendly_name = conn_str.get("cluster_friendly_name")
-            self.bind_url = "{0}://{1}('{2}').{3}('{4}')".format(
-                self._URI_SCHEMA_NAME, ConnStrKeys.CLUSTER, self.cluster_name, ConnStrKeys.DATABASE, self.database_name
-            )
+            self.bind_url = f"{self._URI_SCHEMA_NAME}://{ConnStrKeys.CLUSTER}('{self.cluster_name}').{ConnStrKeys.DATABASE}('{self.database_name}')"
         else:
             self._parsed_conn = self._parse_common_connection_str(
                 conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
@@ -58,9 +57,26 @@ class KustoEngine(KqlEngine):
 
     def get_client(self):
         if self.client is None:
-            cluster_connection = self.conn_class.get_connection_by_name("@" + self.cluster_friendly_name)
+            cluster_connection = self.conn_class.get_connection_by_name(f"@{self.cluster_friendly_name}")
             if cluster_connection is None:
                 raise KqlEngineError("connection to cluster not set.")
             return cluster_connection.get_client()
         else:
             return self.client
+
+    def get_deep_link(self, query: str, options) -> str:
+        client = self.get_client()
+        http_query = []
+        web_or_app = 0 if options.get("query_link_destination") == "Kusto.Explorer" else 1 # default "Kusto.WebExplorer"
+        http_query.append(f"web={urllib.parse.quote(str(web_or_app))}")
+        # http_query.append(f"uri={urllib.parse.quote(client.data_source)}") # not clear what it should be 
+        http_query.append(f"name={urllib.parse.quote(self.cluster_friendly_name)}")
+        if options.get("saw"):
+            http_query.append(f"saw={urllib.parse.quote(str(options.get('saw')))}")
+
+        http_query.append(f"query={urllib.parse.quote(query)}")
+
+            
+        url = f"{client.deep_link_data_source}/{self.database_name}?{'&'.join(http_query)}"
+        # print (f'deep link: {url}')
+        return url

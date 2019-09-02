@@ -32,7 +32,7 @@ class CacheEngine(KqlEngine):
         if isinstance(conn_str, KqlEngine):
             self.kql_engine = conn_str
             folder_name = conn_str.get_database_friendly_name() + "_at_" + conn_str.cluster_friendly_name()
-            conn_str = "{0}://{1}='{2}'".format(self._URI_SCHEMA_NAME, ConnStrKeys.FOLDER, folder_name)
+            conn_str = f"{self._URI_SCHEMA_NAME}://{ConnStrKeys.FOLDER}='{folder_name}'"
 
         self._parsed_conn = self._parse_common_connection_str(
             conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns

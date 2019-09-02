@@ -16,7 +16,7 @@ class Constants(object):
     MAGIC_CLASS_NAME = "Kqlmagic"
     MAGIC_NAME = "kql"
     MAGIC_ALIASES = []
-    LOGGER_NAME = "{0}-py".format(MAGIC_CLASS_NAME)
+    LOGGER_NAME = f"{MAGIC_CLASS_NAME}-py"
 
     # conversion constants
     MINUTE_SECS = 60

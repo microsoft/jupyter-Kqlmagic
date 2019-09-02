@@ -400,9 +400,9 @@ def execute_help_command(topic: str) -> MarkdownString:
     """
     help_topic_string = _HELP.get(topic.strip().lower().replace("_", "").replace("-", ""))
     if help_topic_string is None:
-        raise ValueError("{0} unknown help topic".format(topic))
+        raise ValueError(f"{topic} unknown help topic")
     if help_topic_string.startswith("http"):
-        button_text = "popup {0} reference ".format(topic)
+        button_text = f"popup {topic} reference "
         return UrlReference(topic, help_topic_string, button_text)
     elif help_topic_string == '':
         help_topic_string = "Sorry, not implemented yet."

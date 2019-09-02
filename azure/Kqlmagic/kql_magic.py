@@ -162,7 +162,8 @@ class Kqlmagic(Magics, Configurable):
     show_query = Bool(False, config=True, help="Print parametrized query. Abbreviation: sq")
 
 
-    show_url = Bool(False, config=True, help="Show a button, click to open Azure Data Explorer and view query online")
+    show_query_link = Bool(False, config=True, help="Show query deep link as a button, to run query in the deafult tool. Abbreviation: sql")
+    query_link_destination = Enum(["Kusto.Explorer", "Kusto.WebExplorer"], "Kusto.WebExplorer", config=True, help="Set the deep link destination. Abbreviation: qld")
 
 
     plotly_fs_includejs = Bool(
@@ -295,7 +296,7 @@ class Kqlmagic(Magics, Configurable):
 
 
 
-    def execute_schema_command(self, connection_string:str, user_ns: dict, **options) -> dict:
+    def execute_schema_command(self, connection_string: str, user_ns: dict, **options) -> dict:
         """ execute the schema command.
         command return the schema of the connection in json format, so that it can be used programattically
 
@@ -792,7 +793,7 @@ class Kqlmagic(Magics, Configurable):
             if _result_set is None:
                 fork_table_id = 0
                 saved_result = ResultSet(
-                    raw_query_result, parametrized_query_dict, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options
+                    raw_query_result, parametrized_query_dict, conn, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options
                 )
                 saved_result.metadata["magic"] = self
                 saved_result.metadata["parsed"] = parsed
@@ -804,8 +805,6 @@ class Kqlmagic(Magics, Configurable):
                 saved_result._update(raw_query_result)
 
             result = saved_result
-            ##add connection info to result object in order to display url for kusto explorer
-            result.add_connection(conn)
 
             if not connection_string and Connection.connections:
                 saved_result.metadata["conn_info"] = self._get_connection_info(**options)

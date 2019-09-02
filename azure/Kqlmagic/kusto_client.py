@@ -6,16 +6,12 @@
 
 import re
 import uuid
-import six
-from datetime import timedelta, datetime
 import json
-import adal
-import dateutil.parser
 import requests
 
 from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
 
-from .kql_client import KqlQueryResponse, KqlError
+from .kql_response import KqlQueryResponse, KqlError
 from .constants import Constants, ConnStrKeys, Cloud
 from .version import VERSION
 from .log import logger
@@ -75,6 +71,8 @@ class Kusto_Client(object):
 
     _WEB_CLIENT_VERSION = VERSION
 
+    _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.(io|cn|us|de).*$")
+
     def __init__(self, conn_kv:dict, **options):
         """
         Kusto Client constructor.
@@ -96,29 +94,40 @@ class Kusto_Client(object):
         authority : 'microsoft.com', optional
             In case your tenant is not microsoft please use this param.
         """
-        cloud = options.get("cloud")
-
+        self.cloud = options.get("cloud")
         cluster_name = conn_kv[ConnStrKeys.CLUSTER]
 
         if cluster_name.find("://") >= 0:
             data_source = cluster_name
         else:
-            cloud_url = self._CLOUD_URLS.get(cloud)
+            cloud_url = self._CLOUD_URLS.get(self.cloud)
             if not cloud_url:
-                raise KqlEngineError("adx not supported in cloud {0}".format(cloud))
-            data_source = self._DATA_SOURCE_TEMPLATE.format(cluster_name,cloud_url)
+                raise KqlEngineError(f"adx not supported in cloud {self.cloud}")
+            data_source = self._DATA_SOURCE_TEMPLATE.format(cluster_name, cloud_url)
 
         self._mgmt_endpoint = self._MGMT_ENDPOINT_TEMPLATE.format(data_source, self._MGMT_ENDPOINT_VERSION)
         self._query_endpoint = self._QUERY_ENDPOINT_TEMPLATE.format(data_source, self._QUERY_ENDPOINT_VERSION)
-        _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.(io|cn|us|de).*$")
 
-
-        if _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
-            auth_resource = "https://kusto.kusto.{0}".format(self._CLOUD_URLS.get(cloud))
+        if self._FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
+            auth_resource = f"https://kusto.kusto.{self._CLOUD_URLS.get(self.cloud)}"
         else:
             auth_resource = data_source
             
         self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), self._DEFAULT_CLIENTID, **options) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
+        self._data_source = data_source
+
+
+    @property
+    def data_source(self):
+        return self._data_source
+
+
+    @property 
+    def deep_link_data_source(self):
+        if self._FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(self.data_source):
+            return f"https://help.kusto.{self._CLOUD_URLS.get(self.cloud)}"
+        else:
+            return self._data_source
 
 
     def getCloudFromHTTP(self, http: str):
@@ -136,8 +145,10 @@ class Kusto_Client(object):
             return Cloud.USSEC
         return Cloud.PUBLIC
 
+
     def execute(self, kusto_database, kusto_query, accept_partial_results=False, **options):
-        """ Execute a simple query or management command
+        """ 
+        Execute a simple query or management command
 
         Parameters
         ----------
@@ -169,7 +180,7 @@ class Kusto_Client(object):
             "csl": kusto_query,
         }
 
-        client_request_id = "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4()))
+        client_request_id = f"{Constants.MAGIC_CLASS_NAME}.execute;{str(uuid.uuid4())}"
 
         query_properties: dict = options.get("query_properties")
         if query_properties and len(query_properties):
@@ -184,7 +195,7 @@ class Kusto_Client(object):
             "Accept": "application/json",
             "Accept-Encoding": "gzip,deflate",
             "Content-Type": "application/json; charset=utf-8",
-            "x-ms-client-version": "{0}.Python.Client:{1}".format(Constants.MAGIC_CLASS_NAME, self._WEB_CLIENT_VERSION),
+            "x-ms-client-version": f"{Constants.MAGIC_CLASS_NAME}.Python.Client:{self._WEB_CLIENT_VERSION}",
             "x-ms-client-request-id": client_request_id,
             "x-ms-app": Constants.MAGIC_CLASS_NAME
         }
@@ -220,4 +231,3 @@ class Kusto_Client(object):
             raise KqlError(kql_response.get_exceptions(), response, kql_response)
 
         return kql_response
-

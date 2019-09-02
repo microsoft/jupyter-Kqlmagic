@@ -48,8 +48,8 @@ class Connection(object):
             if "@" in connect_str:
                 engine = KustoEngine
             else:
-                valid_prefixes_str = ", ".join(["{0}://".format(s) for s in self._ENGINE_MAP.keys()])
-                raise KqlEngineError("invalid connection_str, unknown <uri schema name>. valid uri schemas are: {0}".format(valid_prefixes_str))
+                valid_prefixes_str = ", ".join([f"{s}://" for s in self._ENGINE_MAP.keys()])
+                raise KqlEngineError(f"invalid connection_str, unknown <uri schema name>. valid uri schemas are: {valid_prefixes_str}")
 
         last_current = self.last_current_by_engine.get(engine.__name__)
 
@@ -59,19 +59,19 @@ class Connection(object):
             if "://" in connect_str:
                 if last_current:
                     last_cluster_friendly_name = last_current.get_cluster_friendly_name()
-                    last_current = self.connections.get("@" + last_cluster_friendly_name)
+                    last_current = self.connections.get(f"@{last_cluster_friendly_name}")
                 # TODO: if already exist, not need to create a new one, root one each time, will make some of cluster kind sso 
                 cluster_conn_engine = engine(connect_str, user_ns, **options, current = last_current)
 
                 cluster_friendly_name = cluster_conn_engine.get_cluster_friendly_name()
-                Connection._set_current(cluster_conn_engine, conn_name="@" + cluster_friendly_name)
+                Connection._set_current(cluster_conn_engine, conn_name=f"@{cluster_friendly_name}")
                 database_name = cluster_conn_engine.get_database()
                 alias = cluster_conn_engine.get_alias()
             else:
                 database_name, cluster_friendly_name = connect_str.split("@")
                 alias = None
                 if len(database_name) < 1:
-                    raise KqlEngineError("invalid connection_str, key {0} cannot be empty.".format(ConnStrKeys.DATABASE))
+                    raise KqlEngineError(f"invalid connection_str, key {ConnStrKeys.DATABASE} cannot be empty")
             conn_engine = Connection._new_kusto_database_engine(database_name, cluster_friendly_name, alias, user_ns, **options)
 
         if options.get("use_cache") and engine != CacheEngine:
@@ -153,4 +153,4 @@ class Connection(object):
 
     @classmethod
     def get_current_connection_formatted(cls):
-        return " * " + cls.current.get_conn_name()
+        return f" * {cls.current.get_conn_name()}"

@@ -87,7 +87,8 @@ class _MyAadHelper(object):
         global global_adal_context_sso
 
         client_id = kcsb.application_client_id or default_clientid
-        self._resource = "{0.scheme}://{0.hostname}".format(urlparse(kcsb.data_source))
+        url = urlparse(kcsb.data_source)
+        self._resource = f"{url.scheme}://{url.hostname}"
         self.sso_enabled = False
 
 
@@ -99,7 +100,7 @@ class _MyAadHelper(object):
             aad_login_url = _CLOUD_AAD_URLS.get(cloud)
 
             if not aad_login_url:
-                raise KqlEngineError("AAD is not known for this cloud {0}, please use aadurl property in connection string.".format(cloud))
+                raise KqlEngineError(f"AAD is not known for this cloud {cloud}, please use aadurl property in connection string.")
 
         authority = kcsb.authority_id or "common"
         token_cache = None
@@ -240,8 +241,8 @@ class _MyAadHelper(object):
 
                 if options.get("notebook_app") in ["visualstudiocode", "ipython"]:
                     Display.show_window('verification_url', url, **options)
-                    # Display.showInfoMessage("Code: {0}".format(device_code))
-                    Display.showInfoMessage("Copy code: {0} to verification url: {1} and authenticate".format(device_code, url), **options)
+                    # Display.showInfoMessage(f"Code: {device_code}")
+                    Display.showInfoMessage(f"Copy code: {device_code} to verification url: {url} and authenticate", **options)
                 else:
                     Display.show_html(html_str)
 
@@ -323,4 +324,4 @@ class _MyAadHelper(object):
     #         server.sendmail(sender_email, receiver_email, "\n"+message)
 
     def _get_header(self, token):
-        return "{0} {1}".format(token[TokenResponseFields.TOKEN_TYPE], token[TokenResponseFields.ACCESS_TOKEN])
+        return f"{token[TokenResponseFields.TOKEN_TYPE]} {token[TokenResponseFields.ACCESS_TOKEN]}"

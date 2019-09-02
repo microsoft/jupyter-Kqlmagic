@@ -27,7 +27,7 @@ class Parser(object):
         if len(command) > 0 and command.get("command") != "submit":
             cell, options = cls._parse_kql_options(cell.strip(), config, user_ns)
             if cell: 
-                raise ValueError("command {0} has too many parameters".format(command.get("command")))
+                raise ValueError(f"command {command.get('command')} has too many parameters")
             parsed_queries.append({"connection": "", "query": "", "options": options, "command": command})
             return parsed_queries
 
@@ -71,8 +71,8 @@ class Parser(object):
                 for e in engines:
                     if e._MANDATORY_KEY in cfg_dict_lower.keys():
                         all_keys = set(itertools.chain(*e._VALID_KEYS_COMBINATIONS))
-                        connection_kv = ["{0}='{1}'".format(k, v) for k, v in cfg_dict_lower.items() if v and k in all_keys]
-                        connection = "{0}://{1}".format(e._URI_SCHEMA_NAME, ";".join(connection_kv))
+                        connection_kv = [f"{k}='{v}'" for k, v in cfg_dict_lower.items() if v and k in all_keys]
+                        connection = f"{e._URI_SCHEMA_NAME}://{';'.join(connection_kv)}"
                         break
 
             #
@@ -154,11 +154,11 @@ class Parser(object):
         words = code.split()
         word = words[0][2:]
         if word.startswith("-"):
-            raise ValueError("unknown command {0}, commands' prefix is a double hyphen-minus, not a triple hyphen-minus".format(words[0]))
+            raise ValueError(f"unknown command {words[0]}, commands' prefix is a double hyphen-minus, not a triple hyphen-minus")
         lookup_key = word.lower().replace("_", "").replace("-", "")
         obj = cls._COMMANDS_TABLE.get(lookup_key)
         if obj is None:
-            raise ValueError("unknown command {0}".format(words[0]))
+            raise ValueError(f"unknown command {words[0]}")
 
         trimmed_code = code
         trimmed_code = trimmed_code[trimmed_code.find(words[0]) + len(words[0]) :]
@@ -172,7 +172,7 @@ class Parser(object):
         elif obj.get("default") is not None:
             param = obj.get("default")
         else:
-            raise ValueError("command {0} is missing parameter".format(word[0]))
+            raise ValueError(f"command {word[0]} is missing parameter")
 
         return (trimmed_code.strip(), {"command":  obj.get("flag"), "param": param})
 
@@ -344,7 +344,10 @@ class Parser(object):
         "showquerytime": {"flag": "show_query_time", "type": "bool", "config": "config.show_query_time"},
         "sq": {"abbreviation": "showquery"},
         "showquery": {"flag": "show_query", "type": "bool", "config": "config.show_query"},
-        "showurl": {"flag": "show_url", "type": "bool", "config": "config.show_url"},
+        "sql": {"abbreviation": "showquerylink"},
+        "showquerylink": {"flag": "show_query_link", "type": "bool", "config": "config.show_query_link"},
+        "qld": {"abbreviation": "querylinkdestination"},
+        "querylinkdestination": {"flag": "query_link_destination", "type": "str", "config": "config.query_link_destination"},
 
         "esr": {"abbreviation": "enablesuppressresult"},
         "enablesuppressresult": {"flag": "enable_suppress_result", "type": "bool", "config": "config.enable_suppress_result"},
@@ -453,7 +456,7 @@ class Parser(object):
                     break
                 # validate it is not a command
                 if is_option and word[0].startswith("--"):
-                    raise ValueError("invalid option {0}, cannot start with a bouble hyphen-minus".format(word[0]))
+                    raise ValueError(f"invalid option {word[0]}, cannot start with a bouble hyphen-minus")
 
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
                 word = word[1:]
@@ -482,7 +485,7 @@ class Parser(object):
                     if obj.get("abbreviation"):
                         obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
                     if obj.get("readonly"):
-                        raise ValueError("option {0} is readony, cannot be set".format(key))
+                        raise ValueError(f"option {key} is readony, cannot be set")
 
                     _type = obj.get("type")
                     opt_key = obj.get("flag") or lookup_key
@@ -491,7 +494,7 @@ class Parser(object):
                         table[opt_key] = bool_value
                     else:
                         if not bool_value:
-                            raise ValueError("option {0} cannot be negated".format(key))
+                            raise ValueError(f"option {key} cannot be negated")
                         if value is not None:
                             table[opt_key] = cls.parse_value(value, key, _type, user_ns)
                         else:
@@ -644,6 +647,6 @@ class Parser(object):
             except:
                 return _convert(eval(val), _type)
         except:
-            raise ValueError("failed to set {0}, due to invalid {1} value {2}.".format(key, _type, value))
+            raise ValueError(f"failed to set {key}, due to invalid {_type} value {value}.")
         
         

@@ -103,8 +103,8 @@ class TestTwoStrThreeNum(Harness):
         results = self.run_query()
         results.guess_pie_columns(xlabel_sep="//")
         assert results.ys[0].is_quantity
-        print("1--- {}".format(results.ys))
-        print("2--- {}".format([[1.04, 2.04, 3.04]]))
+        print(f"1--- {results.ys}")
+        print(f"2--- {[[1.04, 2.04, 3.04]]}")
         assert results.ys == [[1.04, 2.04, 3.04]]
         assert results.xlabels == ['r1-txt1//1.01//r1-txt2//1.02',
                                   'r2-txt1//2.01//r2-txt2//2.02',

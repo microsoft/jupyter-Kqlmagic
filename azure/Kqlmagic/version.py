@@ -24,7 +24,7 @@ def execute_version_command():
     str
         A string with the current version
     """
-    return MarkdownString("{0} version: {1}".format(Constants.MAGIC_PACKAGE_NAME, VERSION))
+    return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} version: {VERSION}")
 
 def get_pypi_latest_version(package_name: str) -> str:
     """ Retreives latest package version string for PyPI.
@@ -49,7 +49,7 @@ def get_pypi_latest_version(package_name: str) -> str:
     # submit request
     #
 
-    api_url = "https://pypi.org/pypi/{0}/json".format(package_name)
+    api_url = f"https://pypi.org/pypi/{package_name}/json"
     response = requests.get(api_url)
 
     #
@@ -165,12 +165,6 @@ def validate_required_python_version_running(minimal_required_version: str) -> N
         min_py_version = 1000000*int(parts[0]) + 1000*(int(parts[1]) if len(parts) > 1 else 0) + (int(parts[2]) if len(parts) > 2 else 0)
         running_py_version = 1000000*sys.version_info.major + 1000*sys.version_info.minor + sys.version_info.micro
         if running_py_version < min_py_version:
-            raise RuntimeError("Kqlmagic requires python >= {0}, you use python {1}.{2}.{3}".format(
-                Constants.MINIMAL_PYTHON_VERSION_REQUIRED, 
-                sys.version_info.major, 
-                sys.version_info.minor,
-                sys.version_info.micro))
+            raise RuntimeError("")
     except:
-        raise RuntimeError("Kqlmagic requires python >= {0}, you use python {1}".format(
-            Constants.MINIMAL_PYTHON_VERSION_REQUIRED, 
-            sys.version))
+        raise RuntimeError(f"Kqlmagic requires python >= {Constants.MINIMAL_PYTHON_VERSION_REQUIRED}, you use python {sys.version}")

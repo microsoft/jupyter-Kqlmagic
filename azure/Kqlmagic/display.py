@@ -243,6 +243,40 @@ class Display(object):
         )
         # print(html_str)
         return html_str
+    @staticmethod
+    def show_window_with_markdown_str(window_name, button_text=None, onclick_visibility=None, markdown_str=None):
+        markdown_str_as_html  = markdown_str._repr_html_()
+        onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
+        button_text = button_text or "popup window"
+        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_")
+        html_str = (
+            """<!DOCTYPE html>
+            <html><body>
+<button onclick="myFunction()">"""+ button_text+"""</button>
+
+<script>
+
+function myFunction() {
+    var text = `"""+markdown_str_as_html +"""`;
+                    window.focus();
+                var w = screen.width / 2;
+                var h = screen.height / 2;
+
+  var popup = window.open('','"""+window_name+"""','height='+h+',width='+w+',location=no,resizable=yes,scrollbars=yes');   
+var el = popup.document.createElement("p");
+popup.document.body.overflow = "auto";
+el.style.top = 0;
+el.style.left = 0;
+el.innerHTML = text;
+popup.document.body.appendChild(el);
+}
+</script>
+
+
+            </body></html>"""
+        )
+        return display(HTML(html_str))
+
 
 
     @staticmethod

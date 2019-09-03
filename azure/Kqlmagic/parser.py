@@ -393,6 +393,12 @@ class Parser(object):
         "addschematohelp": {"flag": "add_schema_to_help", "readonly": "True", "config": "config.add_schema_to_help"},
         "notebookapp": {"flag": "notebook_app", "readonly": "True", "config": "config.notebook_app"},
 
+        "checkmagicversion": {"flag": "check_magic_version", "readonly": "True", "config": "config.check_magic_version"},
+        "showwhatnew": {"flag": "show_what_new", "readonly": "True", "config": "config.show_what_new"},
+        "showinitbanner": {"flag": "show_init_banner", "readonly": "True", "config": "config.show_init_banner"},
+        
+
+
 
 
         "testnotebookapp": {"flag": "test_notebook_app", "readonly": "True", "config": "config.test_notebook_app"},

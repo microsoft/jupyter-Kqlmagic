@@ -5,7 +5,6 @@
 # --------------------------------------------------------------------------
 
 import os
-import atexit
 import time
 import logging
 import hashlib
@@ -36,7 +35,6 @@ from traitlets.config.configurable import Configurable
 
 logger().debug("kql_magic.py - import Bool, Int, Float, Unicode, Enum, TraitError, validate from traitlets")
 from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate
-
 
 
 logger().debug("kql_magic.py - import ResultSet from .results")
@@ -131,20 +129,16 @@ class Kqlmagic(Magics, Configurable):
         "matching section in the DSN file. Abbreviation: dl",
     )
 
-    cloud = Enum([Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST, Cloud.USNAT, Cloud.USSEC],
+    cloud = Enum([Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST, Cloud.USNAT, Cloud.USSEC, Cloud.TEST],
         Cloud.PUBLIC,
         config=True,
         help="Default cloud "
         "the kql connection will use the cloud as specified "
     )
 
-
     enable_sso = Bool(False, config = True, help=f"Enables or disables SSO. if enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly")
-    
 
-    clear_sso_db = Bool(False, config = True, help=f"")
-
-    sso_cleanup_interval = Int(168, config=True,help= "Not updated/used data in SSO cache, for more than the time interval, will be removed. Default is one week.")
+    sso_db_gc_interval = Int(168, config=True,help= "Garbage Collection interval for not changed SSO cache entries. Default is one week.")
     # login_code_destination = Unicode("browser", config = True, help = 
     # "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
 
@@ -257,6 +251,7 @@ class Kqlmagic(Magics, Configurable):
             raise TraitError(message)
         return proposal["value"]
 
+
     def execute_cache_command(self, cache_name:str) -> str:
         """ execute the cache command.
         command enables or disables caching, and returns a status string
@@ -272,6 +267,7 @@ class Kqlmagic(Magics, Configurable):
         else:
             self.cache = None
             return MarkdownString("{0} caching was disabled.".format(Constants.MAGIC_PACKAGE_NAME))
+
 
     def execute_use_cache_command(self, cache_name:str) -> str:
         """ execute the use_cache command.
@@ -289,9 +285,10 @@ class Kqlmagic(Magics, Configurable):
             self.cache = None
             return MarkdownString("{0} cache was disabled.".format(Constants.MAGIC_PACKAGE_NAME))
 
+
     def execute_clear_sso_db_command(self):
         sso_storage = get_sso_store()
-        sso_storage.clear_sso_db()
+        sso_storage.clear_db()
         return MarkdownString("sso db was cleared.")
 
 

@@ -23,7 +23,6 @@ from .display import Display
 from .constants import ConnStrKeys
 from .adal_token_cache import AdalTokenCache
 from .kql_engine import KqlEngineError
-from .sso_storage import SsoStorage, get_sso_store
 import uuid
 
 import jwt
@@ -44,13 +43,13 @@ class ConnKeysKCSB(object):
         self.conn_kv = conn_kv
         self.data_source = data_source
         self.translate_map = {
-            "authority_id": ConnStrKeys.TENANT,
-            "aad_url": ConnStrKeys.AAD_URL,
-            "aad_user_id": ConnStrKeys.USERNAME,
-            "password": ConnStrKeys.PASSWORD,
-            "application_client_id": ConnStrKeys.CLIENTID,
-            "application_key": ConnStrKeys.CLIENTSECRET,
-            "application_certificate": ConnStrKeys.CERTIFICATE,
+            "authority_id":                       ConnStrKeys.TENANT,
+            "aad_url":                            ConnStrKeys.AAD_URL,
+            "aad_user_id":                        ConnStrKeys.USERNAME,
+            "password":                           ConnStrKeys.PASSWORD,
+            "application_client_id":              ConnStrKeys.CLIENTID,
+            "application_key":                    ConnStrKeys.CLIENTSECRET,
+            "application_certificate":            ConnStrKeys.CERTIFICATE,
             "application_certificate_thumbprint": ConnStrKeys.CERTIFICATE_THUMBPRINT,
         }
 
@@ -71,18 +70,32 @@ class AuthenticationMethod(Enum):
     aad_device_login = "aad_device_login"
 
 
-_CLOUD_AAD_URLS= {
+_CLOUD_AAD_URLS = {
         Cloud.PUBLIC :     "https://login.microsoftonline.com",
-        Cloud.MOONCAKE:    "https://login.partner.microsoftonline.cn",
+        Cloud.MOONCAKE:    "https://login.partner.microsoftonline.cn", # === 'login.chinacloudapi.cn'?
         Cloud.FAIRFAX:     "https://login.microsoftonline.us",
         Cloud.BLACKFOREST: "https://login.microsoftonline.de",
 }
 
+_CLOUD_DSTS_AAD_DOMAINS = {
+        # Define dSTS domains whitelist based on its Supported Environments & National Clouds list here
+        # https://microsoft.sharepoint.com/teams/AzureSecurityCompliance/Security/SitePages/dSTS%20Fundamentals.aspx
+        Cloud.PUBLIC :      'dsts.core.windows.net',
+        Cloud.MOONCAKE:     'dsts.core.chinacloudapi.cn',  
+        Cloud.BLACKFOREST:  'dsts.core.cloudapi.de', 
+        Cloud.FAIRFAX:      'dsts.core.usgovcloudapi.net',  
+        Cloud.TEST:         'dsts.core.azure-test.net',
+}
+
+
+# not cached shared context per authority
 global_adal_context = {}
+
+# cached shared context per authority
 global_adal_context_sso = {}
 
 class _MyAadHelper(object):
-    def __init__(self, kcsb, default_clientid, auth_context = None, auth_context_sso = None, **options):
+    def __init__(self, kcsb, default_clientid, adal_context = None, adal_context_sso = None, **options):
         global global_adal_context
         global global_adal_context_sso
 
@@ -90,8 +103,6 @@ class _MyAadHelper(object):
         url = urlparse(kcsb.data_source)
         self._resource = f"{url.scheme}://{url.hostname}"
         self.sso_enabled = False
-
-
 
         cloud = options.get("cloud")
         if kcsb.conn_kv.get(ConnStrKeys.AAD_URL):
@@ -103,27 +114,23 @@ class _MyAadHelper(object):
                 raise KqlEngineError(f"AAD is not known for this cloud {cloud}, please use aadurl property in connection string.")
 
         authority = kcsb.authority_id or "common"
-        token_cache = None
 
         authority_key= f"{aad_login_url}/{authority}"
 
-        self._adal_context = auth_context
+        self._adal_context = adal_context
         if self._adal_context is None:
             if not global_adal_context.get(authority_key):
                 global_adal_context[authority_key] = AuthenticationContext(authority_key, cache=None)
             self._adal_context = global_adal_context.get(authority_key)
 
+        self._adal_context_sso = None
         if options.get("enable_sso"):
-            self.sso_enabled = True
-            self._adal_context_sso = auth_context_sso
+            self._adal_context_sso = adal_context_sso
             if self._adal_context_sso is None:
                 if not global_adal_context_sso.get(authority_key):
-                    sso_store = get_sso_store(authority_key, **options)
-                    if sso_store:
-                        token_cache = AdalTokenCache(sso_store)
-                        global_adal_context_sso[authority_key] = AuthenticationContext(authority_key, cache=token_cache)
-                    else:
-                        self.sso_enabled = False
+                    cache = AdalTokenCache.get_cache(authority_key, **options)
+                    if cache:
+                        global_adal_context_sso[authority_key] = AuthenticationContext(authority_key, cache=cache)
                 self._adal_context_sso = global_adal_context_sso.get(authority_key)
 
         self._username = None
@@ -144,39 +151,50 @@ class _MyAadHelper(object):
         else:
             self._authentication_method = AuthenticationMethod.aad_device_login
             self._client_id = client_id
+            self._username = kcsb.aad_user_id # optional
+
 
     def acquire_token(self, **options):
         """Acquire tokens from AAD."""
+
         token = None
-        if self.sso_enabled:
-            token = self._adal_context_sso.acquire_token(self._resource, self._username, self._client_id)
-        if not token:
-            token = self._adal_context.acquire_token(self._resource, self._username, self._client_id)
+        if self._adal_context_sso:
+            adal_context = self._adal_context_sso
+            token = adal_context.acquire_token(self._resource, self._username, self._client_id)
+            if not token:
+                token = self._adal_context.acquire_token(self._resource, self._username, self._client_id)
+                if token:
+                    adal_context = self._adal_context
+        else:
+            adal_context = self._adal_context
+            token = adal_context.acquire_token(self._resource, self._username, self._client_id)
+
         if token is not None:
+            self._username = self._username or self._get_username_from_token(token)
             expiration_date = dateutil.parser.parse(token[TokenResponseFields.EXPIRES_ON])
             if expiration_date > datetime.now() + timedelta(minutes=1):
                 logger().debug("_MyAadHelper::acquire_token - from Cache - resource: '%s', username: '%s', client: '%s'", self._resource, self._username, self._client_id)
                 return self._get_header(token)
             if TokenResponseFields.REFRESH_TOKEN in token:
-                token = self._adal_context.acquire_token_with_refresh_token(token[TokenResponseFields.REFRESH_TOKEN], self._client_id, self._resource)
+                token = adal_context.acquire_token_with_refresh_token(token[TokenResponseFields.REFRESH_TOKEN], self._client_id, self._resource)
                 if token is not None:
                     logger().debug("_MyAadHelper::acquire_token - aad refresh - resource: '%s', username: '%s', client: '%s'", self._resource, self._username, self._client_id)
                     return self._get_header(token)
 
         if self._authentication_method is AuthenticationMethod.aad_username_password:
             logger().debug("_MyAadHelper::acquire_token - aad/user-password - resource: '%s', username: '%s', password: '...', client: '%s'", self._resource, self._username, self._client_id)
-            token = self._adal_context.acquire_token_with_username_password(self._resource, self._username, self._password, self._client_id)
+            token = adal_context.acquire_token_with_username_password(self._resource, self._username, self._password, self._client_id)
         elif self._authentication_method is AuthenticationMethod.aad_application_key:
             logger().debug("_MyAadHelper::acquire_token - aad/client-secret - resource: '%s', client: '%s', secret: '...'", self._resource, self._client_id)
-            token = self._adal_context.acquire_token_with_client_credentials(self._resource, self._client_id, self._client_secret)
+            token = adal_context.acquire_token_with_client_credentials(self._resource, self._client_id, self._client_secret)
         elif self._authentication_method is AuthenticationMethod.aad_device_login:
             # print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
             # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
-            # token = self._adal_context.acquire_token_with_device_code(
+            # token = adal_context.acquire_token_with_device_code(
             #     self._resource, code, self._client_id
             # )
             logger().debug("_MyAadHelper::acquire_token - aad/code - resource: '%s', client: '%s'", self._resource, self._client_id)
-            code: dict = self._adal_context.acquire_user_code(self._resource, self._client_id)
+            code: dict = adal_context.acquire_user_code(self._resource, self._client_id)
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
             
@@ -190,7 +208,6 @@ class _MyAadHelper(object):
                 
             #     self.send_email(email_message, kv)
                
-
             if False:
                 pass
             else:
@@ -247,21 +264,10 @@ class _MyAadHelper(object):
                     Display.show_html(html_str)
 
             try:
-                if self.sso_enabled:
-                    token = self._adal_context_sso.acquire_token_with_device_code(self._resource, code, self._client_id)
-                else:
-                    token = self._adal_context.acquire_token_with_device_code(self._resource, code, self._client_id)
+                token = adal_context.acquire_token_with_device_code(self._resource, code, self._client_id)
                 # logger().debug(f"_MyAadHelper::acquire_token - {token}")
-                claimset = jwt.decode(token.get('accessToken'), verify=False)
-                if claimset.get('upn'):
-                    self._username = claimset['upn']
-                elif claimset.get('email'):
-                    self._username = claimset['email']
-                elif claimset.get('sub'):
-                    self._username = claimset['sub']
-                elif not self._username:
-                    self._username = str(uuid.uuid4())
-
+                # TODO: what we should do if they are not the same???
+                self._username = self._username or self._get_username_from_token(token)
 
             finally:
                 html_str = """<!DOCTYPE html>
@@ -284,7 +290,7 @@ class _MyAadHelper(object):
                 Display.show_html(html_str)
         elif self._authentication_method is AuthenticationMethod.aad_application_certificate:
             logger().debug("_MyAadHelper::acquire_token - aad/client-certificate - resource: '%s', client: '%s', _certificate: '...', thumbprint: '%s'", self._resource, self._client_id, self._thumbprint)
-            token = self._adal_context.acquire_token_with_client_certificate(self._resource, self._client_id, self._certificate, self._thumbprint)
+            token = adal_context.acquire_token_with_client_certificate(self._resource, self._client_id, self._certificate, self._thumbprint)
         else:
             raise AuthenticationError("Unknown authentication method.")
         return self._get_header(token)
@@ -323,5 +329,13 @@ class _MyAadHelper(object):
     #         server.login(sender_email, password)
     #         server.sendmail(sender_email, receiver_email, "\n"+message)
 
+
     def _get_header(self, token):
         return f"{token[TokenResponseFields.TOKEN_TYPE]} {token[TokenResponseFields.ACCESS_TOKEN]}"
+
+
+    def _get_username_from_token(self, token):
+        claims = jwt.decode(token.get('accessToken'), verify=False)
+        username = claims.get('upn') or claims.get('email') or claims.get('sub')
+        return username
+

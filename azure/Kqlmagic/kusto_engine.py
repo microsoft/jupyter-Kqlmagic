@@ -29,7 +29,35 @@ class KustoEngine(KqlEngine):
         [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.CODE],
         [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
         [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
-        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT,                                            ConnStrKeys.ANONYMOUS],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER,                                                                ConnStrKeys.ANONYMOUS],
+    ]
+
+    _VALID_KEYS_COMBINATIONS_NEW = [
+        {
+            "must": [ConnStrKeys.DATABASE, ConnStrKeys.CLUSTER, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET],
+            "extra": [],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL]
+        },
+        {
+            "must": [ConnStrKeys.DATABASE, ConnStrKeys.CLUSTER, ConnStrKeys.CLIENTID, ConnStrKeys.CERTIFICATE, ConnStrKeys.CERTIFICATE_THUMBPRINT],
+            "extra": [],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL]
+        },
+        {
+            "must": [ConnStrKeys.DATABASE, ConnStrKeys.CLUSTER, ConnStrKeys.CODE],
+            "extra": [ConnStrKeys.CLIENTID, ConnStrKeys.USERNAME],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL]
+        },
+        {
+            "must": [ConnStrKeys.DATABASE, ConnStrKeys.CLUSTER, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
+            "extra": [ConnStrKeys.CLIENTID],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID]
+        },
+        {
+            "must": [ConnStrKeys.DATABASE, ConnStrKeys.CLUSTER, ConnStrKeys.ANONYMOUS],
+            "extra": [],
+            "optional": [ConnStrKeys.ALIAS]
+        }
     ]
 
     # Class methods
@@ -55,6 +83,7 @@ class KustoEngine(KqlEngine):
 
             self.client = Kusto_Client(self._parsed_conn, **options)
 
+
     def get_client(self):
         if self.client is None:
             cluster_connection = self.conn_class.get_connection_by_name(f"@{self.cluster_friendly_name}")
@@ -63,6 +92,7 @@ class KustoEngine(KqlEngine):
             return cluster_connection.get_client()
         else:
             return self.client
+
 
     def get_deep_link(self, query: str, options) -> str:
         client = self.get_client()

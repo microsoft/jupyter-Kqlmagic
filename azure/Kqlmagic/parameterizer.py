@@ -43,7 +43,7 @@ class Parameterizer(object):
     def _object_to_kql(self, v) -> str:
         try:
             val = (
-                "'{0}'".format(v)
+                f"'{v}'"
                 if isinstance(v, str)
                 else "null"
                 if v is None
@@ -51,15 +51,15 @@ class Parameterizer(object):
                 if isinstance(v, bool)
                 else self._timedelta_to_timespan(v.total_seconds())
                 if isinstance(v, timedelta)
-                else "datetime({0})".format(v.isoformat()) # kql will assume utc time
+                else f"datetime({v.isoformat()})" # kql will assume utc time
                 if isinstance(v, datetime)
-                else "dynamic({0})".format(json.dumps(dict(v), cls=ExtendedJSONEncoder))
+                else f"dynamic({json.dumps(dict(v), cls=ExtendedJSONEncoder)})"
                 if isinstance(v, dict)
-                else "dynamic({0})".format(json.dumps(list(v), cls=ExtendedJSONEncoder))
+                else f"dynamic({json.dumps(list(v), cls=ExtendedJSONEncoder)})"
                 if isinstance(v, list)
-                else "dynamic({0})".format(json.dumps(list(tuple(v)) ,cls=ExtendedJSONEncoder))
+                else f"dynamic({json.dumps(list(tuple(v)) ,cls=ExtendedJSONEncoder)})"
                 if isinstance(v, tuple)
-                else "dynamic({0})".format(json.dumps(list(set(v)), cls=ExtendedJSONEncoder))
+                else f"dynamic({json.dumps(list(set(v)), cls=ExtendedJSONEncoder)})"
                 if isinstance(v, set)
                 else self.datatable(v)
                 if isinstance(v, DataFrame)
@@ -69,16 +69,16 @@ class Parameterizer(object):
                 if str(v) == "nat" # does not exist
                 else "real(null)"
                 if str(v) == "nan" # missing na for long(null)
-                else "'{0}'".format(v.decode("utf-8"))
+                else f"'{v.decode('utf-8')}'"
                 if isinstance(v, bytes)
-                else "long({0})".format(v)
+                else f"long({v})"
                 if isinstance(v, int)
-                else "real({0})".format(v)
+                else f"real({v})"
                 if isinstance(v, float)
                 else str(v)
             )
         except:
-            val = "'{0}'".format(v)
+            val = f"'{v}'"
         return str(val)
 
 
@@ -90,7 +90,7 @@ class Parameterizer(object):
                 v = self.ns_vars[k]
                 # print('type', type(v))
                 val = self._object_to_kql(v)
-                statements.append("let {0} = {1}".format(k, val))
+                statements.append(f"let {k} = {val}")
         return statements
     
     _DATAFRAME_TO_KQL_TYPES = {
@@ -127,15 +127,15 @@ class Parameterizer(object):
         if kql_type == "string":
             if pd_type == "bytes":
                 s = val.decode("utf-8")
-            return "" if s is None else "'{0}'".format(s)
+            return "" if s is None else f"'{s}'"
         if kql_type == "long": 
-            return 'long(null)' if s == 'nan' else "long({0})".format(s)
+            return 'long(null)' if s == 'nan' else f"long({s})"
         if kql_type == "real": 
-            return 'real(null)' if s == 'nan' else "real({0})".format(s)
+            return 'real(null)' if s == 'nan' else f"real({s})"
         if kql_type == "bool": 
             return 'true' if val == True else 'false' if  val == False else 'bool(null)'
         if kql_type == "datetime":
-            return 'datetime(null)' if s == "NaT" else "datetime({0})".format(s) # assume utc
+            return 'datetime(null)' if s == "NaT" else f"datetime({s})" # assume utc
         if kql_type == "timespan":
             return 'time(null)' if s == "NaT" else self._timedelta_to_timespan(val.total_seconds())
         if kql_type == "dynamic":
@@ -147,7 +147,7 @@ class Parameterizer(object):
                 return self._object_to_kql(val)
          
         # this is the best we not specified
-        return "" if s is None else "'{0}'".format(s)
+        return "" if s is None else f"'{s}'"
 
         
     def guess_object_types(self, pairs_type:dict, r:list) -> dict:
@@ -203,9 +203,9 @@ class Parameterizer(object):
         r = d["data"]
         pairs_t = {col: [str(t[col]), self._DATAFRAME_TO_KQL_TYPES.get(str(t[col]))] for col in c}
         pairs_t = self.guess_object_types(pairs_t, r)
-        schema = ", ".join(["{0}:{1}".format(col, pairs_t[col][1]) for col in c])
+        schema = ", ".join([f"{col}:{pairs_t[col][1]}" for col in c])
         data = ", ".join([", ".join([self.dataframe_to_kql_value(val, pairs_t[c[idx]]) for idx, val in enumerate(row)]) for row in r])
-        return " view () {{datatable ({0}) [{1}]}}".format(schema, data)        
+        return f" view () {{datatable ({schema}) [{data}]}}"      
  
     def _detect_parameters(self, query_let_statments: list):
         """detect in query let staements, the unresolved parameter that can be resolved by python variables"""

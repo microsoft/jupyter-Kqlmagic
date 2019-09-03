@@ -399,10 +399,8 @@ class Parser(object):
 
         "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},
         "enablesso": {"flag": "enable_sso", "type": "bool", "config": "config.enable_sso"},
-        
-        "clearssodb": {"flag": "clear_sso_db", "type": "bool", "config": "config.clear_sso_db"},
 
-        "ssocleanupinterval": {"flag": "sso_cleanup_interval", "type": "int", "config": "config.sso_cleanup_interval"},
+        "ssodbgcinterval": {"flag": "sso_db_gc_interval", "type": "int", "config": "config.sso_db_gc_interval"},
         # "logincodedestination": {"flag": "login_code_destination", "type": "str", "config": "config.login_code_destination"},
 
         # "codenotificationemail": {"flag": "code_notification_email", "readonly": "True", "config": "config.code_notification_email"},

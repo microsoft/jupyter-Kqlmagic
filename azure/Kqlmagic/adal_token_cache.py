@@ -3,10 +3,13 @@
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
 # --------------------------------------------------------------------------
+from datetime import datetime, timedelta
 import json
+import string
+import random
 import threading
 from adal.constants import TokenResponseFields
-from .sso_storage import SsoStorage
+from .sso_storage import SsoStorage, get_sso_store
 from .log import logger
 
 
@@ -52,6 +55,14 @@ def _get_cache_key(entry):
 
 
 class AdalTokenCache(object):
+
+    @classmethod
+    def get_cache(cls, authority_key, **options):
+        store = get_sso_store(authority_key, **options)
+        if store:
+            cache = AdalTokenCache(store)
+            return cache
+
     def __init__(self, store: SsoStorage, state=None):
         self._lock = threading.RLock()
 
@@ -98,7 +109,7 @@ class AdalTokenCache(object):
 
         '''add entries to cache'''
         with self._lock:
-            state = self._store.restore()
+            state: str = self._store.restore()
             self.deserialize(state)
             added = None
             for e in entries:
@@ -111,23 +122,40 @@ class AdalTokenCache(object):
                 self._store.save(state)
 
 
-    def serialize(self):
+    def _random_string(self) -> str:
+        return ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(random.randint(1, 100)))
+
+
+    def serialize(self) -> str:
         '''serialize cache'''
         with self._lock:
+            state_obj = {
+                "description": "kqlmagic",
+                "version": 1,
+                "timestamp": int(datetime.utcnow().timestamp()),
+                "random_string": self._random_string(), # makes length and content different each time
+                "cache_values": list(self._cache.values()),
+            }
             # print("--##-- serialize cache --##--")
-            return json.dumps(list(self._cache.values()))
+            return json.dumps(state_obj)
 
 
-    def deserialize(self, state):
+    def deserialize(self, state: str):
         '''deserialize cache'''
         with self._lock:
             # print("--##-- deserialize state --##--")
             if state:
                 self._cache.clear()
-                tokens = json.loads(state)
-                for t in tokens:
-                    key = _get_cache_key(t)
-                    self._cache[key] = t
+                state_obj = json.loads(state)
+                if      state_obj.get("description") == "kqlmagic" and \
+                        state_obj.get("version") == 1 and \
+                        state_obj.get("timestamp") < int(datetime.utcnow().timestamp()) and \
+                        state_obj.get("random_string") and len(state_obj.get("random_string")) >= 1 and len(state_obj.get("random_string")) <= 100 and \
+                        state_obj.get("cache_values") :
+                    cache_values = state_obj["cache_values"]
+                    for val in cache_values:
+                        key = _get_cache_key(val)
+                        self._cache[key] = val
 
 
     def read_items(self):

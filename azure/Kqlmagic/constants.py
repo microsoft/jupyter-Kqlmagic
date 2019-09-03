@@ -19,53 +19,59 @@ class Constants(object):
     LOGGER_NAME = f"{MAGIC_CLASS_NAME}-py"
 
     # conversion constants
-    MINUTE_SECS = 60
-    HOUR_SECS =   60 * MINUTE_SECS 
-    DAY_SECS =    24 * HOUR_SECS
-    SEC_NANOS =   1000000000
-    TICK_NANOS =  100 # 1 tick is 100ns
+    MINUTE_SECS        =                           60
+    HOUR_SECS          =             60 * MINUTE_SECS 
+    DAY_SECS           =               24 * HOUR_SECS
+    SEC_NANOS          =                   1000000000
+    TICK_NANOS         =        100 # 1 tick is 100ns
     TICK_TO_INT_FACTOR = int(SEC_NANOS // TICK_NANOS)
 
     # SSO
     SSO_GC_INTERVAL_IN_SECS = 1 * HOUR_SECS
-    SSO_ENV_VAR_NAME = f"{MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS"
-    SSO_DB_KEY_PREFIX = f"{MAGIC_CLASS_NAME.lower()}store/tokens/"
+    SSO_ENV_VAR_NAME  = f"{MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS"
+    SSO_DB_KEY_PREFIX =        f"{MAGIC_CLASS_NAME.lower()}store/tokens/"
 
 class Schema(object):
     APPLICATION_INSIGHTS = "applicationinsights"
-    LOG_ANALYTICS =        "loganalytics"
-    AZURE_DATA_EXPLORER =  "azuredataexplorer" 
+    LOG_ANALYTICS        =        "loganalytics"
+    AZURE_DATA_EXPLORER  =   "azuredataexplorer" 
 
 class Cloud(object):
-    PUBLIC =      "public"
-    MOONCAKE =    "mooncake"
-    FAIRFAX =     "fairfax"
+    PUBLIC      =      "public"
+    MOONCAKE    =    "mooncake"
+    FAIRFAX     =     "fairfax"
     BLACKFOREST = "blackforest"
-    USNAT =       "usnat"
-    USSEC =       "ussec"
+    USNAT       =       "usnat"
+    USSEC       =       "ussec"
+    TEST        =        "test"
 
 class ConnStrKeys(object):
     # make sure all keys are lowercase, without spaces, underscores, and hyphen-minus
     # because they are ignored
-    TENANT =                 "tenant"
-    USERNAME =               "username"
-    PASSWORD =               "password"
-    CLIENTID =               "clientid"
-    CLIENTSECRET =           "clientsecret"
-    CERTIFICATE =            "certificate"
-    CERTIFICATE_PEM_FILE =   "certificatepemfile"
+    TENANT                 =                "tenant"
+    USERNAME               =              "username"
+    PASSWORD               =              "password"
+    CLIENTID               =              "clientid"
+    CLIENTSECRET           =          "clientsecret"
+    CERTIFICATE            =           "certificate"
+    CERTIFICATE_PEM_FILE   =    "certificatepemfile"
     CERTIFICATE_THUMBPRINT = "certificatethumbprint"
-    APPKEY =                 "appkey"
-    CODE =                   "code"
-    ANONYMOUS =              "anonymous"
-    CLUSTER =                "cluster"
-    DATABASE =               "database"
-    WORKSPACE =              "workspace"
-    APPID =                  "appid"
-    FOLDER =                 "folder"
-    AAD_URL =                "aadurl"
-    DATA_SOURCE_URL =        "datasourceurl"
-    ALIAS =                  "alias"
+    APPKEY                 =                "appkey"
+    CODE                   =                  "code"
+    ANONYMOUS              =             "anonymous"
+    CLUSTER                =               "cluster"
+    DATABASE               =              "database"
+    WORKSPACE              =             "workspace"
+    APPID                  =                 "appid"
+    FOLDER                 =                "folder"
+    AAD_URL                =                "aadurl"
+    DATA_SOURCE_URL        =         "datasourceurl"
+    ALIAS                  =                 "alias"
+
+class ConnCombinationProperty(object):
+    REQUIRED = "required"
+    EXTRA    =    "extra"
+    OPTIONAL = "optional"
 
 class VisualizationKeys(object):
     "list of keys as they appear in response from kusto or draft"
@@ -155,19 +161,19 @@ class VisualizationKeys(object):
     ANOMALY_COLUMNS = "AnomalyColumns"
  
 class VisualizationValues(object):
-    TABLE =              "table"
-    PIE_CHART =          "piechart"
-    BAR_CHART =          "barchart"
-    COLUMN_CHART =       "columnchart"
-    AREA_CHART =         "areachart"
-    LINE_CHART =         "linechart"
-    TIME_CHART =         "timechart"
-    ANOMALY_CHART =      "anomalychart"
+    TABLE              =            "table"
+    PIE_CHART          =         "piechart"
+    BAR_CHART          =         "barchart"
+    COLUMN_CHART       =      "columnchart"
+    AREA_CHART         =        "areachart"
+    LINE_CHART         =        "linechart"
+    TIME_CHART         =        "timechart"
+    ANOMALY_CHART      =     "anomalychart"
     STACKED_AREA_CHART = "stackedareachart"
-    LADDER_CHART =       "ladderchart"
-    TIME_PIVOT =         "timepivot"
-    PIVOT_CHART =        "pivotchart"
-    SCATTER_CHART =      "scatterchart"
+    LADDER_CHART       =      "ladderchart"
+    TIME_PIVOT         =        "timepivot"
+    PIVOT_CHART        =       "pivotchart"
+    SCATTER_CHART      =     "scatterchart"
 
 class VisualizationKinds(object):
     DEFAULT = "default"
@@ -194,35 +200,44 @@ class VisualizationSplits(object):
 
 class VisualizationScales(object):
     LINEAR = "linear"
-    LOG =    "log"
+    LOG    =    "log"
 
 class VisualizationLegends(object):
-    HIDDEN =  "hidden"
+    HIDDEN  =  "hidden"
     VISIBLE = "visible"
 
 # SSO Constants
 class CryptoParam(object):
-    PASSWORD =  "password"
-    SALT = "salt"
-    LENGTH = "length"
+    PASSWORD   =   "password"
+    SALT       =       "salt"
+    LENGTH     =     "length"
     ITERATIONS = "iterations"
-    ALGORITHM = "algorithm"
-    BACKEND = "backend"
+    ALGORITHM  =  "algorithm"
+    BACKEND    =    "backend"
 
 class SsoStorageParam(object):
-    DB =  "db"
-    CRYPTO = "crypto"
-    CACHE_NAME = "cache_name"
+    AUTHORITY      =      "authority"
+    CRYPTO         =         "crypto"
+    CACHE_NAME     =     "cache_name"
     GC_TTL_IN_SECS = "gc_ttl_in_secs"
 
 class SsoEnvVarParam(object):
-    CACHE_NAME = "cachename"
-    SECRET_KEY = "secretkey"
+    CACHE_NAME       =      "cachename"
+    SECRET_KEY       =      "secretkey"
     SECRET_SALT_UUID = "secretsaltuuid"
+    CRYPTO           =         "crypto"
+    STORAGE          =        "storage"
+
+class SsoStorage(object):
+    IPYTHON_DB = "ipythondb"
+
+class SsoCrypto(object):
+    DPAPI  =  "dpapi"
+    FERNET = "fernet"
 
 class DpapiParam(object):
     DESCRIPTION = "description"
-    SALT = "salt"
+    SALT        =        "salt"
 
 
 

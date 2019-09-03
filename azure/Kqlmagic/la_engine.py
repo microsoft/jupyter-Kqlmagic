@@ -27,8 +27,35 @@ class LoganalyticsEngine(KqlEngine):
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.CODE],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
-        [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT,                                            ConnStrKeys.ANONYMOUS],
+        [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.ANONYMOUS],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.APPKEY],
+    ]
+    _VALID_KEYS_COMBINATIONS_NEW = [
+        {
+            "must": [ConnStrKeys.WORKSPACE, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET],
+            "extra": [],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL]
+        },
+        {
+            "must": [ConnStrKeys.WORKSPACE, ConnStrKeys.CODE],
+            "extra": [ConnStrKeys.USERNAME, ConnStrKeys.CLIENTID],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL]
+        },
+        {
+            "must": [ConnStrKeys.WORKSPACE, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
+            "extra": [ConnStrKeys.CLIENTID],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL]
+        },
+        {
+            "must": [ConnStrKeys.WORKSPACE, ConnStrKeys.ANONYMOUS],
+            "extra": [],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL]
+        },
+        {
+            "must": [ConnStrKeys.WORKSPACE, ConnStrKeys.APPKEY],
+            "extra": [],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL]
+        },
     ]
 
     # Class methods

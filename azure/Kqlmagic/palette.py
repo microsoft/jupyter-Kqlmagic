@@ -17,8 +17,8 @@ class Color(object):
         return self._to_html()
 
     def _to_html(self):
-        c = '<div style="background-color:{0};height:20px;width:20px;display:inline-block;"></div>'.format(self.color)
-        return '<div style="display:inline-block;padding:10px;"><div>{0}</div>{1}</div>'.format(self.name, c)
+        c = f'<div style="background-color:{self.color};height:20px;width:20px;display:inline-block;"></div>'
+        return f'<div style="display:inline-block;padding:10px;"><div>{self.name}</div>{c}</div>'
 
     def __repr__(self):
         return self.color
@@ -53,15 +53,15 @@ class Palette(list):
         name = self.name + ("[{0}:{1}]".format(self.range_start, self.range_start + len(self)) if self.range_start is not None else "")
         if add_details_to_name:
             desaturation_details = (
-                ", desaturation {0}".format(self.desaturation)
+                f", desaturation {self.desaturation}"
                 if self.desaturation is not None and self.desaturation > 0 and self.desaturation < 1.0
                 else ""
             )
-            name += " ({0} colors{1})".format(self.n_colors, desaturation_details)
+            name += f" ({self.n_colors} colors{desaturation_details})"
         s_s = ""
         for color in self:
-            s_s += '<div style="background-color:{0};height:20px;width:20px;display:inline-block;"></div>'.format(color)
-        return '<div style="display:inline-block;padding:10px;"><div>{0}</div>{1}</div>'.format(name, s_s)
+            s_s += f'<div style="background-color:{color};height:20px;width:20px;display:inline-block;"></div>'
+        return f'<div style="display:inline-block;padding:10px;"><div>{name}</div>{s_s}</div>'
 
     def __getitem__(self, key):
         item = super(Palette, self).__getitem__(key)
@@ -69,7 +69,7 @@ class Palette(list):
             range_start = min((key.start or 0), len(self)) + (self.range_start or 0)
             return Palette(palette_name=self.name, desaturation=self.desaturation, rgb_palette=item, range_start=range_start, **self.kwargs)
         else:
-            return Color(item, name="{0}[{1}]".format(self.name, (self.range_start or 0) + key))
+            return Color(item, name=f"{self.name}[{(self.range_start or 0) + key}]")
 
     def _repr_html_(self):
         return self._to_html()
@@ -121,18 +121,18 @@ class Palette(list):
         parsed = cls.parse(name)
         if parsed.get("rgb_palette") is None and parsed.get("base_name") not in Palettes.BASE_PALETTE_NAMES:
             raise ValueError(
-                "must be a known palette name or custom palette (see option -popup_palettes) , but a value of {0} was specified.".format(name)
+                f"must be a known palette name or custom palette (see option -popup_palettes) , but a value of {name} was specified."
             )
 
     @classmethod
     def validate_palette_desaturation(cls, desaturation):
         if desaturation > 1 or desaturation < 0:
-            raise ValueError("must be between 0 and 1, but a value of {0} was specified.".format(str(desaturation)))
+            raise ValueError(f"must be between 0 and 1, but a value of {str(desaturation)} was specified.")
 
     @classmethod
     def validate_palette_colors(cls, n_colors):
         if n_colors < 1:
-            raise ValueError("must be greater or equal than 1, but a value of {0} was specified.".format(str(n_colors)))
+            raise ValueError(f"must be greater or equal than 1, but a value of {str(n_colors)} was specified.")
 
 
 class Palettes(list):
@@ -252,8 +252,8 @@ class Palettes(list):
     def _to_html(self):
         n_colors = self.n_colors
         desaturation = self.desaturation
-        suffix = " (desaturation {0})".format(str(desaturation)) if desaturation is not None and desaturation != 1.0 and desaturation != 0 else ""
-        html_str = '<div style="text-align:center"><h1>{0} colors palettes{1}</h1></div>'.format(n_colors, suffix)
+        suffix = f" (desaturation {str(desaturation)})" if desaturation is not None and desaturation != 1.0 and desaturation != 0 else ""
+        html_str = f'<div style="text-align:center"><h1>{n_colors} colors palettes{suffix}</h1></div>'
         for name in self:
             for suffix in [""]:  # ['', '_r']:
                 s = Palette(palette_name=name + suffix, n_colors=n_colors, desaturation=desaturation, **self.kwargs)

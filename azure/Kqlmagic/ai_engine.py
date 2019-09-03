@@ -30,8 +30,36 @@ class AppinsightsEngine(KqlEngine):
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.CODE],
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
-        [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT,                                            ConnStrKeys.ANONYMOUS],
+        [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.ANONYMOUS],
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.APPKEY],
+    ]
+
+    _VALID_KEYS_COMBINATIONS_NEW = [
+        {
+            "required": [ConnStrKeys.APPID, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET],
+            "extra": [],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL]
+        },
+        {
+            "required": [ConnStrKeys.APPID, ConnStrKeys.CODE],
+            "extra": [ConnStrKeys.CLIENTID, ConnStrKeys.USERNAME],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL]
+        },
+        {
+            "required": [ConnStrKeys.APPID, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
+            "extra": [ConnStrKeys.CLIENTID],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL]
+        },
+        {
+            "required": [ConnStrKeys.APPID, ConnStrKeys.ANONYMOUS],
+            "extra": [],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL]
+        },
+        {
+            "required": [ConnStrKeys.APPID, ConnStrKeys.APPKEY],
+            "extra": [],
+            "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL]
+        },
     ]
     # Class methods
     # -------------

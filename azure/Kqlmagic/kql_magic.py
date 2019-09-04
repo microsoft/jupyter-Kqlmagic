@@ -144,7 +144,7 @@ class Kqlmagic(Magics, Configurable):
     # "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
 
     timeout = Int(None, config=True, allow_none=True, help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait")
-    plot_package = Enum(["matplotlib", "plotly"], "plotly", config=True, help="Set the plot package. Abbreviation: pp")
+    plot_package = Enum(["matplotlib", "plotly", "plotly_static"], "plotly", config=True, help="Set the plot package. Abbreviation: pp")
     table_package = Enum(
         ["prettytable", "pandas", "plotly", "qgrid"], "prettytable", config=True, help="Set the table display package. Abbreviation: tp"
     )

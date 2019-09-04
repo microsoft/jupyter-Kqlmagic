@@ -85,9 +85,16 @@ class Display(object):
     showfiles_folder_name = None
     notebooks_host = None
 
+
     @staticmethod
     def show_html(html_str):
-        display(HTML(html_str))
+        Display.show_html_obj(HTML(html_str))
+
+
+    @staticmethod
+    def show_html_obj(html_obj):
+        display(html_obj)
+
 
     @staticmethod
     def show(content, **options):
@@ -101,23 +108,25 @@ class Display(object):
         else:
             display(content)
 
+
     @staticmethod
-    #pass parameter 'open_window' to use this method for opening a new window 
-    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None,open_window=False, **options):
-        if open_window or (options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]): 
+    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None,isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
+        if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]: 
             url = file_path if file_path.startswith("http") else "file:///" + adjust_path_to_uri(Display.showfiles_base_path + "/" + file_path)
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
             return None
         else:
-            html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, **options)
+            html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, **options)
             return HTML(html_str)
 
+
     @staticmethod
-    def show_window(window_name, file_path, button_text=None,open_window = False, onclick_visibility=None, **options):
-        html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, open_window=open_window, **options)
+    def show_window(window_name, file_path, button_text=None,onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
+        html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text,  **options)
         if html_obj is not None:
-            display(html_obj)
+            Display.show_html_obj(html_obj)
+
 
     @staticmethod
     def to_styled_class(item, **kwargs):
@@ -128,6 +137,7 @@ class Display(object):
                 return JSON(item)
         else:
             return item
+
 
     @staticmethod
     def _html_to_file_path(html_str, file_name, **kwargs):
@@ -142,6 +152,7 @@ class Display(object):
         ip.tempfiles.append(full_file_name)
         return file_path
 
+
     @staticmethod
     def _get_name(**kwargs):
         if kwargs is not None and isinstance(kwargs.get("file_name"), str) and len(kwargs.get("file_name")) > 0:
@@ -150,18 +161,27 @@ class Display(object):
             name = uuid.uuid4().hex
         return name
 
+
     @staticmethod
-    def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, **kwargs):
-        notebooks_host = Display.notebooks_host or ""
+    def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, **kwargs):
+        # if isText is True, file_path is the text
+        notebooks_host = 'text' if isText else (Display.notebooks_host or "")
         onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
         button_text = button_text or "popup window"
         window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_")
         if window_name[0] in "0123456789":
             window_name = "w_" + window_name
         window_params = "fullscreen=no,directories=no,location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,titlebar=no,toolbar=no,"
+
+        style = f"padding: 10px; color: {palette['color']}; background-color: {palette['background-color']}; border-color: {palette['border-color']}" if palette else ""
+        before_text = before_text or ''
+        after_text = after_text or ''
+
         html_str = (
             """<!DOCTYPE html>
             <html><body>
+            <div style='""" + style + """'>
+            """ + before_text + """
 
             <button onclick="this.style.visibility='"""
             + onclick_visibility
@@ -176,12 +196,16 @@ class Display(object):
             + """')">"""
             + button_text
             + """</button>
+            """ + after_text + """
+            </div>
 
             <script>
 
             function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {
                 var url;
-                if (file_path.startsWith('http')) {
+                if (notebooks_host == 'text') {
+                    url = ''
+                } else if (file_path.startsWith('http')) {
                     url = file_path;
                 } else {
                     var base_url = '';
@@ -209,9 +233,7 @@ class Display(object):
                         if (configDataScipt != null) {
                             var jupyterConfigData = JSON.parse(configDataScipt.textContent);
                             if (jupyterConfigData['appName'] == 'JupyterLab' && jupyterConfigData['serverRoot'] != null &&  jupyterConfigData['treeUrl'] != null) {
-                                var basePath = '"""
-            + Display.showfiles_base_path
-            + """' + '/';
+                                var basePath = '""" + Display.showfiles_base_path + """' + '/';
                                 if (basePath.startsWith(jupyterConfigData['serverRoot'])) {
                                     base_url = '/files/' + basePath.substring(jupyterConfigData['serverRoot'].length+1);
                                 }
@@ -233,9 +255,15 @@ class Display(object):
                 var w = screen.width / 2;
                 var h = screen.height / 2;
                 params = 'width='+w+',height='+h;
-                kql_Magic_"""
-            + window_name
-            + """ = window.open(url, window_name, window_params + params);
+                kql_Magic_""" + window_name + """ = window.open(url, window_name, window_params + params);
+                if (url == '') {
+                    var el = kql_Magic_""" + window_name + """.document.createElement('p');
+                    kql_Magic_""" + window_name + """.document.body.overflow = 'auto';
+                    el.style.top = 0;
+                    el.style.left = 0;
+                    el.innerHTML = file_path;
+                    kql_Magic_""" + window_name + """.document.body.appendChild(el);
+                }
             }
             </script>
 
@@ -255,6 +283,7 @@ class Display(object):
         {kwargs.get('body', '')}
         </body>
         </html>"""
+
 
     @staticmethod
     def _getMessageHtml(msg, palette):

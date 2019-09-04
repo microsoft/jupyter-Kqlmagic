@@ -366,11 +366,11 @@ class ResultSet(list, ColumnGuesserMixin):
             else:
                 self.show_table(**self.options)
             
-            if self.options.get("show_query_link"):
-                self.open_url_kusto_explorer()
-            
             if self.display_info:
                 Display.showInfoMessage(self.feedback_info)
+
+                if self.options.get("show_query_link"):
+                    self.show_button_to_deep_link()
 
         # display info only once
         self.display_info = False
@@ -381,13 +381,17 @@ class ResultSet(list, ColumnGuesserMixin):
 
     # use _.open_url_kusto_explorer(True) for opening the url automatically (no button)
     # use _.open_url_kusto_explorer(web_app="app") for opening the url in Kusto Explorer (app) and not in Kusto Web Explorer
-    def open_url_kusto_explorer(self, browser=False):
-        deep_link = self.conn.get_deep_link(self.parametrized_query, self.options)
-        if deep_link is not None: #only use deep links for kusto connection 
-            if not browser:
-                Display.show_window("window", deep_link, f"Click to view in {self.options.get('query_link_destination')}", onclick_visibility="visible")
-            else:
-                Display.show_window("window", deep_link, open_window=True)
+    def show_button_to_deep_link(self, browser=False):
+        deep_link_url = self.conn.get_deep_link(self.parametrized_query, self.options)
+        if deep_link_url is not None: #only use deep links for kusto connection 
+            Display.show_window(
+                "query_link", 
+                deep_link_url, 
+                f"{self.options.get('query_link_destination')}", 
+                onclick_visibility="visible",
+                palette=Display.info_style,
+                before_text=f"Click to execute query in {self.options.get('query_link_destination')} "
+            )
         return None
 
     def _getTableHtml(self):

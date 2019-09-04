@@ -12,7 +12,7 @@ class DictDbStorage(object):
         self.authority = options.get(SsoStorageParam.AUTHORITY)
         self.db = db or {}
         self.gc_ttl_in_secs = options.get(SsoStorageParam.GC_TTL_IN_SECS, 0) 
-        self._crypto = options.get(SsoStorageParam.CRYPTO)
+        self._crypto = options.get(SsoStorageParam.CRYPTO_OBJ)
         self.db_key = self._get_db_key(options.get(SsoStorageParam.CACHE_NAME, "sso"), self._crypto.suffix, self.authority)
 
         self.db_key_conflict = False

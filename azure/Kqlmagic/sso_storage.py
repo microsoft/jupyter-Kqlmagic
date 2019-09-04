@@ -102,7 +102,7 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
         gc_ttl_in_secs = options.get('sso_db_gc_interval', 0) * Constants.HOUR_SECS #convert from hours to seconds
         storage_options = {
             SsoStorageParam.AUTHORITY: authority,
-            SsoStorageParam.CRYPTO: crypto,
+            SsoStorageParam.CRYPTO_OBJ: crypto_obj,
             SsoStorageParam.CACHE_NAME: cache_name,
             SsoStorageParam.GC_TTL_IN_SECS: gc_ttl_in_secs
         }

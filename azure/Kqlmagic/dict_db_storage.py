@@ -9,7 +9,7 @@ class DictDbStorage(object):
     last_clear_time = datetime.utcnow()
 
     def __init__(self, db, options: dict, state=None):
-        self.authority = options.get(SsoStorageParam.AUTHORITY)
+        self.authority = options.get(SsoStorageParam.AUTHORITY) or ""
         self.db = db or {}
         self.gc_ttl_in_secs = options.get(SsoStorageParam.GC_TTL_IN_SECS, 0) 
         self._crypto = options.get(SsoStorageParam.CRYPTO_OBJ)
@@ -23,8 +23,7 @@ class DictDbStorage(object):
 
 
     def _get_db_key(self, cache_name: str, suffix: bytes, authority:str) -> str:
-        
-        sso_db_key_authority = authority[authority.find("://")+3:] if authority else ""
+        sso_db_key_authority = authority[authority.find("://")+3:] if authority.find("://")>-1 else authority
         if authority:
             path = os.path.join(Constants.SSO_DB_KEY_PREFIX, cache_name + str(suffix), sso_db_key_authority)
         else:
@@ -35,7 +34,7 @@ class DictDbStorage(object):
     def _db_gc(self):
         '''db garbage collector. remove old entries'''
         logger().debug(f"DictDbStorage(object)::_db_gc ")
-        for db_key, db_value in self.db.items():
+        for db_key, db_value in list(self.db.items()): #making a list out of the keys in order to delete while iterating (for the case when db is not pickle)
             logger().debug(f"DictDbStorage(object)::_db_gc db_key, db_value in self.db.items() {db_key}  , {db_value}  in self.db.items() ")
 
             if db_key.startswith(Constants.SSO_DB_KEY_PREFIX):
@@ -52,7 +51,7 @@ class DictDbStorage(object):
 
     def clear_db(self):
         '''clear db. remove all entries'''
-        for db_key in self.db.keys():
+        for db_key in list(self.db.keys()): #making a list out of the keys in order to delete while iterating (for the case when db is not pickle)
             logger().debug(f"DictDbStorage(object):: clear_db db_key,{db_key} ")
             logger().debug(f"DictDbStorage(object):: clear_db self db_key,{self.db_key} ")
 

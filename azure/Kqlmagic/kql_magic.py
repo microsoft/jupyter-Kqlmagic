@@ -8,7 +8,7 @@ import os
 import time
 import logging
 import hashlib
-# import re
+import re
 
 from .sso_storage import get_sso_store
 import urllib.request
@@ -140,8 +140,8 @@ class Kqlmagic(Magics, Configurable):
     enable_sso = Bool(False, config = True, help=f"Enables or disables SSO. if enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly")
 
     sso_db_gc_interval = Int(168, config=True,help= "Garbage Collection interval for not changed SSO cache entries. Default is one week.")
-    # login_code_destination = Unicode("browser", config = True, help = 
-    # "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
+    login_code_destination = Unicode("browser", config = True, help = 
+    "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
 
     timeout = Int(None, config=True, allow_none=True, help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait")
     plot_package = Enum(["matplotlib", "plotly", "plotly_static"], "plotly", config=True, help="Set the plot package. Abbreviation: pp")
@@ -182,11 +182,11 @@ class Kqlmagic(Magics, Configurable):
     cache_folder_name = Unicode("{0}_cache_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name for cache files")
 
     # valid values: jupyterlab or jupyternotebook
-    notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "auto", config=True, help="Set notebook application used.") #TODO: add "papermill"
+    notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode","papermill"], "auto", config=True, help="Set notebook application used.")
 
-    # code_notification_email = Unicode("", config=True, help="Required parameters: SMTPEndPoint, SMTPPort, sendFrom, sendFromPassword, sendTo.")
+    code_notification_email = Unicode("", config=True, help="Required parameters: SMTPEndPoint, SMTPPort, sendFrom, sendFromPassword, sendTo.")
 
-    test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.") #TODO: add "papermill"
+    test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode","papermill"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.") #TODO: add "papermill"
 
     add_kql_ref_to_help = Bool(True, config=True, help=f"On {Constants.MAGIC_CLASS_NAME} load, auto add kql reference to Help menu.")
     add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
@@ -200,24 +200,24 @@ class Kqlmagic(Magics, Configurable):
 
     logger().debug("Kqlmagic:: - define class code")
 
-    # @validate("login_code_destination")
-    # def _valid_value_login_code_destination(self, proposal):
+    @validate("login_code_destination")
+    def _valid_value_login_code_destination(self, proposal):
 
-    #     try:
-    #         dest = proposal["value"].lower()
+        try:
+            dest = proposal["value"].lower()
 
-    #         self.validate_login_code(dest)
-    #     except (AttributeError, ValueError) as e:
-    #         message = "The 'login_code_destination' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
-    #         raise TraitError(message)
-    #     return proposal["value"].lower()
+            self.validate_login_code(dest)
+        except (AttributeError, ValueError) as e:
+            message = "The 'login_code_destination' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            raise TraitError(message)
+        return proposal["value"].lower()
 
-    # def validate_login_code(self, dest):
+    def validate_login_code(self, dest):
 
-    #     if (dest != "browser") and (dest !="email"):
-    #             raise ValueError(
-    #                 "must be either \"browser\" or \"email\", but a value of {0} was specified.".format(dest)
-    #             )
+        if (dest != "browser") and (dest !="email"):
+                raise ValueError(
+                    "must be either \"browser\" or \"email\", but a value of {0} was specified.".format(dest)
+                )
 
 
     @validate("palette_name")

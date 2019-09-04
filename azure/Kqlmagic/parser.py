@@ -407,9 +407,9 @@ class Parser(object):
         "enablesso": {"flag": "enable_sso", "type": "bool", "config": "config.enable_sso"},
 
         "ssodbgcinterval": {"flag": "sso_db_gc_interval", "type": "int", "config": "config.sso_db_gc_interval"},
-        # "logincodedestination": {"flag": "login_code_destination", "type": "str", "config": "config.login_code_destination"},
+        "logincodedestination": {"flag": "login_code_destination", "type": "str", "config": "config.login_code_destination"},
 
-        # "codenotificationemail": {"flag": "code_notification_email", "readonly": "True", "config": "config.code_notification_email"},
+        "codenotificationemail": {"flag": "code_notification_email", "readonly": "True", "config": "config.code_notification_email"},
 
         "saveas": {"flag": "save_as", "type": "str", "init": "None"},
         "saveto": {"flag": "save_to", "type": "str", "init": "None"},

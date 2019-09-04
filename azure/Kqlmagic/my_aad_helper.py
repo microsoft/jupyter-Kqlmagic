@@ -12,7 +12,7 @@ from enum import Enum, unique
 from datetime import timedelta, datetime
 
 from urllib.parse import urlparse
-# import re
+import re
 
 import dateutil.parser
 from adal import AuthenticationContext
@@ -23,6 +23,8 @@ from .display import Display
 from .constants import ConnStrKeys
 from .adal_token_cache import AdalTokenCache
 from .kql_engine import KqlEngineError
+from .parser import Parser
+
 import uuid
 
 import jwt
@@ -198,18 +200,16 @@ class _MyAadHelper(object):
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
             
-            # if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
-            #     raise Exception("error: using papermill without an email specified is not supported")
+            if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
+                raise Exception("error: using papermill without an email specified is not supported")
 
-            # if options.get("login_code_destination") =="email":
-            #     email_message = "Copy code: "+ device_code + " and authenticate in: " + url
+            if options.get("login_code_destination") =="email":
+                email_message = "Copy code: "+ device_code + " and authenticate in: " + url
 
-            #     kv = Parser.parse_and_get_kv_string(options.get('code_notification_email'), {})
+                kv = Parser.parse_and_get_kv_string(options.get('code_notification_email'), {})
                 
-            #     self.send_email(email_message, kv)
+                self.send_email(email_message, kv)
                
-            if False:
-                pass
             else:
                 html_str = (
                     """<!DOCTYPE html>
@@ -295,39 +295,39 @@ class _MyAadHelper(object):
             raise AuthenticationError("Unknown authentication method.")
         return self._get_header(token)
 
-    # def email_format(self, dest):
-    #     return re.match( r'[\w\.-]+@[\w\.-]+(\.[\w]+)+', dest)
+    def email_format(self, dest):
+        return re.match( r'[\w\.-]+@[\w\.-]+(\.[\w]+)+', dest)
 
-    # def check_email_params(self, port, smtp_server, sender_email, receiver_email, password):
-    #     if port and smtp_server and sender_email and receiver_email and password:
-    #         if self.email_format(sender_email) and self.email_format(receiver_email):
-    #             return True
-    #     return False
+    def check_email_params(self, port, smtp_server, sender_email, receiver_email, password):
+        if port and smtp_server and sender_email and receiver_email and password:
+            if self.email_format(sender_email) and self.email_format(receiver_email):
+                return True
+        return False
     
 
-    # def send_email(self, message, key_vals):
+    def send_email(self, message, key_vals):
 
-    #     port = key_vals.get("smtpport")  
-    #     smtp_server = key_vals.get("smtpendpoint")
-    #     sender_email = key_vals.get("sendfrom")
+        port = key_vals.get("smtpport")  
+        smtp_server = key_vals.get("smtpendpoint")
+        sender_email = key_vals.get("sendfrom")
 
-    #     receiver_email = key_vals.get("sendto") 
+        receiver_email = key_vals.get("sendto") 
 
-    #     password = key_vals.get("sendfrompassword")
+        password = key_vals.get("sendfrompassword")
 
-    #     if not self.check_email_params(port,smtp_server, sender_email, receiver_email, password):
-    #         raise ValueError("""
-    #             cannot send login code to email because of missing or invalid environmental parameters. 
-    #             Set KQLMAGIC_CODE_NOTIFICATION_EMAIL in the following way: SMTPEndPoint: \" email server\"; SMTPPort: \"email port\"; 
-    #             sendFrom: \"sender email address \"; sendFromPassword: \"email address password \"; sendTo:\" email address to send to\"""" )
+        if not self.check_email_params(port,smtp_server, sender_email, receiver_email, password):
+            raise ValueError("""
+                cannot send login code to email because of missing or invalid environmental parameters. 
+                Set KQLMAGIC_CODE_NOTIFICATION_EMAIL in the following way: SMTPEndPoint: \" email server\"; SMTPPort: \"email port\"; 
+                sendFrom: \"sender email address \"; sendFromPassword: \"email address password \"; sendTo:\" email address to send to\"""" )
 
-    #     # context = ssl.create_default_context()
-    #     # with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+        # context = ssl.create_default_context()
+        # with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
 
-    #     with smtplib.SMTP(smtp_server, port) as server:
-    #         server.starttls() 
-    #         server.login(sender_email, password)
-    #         server.sendmail(sender_email, receiver_email, "\n"+message)
+        with smtplib.SMTP(smtp_server, port) as server:
+            server.starttls() 
+            server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, "\n"+message)
 
 
     def _get_header(self, token):

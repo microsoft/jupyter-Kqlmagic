@@ -1,6 +1,6 @@
 # HISTORY
 
-## Version 0.103
+## Version 0.1.103
 
   - ### New message appended to init banner
 
@@ -9,34 +9,41 @@
   - ### New init options (on Kqlmagic load) that can be set only by environment variable KQLMAGIC_CONFIGURATION
   
     - **check_magic_version** (default True):
+  
       - On Kqlmagic load, check whether new version of Kqlmagic exist, and add a notification message to init banner if a new version exist
   
     - **show_what_new** (default True):
+  
       - On Kqlmagic load, loads history file of Kqlmagic from repository, and adds a "what's new" button to open it in a window.
 
     - **show_init_banner** (default True):
-        - On Kqlmagic load, show init banner
+  
+      - On Kqlmagic load, show init banner
 
   - ### New query options
   
     - **show_query_link** (default False, abbreviation sql):
+  
       - Add query deep link button after query result, clicking the button will open the tool (see query_link_destination option) and execute the query in the tool.
         - note: supported only for Azure Data Explorer queries, will be ignored for Application Insights or Log Analytics queries
   
     - **query_link_destination**  (default "Kusto.WebExplorer", abbreviation qld):
+  
       - Specifies the destination of the query link tool (see show_query_link option)
         - note: only two Azure Data Explorer tools are supported **"Kusto.WebExplorer"** and **"Kusto.Explorer"**
 
   - ### New plot package supported
   
     - **"plotly_orca"** was added to **plot_package** option (default **"plotly"**):
+  
       - generates the plot as png image (useful for static front ends)
       - note: requires plotly orca to be installed in the backend server.
 
     - **"None"** was added to **plot_package** option (default **"plotly"**):
+  
       - disable plot, table is returned
 
-## Version 0.102
+## Version 0.1.102
 
 - ### New query options
 

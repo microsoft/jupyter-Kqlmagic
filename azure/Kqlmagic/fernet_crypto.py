@@ -35,7 +35,7 @@ if fernet_installed:
 
         def __init__(self, options: dict):
             key = self._create_encryption_key(options)
-            self._cypto = self._init_crypto(key)
+            self._crypto = self._init_crypto(key)
             self._suffix = self._create_suffix_from_key(key)
 
 
@@ -51,7 +51,7 @@ if fernet_installed:
 
 
         def _create_encryption_key(self, options: dict) -> bytes:
-            password = options.get(CryptoParam.PASSWORD, uuid.uuid4())
+            password = options.get(CryptoParam.PASSWORD, str(uuid.uuid4()))
             password_as_bytes = password.encode()
             salt  = options.get(CryptoParam.SALT, uuid.uuid4())
             logger().debug(f"_create_encryption_key {type(salt)}")
@@ -93,12 +93,12 @@ if fernet_installed:
             logger().debug(f"encrypt {type(data)}")
 
             if data:
-                return self._cypto.encrypt(data) 
+                return self._crypto.encrypt(data.encode()) 
 
 
         def decrypt(self, encrypted_data_bytes: bytes) -> str:
             if encrypted_data_bytes:
-                data_as_bytes = self._cypto.decrypt(encrypted_data_bytes)
+                data_as_bytes = self._crypto.decrypt(encrypted_data_bytes)
                 return data_as_bytes.decode()
 
 

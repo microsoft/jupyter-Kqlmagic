@@ -14,10 +14,7 @@ from .parser import Parser
 from .display import Display
 from .constants import Constants, CryptoParam, SsoStorageParam, SsoEnvVarParam, SsoStorage, SsoCrypto
 
-try:
-    from .fernet_crypto import FernetCrypto, fernet_installed, check_password_strength
-except ImportError:
-    pass
+from .fernet_crypto import FernetCrypto, fernet_installed, check_password_strength
 from .dpapi_crypto import DpapiCrypto, dpapi_installed
 from .dict_db_storage import DictDbStorage
 

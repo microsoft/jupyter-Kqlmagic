@@ -5,8 +5,13 @@
 #--------------------------------------------------------------------------
 
 import sys
+
+
 from nose.tools import with_setup, raises
+
+
 from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
+
 
 ip = get_ipython() # pylint:disable=undefined-variable
 

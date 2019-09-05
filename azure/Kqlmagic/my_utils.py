@@ -10,6 +10,7 @@
 import re
 import os
 
+
 #
 # From https://github.com/django/django/blob/master/django/utils/text.py
 #
@@ -35,6 +36,7 @@ smart_split_re = re.compile(r"""
     ) | \S+)
 """, re.VERBOSE)
 
+
 smart_split_lines_re = re.compile(r"""
     ((?:
         [^\s\n\r\f\t'"]*
@@ -44,8 +46,6 @@ smart_split_lines_re = re.compile(r"""
         )+
     ) | \S+)
 """, re.VERBOSE)
-
-
 
 
 def smart_split(text):
@@ -71,6 +71,7 @@ def smart_split(text):
 # 
 def split_lex(text: str):
     return list(smart_split(text))
+
 
 def adjust_path_to_uri(_path: str):
     prefix = ""
@@ -101,7 +102,10 @@ def adjust_path_to_uri(_path: str):
     path = "/".join(parts)
     return prefix + path
 
+
 def adjust_path(_path: str):
     path = adjust_path_to_uri(_path)
     path = os.path.normpath(path)
     return path
+
+    

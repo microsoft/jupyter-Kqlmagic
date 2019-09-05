@@ -7,12 +7,16 @@
 import itertools
 import os
 import re
-import six
 import json
 import configparser as CP
+
+
+import six
+from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
+
+
 from .log import Logger, logger
 from .my_utils import split_lex, get_valid_filename, adjust_path
-from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
 
 
 class Parser(object):
@@ -45,7 +49,6 @@ class Parser(object):
         #
 
         connection = None
-
 
         conn_str = parts[0].strip()
         if not conn_str.startswith('-') and not conn_str.startswith('+'):
@@ -133,6 +136,7 @@ class Parser(object):
 
         return parsed_queries
 
+
     _COMMANDS_TABLE = {
         "version" : {"flag": "version", "type": "bool", "init": "False"},
         "usage" : {"flag": "usage", "type": "bool", "init": "False"},
@@ -147,6 +151,8 @@ class Parser(object):
         "schema": {"flag": "schema", "type": "str", "init": "None", "default": "None"},
         "clearssodb": {"flag": "clear_sso_db", "type": "bool", "init": "None", "default": "None"},
     }
+
+
     @classmethod
     def _parse_kql_command(cls, code, user_ns: dict):
         if not code.strip().startswith("--"):
@@ -175,6 +181,7 @@ class Parser(object):
             raise ValueError(f"command {word[0]} is missing parameter")
 
         return (trimmed_code.strip(), {"command":  obj.get("flag"), "param": param})
+
 
     _QUERY_PROPERTIES_TABLE = {
         # (OptionBlockSplittingEnabled): Enables splitting of sequence blocks after aggregation operator. [Boolean]
@@ -397,10 +404,6 @@ class Parser(object):
         "showwhatnew": {"flag": "show_what_new", "readonly": "True", "config": "config.show_what_new"},
         "showinitbanner": {"flag": "show_init_banner", "readonly": "True", "config": "config.show_init_banner"},
         
-
-
-
-
         "testnotebookapp": {"flag": "test_notebook_app", "readonly": "True", "config": "config.test_notebook_app"},
 
         "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},
@@ -424,7 +427,9 @@ class Parser(object):
 
         "ps": {"abbreviation": "popupschema"},
         "popupschema": {"flag": "popup_schema", "type": "bool", "init": "False"},
-    }    
+    }
+
+
     @classmethod
     def _parse_kql_options(cls, code, config, user_ns: dict):
         words = code.split()
@@ -531,6 +536,7 @@ class Parser(object):
                 trimmed_kql = trimmed_kql[: trimmed_kql.rfind(";")]
         return (trimmed_kql.strip(), options)
 
+
     @classmethod
     def parse_and_get_kv_string(cls, conn_str: str, user_ns: dict):
 
@@ -607,6 +613,7 @@ class Parser(object):
 
         return matched_kv
 
+
     @classmethod
     def parse_value(cls, value: str, key: str, _type: str, user_ns: dict, enums: list = []):
 
@@ -633,7 +640,6 @@ class Parser(object):
                 else:
                     raise ValueError
             return str(val)
-
 
         try:
             if value == "" and _type == "str":

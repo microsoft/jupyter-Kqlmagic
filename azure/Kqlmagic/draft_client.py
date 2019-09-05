@@ -5,12 +5,15 @@
 # --------------------------------------------------------------------------
 
 import uuid
-import six
 from datetime import timedelta, datetime
 import json
+
+
+import six
 import adal
 import dateutil.parser
 import requests
+
 
 from .constants import Constants, ConnStrKeys, Cloud, Schema
 from .kql_response import KqlQueryResponse, KqlSchemaResponse, KqlError
@@ -56,15 +59,14 @@ class DraftClient(object):
         Cloud.BLACKFOREST: "https://api.loganalytics.de",
     }
 
-
     _CLOUD_AAD_URLS = {
         Schema.APPLICATION_INSIGHTS : _CLOUD_AAD_URLS_APPINSIGHTS,
         Schema.LOG_ANALYTICS : _CLOUD_AAD_URLS_LOGANALYTICS
     }
 
+
     def __init__(self, conn_kv: dict, domain: str, data_source: str, schema: str, **options):
         self._domain = domain
-
 
         if conn_kv.get(ConnStrKeys.DATA_SOURCE_URL):
             self._data_source =  conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)  
@@ -76,7 +78,6 @@ class DraftClient(object):
                 
             if not self._data_source:
                 raise KqlEngineError(f"the service {schema} is not supported in cloud {cloud}")
-
 
         logger().debug(f"draft_client.py :: __init__ :  conn_kv[\"datasourceurl\"]: {conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)}")
 
@@ -195,3 +196,4 @@ class DraftClient(object):
             raise KqlError(kql_response.get_exceptions(), response, kql_response)
 
         return kql_response
+

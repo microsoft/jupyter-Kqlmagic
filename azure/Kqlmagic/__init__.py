@@ -7,4 +7,6 @@
 from .magic_extension import *
 from .version import VERSION
 
+
 __version__ = VERSION
+

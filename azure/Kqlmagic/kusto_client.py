@@ -7,10 +7,12 @@
 import re
 import uuid
 import json
+
+
 import requests
 
-from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
 
+from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
 from .kql_response import KqlQueryResponse, KqlError
 from .constants import Constants, ConnStrKeys, Cloud
 from .version import VERSION
@@ -57,7 +59,6 @@ class Kusto_Client(object):
     _USSEC_CLOUD_URL_SUFFIX =       "core.microsoft.scloud"
 
 
-
     _CLOUD_URLS = {
         Cloud.PUBLIC:      _PUBLIC_CLOUD_URL_SUFFIX,
         Cloud.MOONCAKE:    _MOONCAKE_CLOUD_URL_SUFFIX,
@@ -72,6 +73,7 @@ class Kusto_Client(object):
     _WEB_CLIENT_VERSION = VERSION
 
     _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.(io|cn|us|de).*$")
+
 
     def __init__(self, conn_kv:dict, **options):
         """
@@ -231,3 +233,4 @@ class Kusto_Client(object):
             raise KqlError(kql_response.get_exceptions(), response, kql_response)
 
         return kql_response
+

@@ -6,18 +6,22 @@
 
 import uuid
 import webbrowser
+import json
+import datetime
+
+
 from IPython.core.display import display, HTML
 from IPython.display import JSON
-
-import json
 from pygments import highlight
 from pygments.lexers.data import JsonLexer
 from pygments.formatters.terminal import TerminalFormatter
-import datetime
+
+
 from .my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
 
 
 class DateTimeEncoder(json.JSONEncoder):
+
     def default(self, obj):  # pylint: disable=E0202
         if isinstance(obj, datetime.datetime):
             return obj.isoformat()
@@ -30,6 +34,7 @@ class DateTimeEncoder(json.JSONEncoder):
 
 
 class FormattedJsonDict(dict):
+
     def __init__(self, j, *args, **kwargs):
         super(FormattedJsonDict, self).__init__(*args, **kwargs)
         self.update(j)
@@ -37,27 +42,33 @@ class FormattedJsonDict(dict):
         formatted_json = json.dumps(self, indent=4, sort_keys=True, cls=DateTimeEncoder)
         self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
 
+
     def get(self, key, default=None):
         item = super(FormattedJsonDict, self).get(key, default)
         return _getitem_FormattedJson(item)
 
+
     def __getitem__(self, key):
         return self.get(key)
+
 
     def __repr__(self):
         return self.colorful_json
 
 
 class FormattedJsonList(list):
+
     def __init__(self, j, *args, **kwargs):
         super(FormattedJsonList, self).__init__(*args, **kwargs)
         self.extend(j)
         formatted_json = json.dumps(self, indent=4, sort_keys=True, cls=DateTimeEncoder)
         self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
 
+
     def __getitem__(self, key):
         item = super(FormattedJsonList, self).__getitem__(key)
         return _getitem_FormattedJson(item)
+
 
     def __repr__(self):
         return self.colorful_json
@@ -304,39 +315,49 @@ class Display(object):
             body = ""
         return {"body": body}
 
+
     @staticmethod
     def getSuccessMessageHtml(msg):
         return Display._getMessageHtml(msg, Display.success_style)
+
 
     @staticmethod
     def getInfoMessageHtml(msg):
         return Display._getMessageHtml(msg, Display.info_style)
 
+
     @staticmethod
     def getWarningMessageHtml(msg):
         return Display._getMessageHtml(msg, Display.warning_style)
 
+
     @staticmethod
     def getDangerMessageHtml(msg):
         return Display._getMessageHtml(msg, Display.danger_style)
+
 
     @staticmethod
     def _showMessage(html_msg, **kwargs):
         html_str = Display.toHtml(**html_msg)
         Display.show_html(html_str)
 
+
     @staticmethod
     def showSuccessMessage(msg, **options):
         Display._showMessage(Display.getSuccessMessageHtml(msg))
+
 
     @staticmethod
     def showInfoMessage(msg, **options):
         Display._showMessage(Display.getInfoMessageHtml(msg))
 
+
     @staticmethod
     def showWarningMessage(msg, **options):
         Display._showMessage(Display.getWarningMessageHtml(msg))
 
+
     @staticmethod
     def showDangerMessage(msg, **options):
         Display._showMessage(Display.getDangerMessageHtml(msg))
+

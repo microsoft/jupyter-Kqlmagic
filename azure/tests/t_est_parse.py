@@ -5,13 +5,18 @@
 #--------------------------------------------------------------------------
 
 import os
-from azure.Kqlmagic.parser import Parser
-from azure.Kqlmagic.kusto_engine import KustoEngine
+
+
 from six.moves import configparser
 try:
     from traitlets.config.configurable import Configurable
 except ImportError:
     from IPython.config.configurable import Configurable
+
+
+from azure.Kqlmagic.parser import Parser
+from azure.Kqlmagic.kusto_engine import KustoEngine
+
 
 TEST_URI_SCHEMA_NAME = "kusto"
 TEST_ENGINE = [KustoEngine]

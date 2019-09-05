@@ -4,12 +4,13 @@
 # license information.
 # --------------------------------------------------------------------------
 
+import requests
+
+
 from .kql_engine import KqlEngine, KqlEngineError
 from .draft_client import DraftClient
 from .constants import ConnStrKeys, Schema
 from .log import logger
-
-import requests
 
 
 class AppinsightsEngine(KqlEngine):
@@ -61,6 +62,7 @@ class AppinsightsEngine(KqlEngine):
             "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL]
         },
     ]
+    
     # Class methods
     # -------------
 

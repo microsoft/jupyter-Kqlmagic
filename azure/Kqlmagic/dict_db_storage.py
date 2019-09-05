@@ -1,19 +1,28 @@
+# -------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See License.txt in the project root for
+# license information.
+# --------------------------------------------------------------------------
+
 import os
+from datetime import datetime, timedelta
+
 
 from .display import Display
 from .constants import Constants, CryptoParam, SsoStorageParam, SsoEnvVarParam
 from .log import logger
-from datetime import datetime, timedelta
+
 
 class DictDbStorage(object):
+
     last_clear_time = datetime.utcnow()
 
     def __init__(self, db, options: dict, state=None):
         self.authority = options.get(SsoStorageParam.AUTHORITY)
         self.db = db or {}
         self.gc_ttl_in_secs = options.get(SsoStorageParam.GC_TTL_IN_SECS, 0) 
-        self._crypto = options.get(SsoStorageParam.CRYPTO)
-        self.db_key = self._get_db_key(options.get(SsoStorageParam.CACHE_NAME, "sso"), self._crypto.suffix, self.authority)
+        self._crypto_obj = options.get(SsoStorageParam.CRYPTO_OBJ)
+        self.db_key = self._get_db_key(options.get(SsoStorageParam.CACHE_NAME, "sso"), self._crypto_obj.suffix, self.authority)
 
         self.db_key_conflict = False
         
@@ -49,7 +58,6 @@ class DictDbStorage(object):
                     del self.db[db_key]
 
 
-
     def clear_db(self):
         '''clear db. remove all entries'''
         for db_key in self.db.keys():
@@ -66,7 +74,7 @@ class DictDbStorage(object):
         logger().debug(f"DictDbStorage(object)::save(self, state: str) -> None state is {type(state)}")
 
         if not self.db_key_conflict:
-            state_encrypted = self._crypto.encrypt(state)  
+            state_encrypted = self._crypto_obj.encrypt(state)  
             self.db[self.db_key] = {'data': state_encrypted, 'timestamp': datetime.utcnow()}
 
 

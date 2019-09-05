@@ -1,16 +1,21 @@
+# -------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See License.txt in the project root for
+# license information.
+# --------------------------------------------------------------------------
+
 import os
 import uuid
 from datetime import datetime, timedelta
 
-from .log import logger
 
+from .log import logger
 from .parser import Parser
 from .display import Display
 from .constants import Constants, CryptoParam, SsoStorageParam, SsoEnvVarParam, SsoStorage, SsoCrypto
 from .fernet_crypto import FernetCrypto, fernet_installed, check_password_strength
 from .dpapi_crypto import DpapiCrypto, dpapi_installed
 from .dict_db_storage import DictDbStorage
-
 
 
 _SUPPORTED_STORAGE = [
@@ -102,7 +107,7 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
         gc_ttl_in_secs = options.get('sso_db_gc_interval', 0) * Constants.HOUR_SECS #convert from hours to seconds
         storage_options = {
             SsoStorageParam.AUTHORITY: authority,
-            SsoStorageParam.CRYPTO: crypto,
+            SsoStorageParam.CRYPTO_OBJ: crypto_obj,
             SsoStorageParam.CACHE_NAME: cache_name,
             SsoStorageParam.GC_TTL_IN_SECS: gc_ttl_in_secs
         }

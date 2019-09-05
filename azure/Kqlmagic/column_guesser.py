@@ -5,7 +5,11 @@
 # --------------------------------------------------------------------------
 
 from datetime import timedelta, datetime
+
+
 import pytz
+
+
 from .constants import Constants, VisualizationKeys
 
 
@@ -18,6 +22,7 @@ makes guesses about the role of each column for plotting purposes
 
 class Column(list):
     "Store a column of tabular data; record its name and whether it is numeric"
+
     # Object constructor
     def __init__(self, idx=None, name="", col=None, is_quantity=True, is_datetime=True, **kwargs):
         if col is not None:
@@ -50,6 +55,7 @@ def is_quantity(val) -> bool:
     Relies on presence of __sub__.
     """
     return hasattr(val, "__sub__")
+
 
 def datetime_to_linear_ticks(t: datetime) -> int:
     return (t-datetime(1,1,1,0,0,0,0, pytz.UTC)).total_seconds() * Constants.TICK_TO_INT_FACTOR
@@ -143,7 +149,6 @@ class ColumnGuesserMixin(object):
             print("No valid ycolumns")
             return []
 
-
         #
         # create chart sub-tables
         # a sub-table for each serie X y-col
@@ -167,6 +172,7 @@ class ColumnGuesserMixin(object):
                 chart_sub_table[row[x_col_idx]] = datetime_to_linear_ticks(row[qcol.idx]) if qcol.is_datetime else row[qcol.idx]
         self.chart_sub_tables = list(chart_sub_tables_dict.values())
         return self.chart_sub_tables
+
 
     def _build_columns(self, name=None, without_data=False):
         self.x = Column()
@@ -198,17 +204,20 @@ class ColumnGuesserMixin(object):
                     elif not isinstance(col_val, datetime):
                         col.is_datetime = False
 
+
     def _get_y(self):
         for idx in range(len(self.columns) - 1, -1, -1):
             if self.columns[idx].is_quantity:
                 self.ys.insert(0, self.columns.pop(idx))
                 return True
 
+
     def _get_x(self):
         for idx in range(len(self.columns)):
             if self.columns[idx].is_quantity:
                 self.x = self.columns.pop(idx)
                 return True
+
 
     def _get_xlabel(self, xlabel_sep=" "):
         self.xlabels = []
@@ -217,6 +226,7 @@ class ColumnGuesserMixin(object):
                 self.xlabels.append(xlabel_sep.join(str(c[row_idx]) for c in self.columns))
         self.xlabel = ", ".join(c.name for c in self.columns)
 
+
     def _get_xlabel(self, xlabel_sep=" ", index=None):
         self.xlabels = []
         if self.columns:
@@ -224,11 +234,13 @@ class ColumnGuesserMixin(object):
                 self.xlabels.append(xlabel_sep.join(str(c[row_idx]) for c in self.columns))
         self.xlabel = ", ".join(c.name for c in self.columns)
 
+
     def _guess_columns(self):
         self._build_columns()
         self._get_y()
         if not self.ys:
             raise AttributeError("No quantitative columns found for chart")
+
 
     def build_columns(self, name=None):
         """
@@ -236,6 +248,7 @@ class ColumnGuesserMixin(object):
         if name specified, first sort row by name
         """
         self._build_columns(name)
+
 
     def guess_pie_columns(self, xlabel_sep=" "):
         """
@@ -247,6 +260,7 @@ class ColumnGuesserMixin(object):
         """
         self._guess_columns()
         self._get_xlabel(xlabel_sep)
+
 
     def guess_plot_columns(self):
         """
@@ -261,3 +275,4 @@ class ColumnGuesserMixin(object):
         self._get_x()
         while self._get_y():
             pass
+

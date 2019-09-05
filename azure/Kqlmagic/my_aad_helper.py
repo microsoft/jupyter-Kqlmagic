@@ -10,25 +10,25 @@
 import os
 from enum import Enum, unique
 from datetime import timedelta, datetime
-
 from urllib.parse import urlparse
-# import re
+import uuid
+import smtplib
+
 
 import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
+import jwt
+
+
 from .constants import Constants, Cloud
 from .log import logger
 from .display import Display
 from .constants import ConnStrKeys
 from .adal_token_cache import AdalTokenCache
 from .kql_engine import KqlEngineError
-import uuid
-
-import jwt
 from .parser import Parser
 
-import smtplib
 
 class AuthenticationError(Exception):
     pass
@@ -52,6 +52,7 @@ class ConnKeysKCSB(object):
             "application_certificate":            ConnStrKeys.CERTIFICATE,
             "application_certificate_thumbprint": ConnStrKeys.CERTIFICATE_THUMBPRINT,
         }
+
 
     def __getattr__(self, kcsb_attr_name):
         if kcsb_attr_name == "data_source":
@@ -77,6 +78,7 @@ _CLOUD_AAD_URLS = {
         Cloud.BLACKFOREST: "https://login.microsoftonline.de",
 }
 
+
 _CLOUD_DSTS_AAD_DOMAINS = {
         # Define dSTS domains whitelist based on its Supported Environments & National Clouds list here
         # https://microsoft.sharepoint.com/teams/AzureSecurityCompliance/Security/SitePages/dSTS%20Fundamentals.aspx
@@ -94,7 +96,9 @@ global_adal_context = {}
 # cached shared context per authority
 global_adal_context_sso = {}
 
+
 class _MyAadHelper(object):
+
     def __init__(self, kcsb, default_clientid, adal_context = None, adal_context_sso = None, **options):
         global global_adal_context
         global global_adal_context_sso
@@ -294,6 +298,7 @@ class _MyAadHelper(object):
         else:
             raise AuthenticationError("Unknown authentication method.")
         return self._get_header(token)
+
 
     # def email_format(self, dest):
     #     return re.match( r'[\w\.-]+@[\w\.-]+(\.[\w]+)+', dest)

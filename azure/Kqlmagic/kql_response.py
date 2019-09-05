@@ -4,13 +4,16 @@
 # license information.
 # --------------------------------------------------------------------------
 
-import six
 from datetime import timedelta, datetime
 import re
 import json
+
+
 import adal
 import dateutil.parser
+import six
 import requests
+
 
 # Regex for TimeSpan
 _TIMESPAN_PATTERN = re.compile(r"(-?)((?P<d>[0-9]*).)?(?P<h>[0-9]{2}):(?P<m>[0-9]{2}):(?P<s>[0-9]{2}(\.[0-9]+)?$)")
@@ -26,6 +29,7 @@ class KqlResult(dict):
         # In this case, it would be better for KqlResult to extend list class. In this case,
         # KqlResultIter.index2column_mapping should be reversed, e.g. column2index_mapping.
         self.index2column_mapping = index2column_mapping
+
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -65,6 +69,7 @@ class KqlResponseTable(six.Iterator):
             "dynamic": self.to_object,
         }
 
+
     @staticmethod
     def to_object(value):
         try:
@@ -72,11 +77,13 @@ class KqlResponseTable(six.Iterator):
         except Exception:
             return value
 
+
     @staticmethod
     def to_datetime(value):
         if value is None:
             return None
         return dateutil.parser.parse(value)
+
 
     @staticmethod
     def to_timedelta(value):
@@ -97,9 +104,11 @@ class KqlResponseTable(six.Iterator):
         else:
             raise ValueError(f"Timespan value '{value}' cannot be decoded")
 
+
     def __iter__(self):
         self.row_index = 0
         return self
+
 
     def __next__(self):
         if self.row_index >= self.rows_count:
@@ -117,29 +126,36 @@ class KqlResponseTable(six.Iterator):
         self.row_index = self.row_index + 1
         return KqlResult(self.index2column_mapping, result_dict)
 
+
     @property
     def columns_name(self):
         return self.index2column_mapping
+
 
     @property
     def is_partial(self):
         return len(self.rows) > self._rows_count
 
+
     @property
     def columns_type(self):
         return self.index2type_mapping
+
 
     @property
     def rows_count(self):
         return self._rows_count
 
+
     @property
     def columns_count(self):
         return len(self.columns)
 
+
     def fetchall(self):
         """ Returns iterator to get rows from response """
         return self.__iter__()
+
 
     def iter_all(self):
         """ Returns iterator to get rows from response """
@@ -147,12 +163,15 @@ class KqlResponseTable(six.Iterator):
 
 
 class KqlSchemaResponse(object):
+
     def __init__(self, json_response):
         self.json_response = json_response
         self.table = json_response["tables"]
 
+
     def has_exceptions(self):
         return "Exceptions" in self.json_response
+
 
     def get_exceptions(self):
         return self.json_response["Exceptions"]
@@ -186,12 +205,14 @@ class KqlQueryResponse(object):
             self.primary_results = [KqlResponseTable(idx, t) for idx, t in enumerate(self.tables)]
             self.dataSetCompletion = []
  
+
     def _get_endpoint_version(self, json_response):
         try:
             tables_num = json_response["Tables"].__len__()  # pylint: disable=W0612
             return "v1"
         except:
             return "v2"
+
 
     @property
     def visualization_results(self):
@@ -230,6 +251,7 @@ class KqlQueryResponse(object):
                             self.visualization[0] = self._dynamic_to_object(value)
         return self.visualization
 
+
     @property
     def completion_query_info_results(self):
         if self.endpoint_version == "v2":
@@ -256,6 +278,7 @@ class KqlQueryResponse(object):
                                 # print(f'Info: {info}')
                                 return info
         return {}
+
 
     @property
     def completion_query_resource_consumption_results(self):
@@ -284,9 +307,11 @@ class KqlQueryResponse(object):
                                 return self._dynamic_to_object(stats)
         return {}
 
+
     @property
     def dataSetCompletion_results(self):
         return self.dataSetCompletion
+
 
     def _map_columns_to_index(self, columns: list):
         map = {}
@@ -294,23 +319,29 @@ class KqlQueryResponse(object):
             map[col["ColumnName"]] = idx
         return map
 
+
     def _get_columns_types(self, columns: list):
         map = []
         for col in columns:
             map.append(col["ColumnType"])
         return map
 
+
     def get_raw_response(self):
         return self.json_response
+
 
     def get_table_count(self):
         return len(self.tables)
 
+
     def has_exceptions(self):
         return "Exceptions" in self.json_response
 
+
     def get_exceptions(self):
         return self.json_response["Exceptions"]
+
 
     @staticmethod
     def _dynamic_to_object(value):
@@ -330,14 +361,19 @@ class KqlError(Exception):
         self.http_response = http_response
         self.kql_response = kql_response
 
+
     def get_raw_http_response(self):
         return self.http_response
+
 
     def is_semantic_error(self):
         return self.http_response.text.startswith("Semantic error:")
 
+
     def has_partial_results(self):
         return self.kql_response is not None
 
+
     def get_partial_results(self):
         return self.kql_response
+

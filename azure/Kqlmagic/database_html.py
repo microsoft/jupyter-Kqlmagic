@@ -5,6 +5,8 @@
 # --------------------------------------------------------------------------
 
 import re
+
+
 from .display import Display
 from .kusto_engine import KustoEngine
 from .ai_engine import AppinsightsEngine
@@ -76,6 +78,7 @@ class Database_html(object):
             }
         </script>
     """
+
     database_metadata_html = """<html><head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -95,6 +98,7 @@ class Database_html(object):
         {4}
         </div></div></body></html>"""
 
+
     @staticmethod
     def convert_database_metadata_to_html(database_metadata_tree, connectionName, **kwargs):
         item = ""
@@ -108,6 +112,7 @@ class Database_html(object):
         )
         # print(result)
         return result
+
 
     @staticmethod
     def _create_database_metadata_tree(rows, databaseName, **kwargs):
@@ -125,6 +130,7 @@ class Database_html(object):
                         database_metadata_tree.get(table_name)[column_name] = column_type
         return database_metadata_tree
 
+
     @staticmethod
     def _create_database_draft_metadata_tree(rows, **kwargs):
         database_metadata_tree = {}
@@ -138,6 +144,7 @@ class Database_html(object):
                     if column_name and len(column_name) > 0 and column_type and len(column_type) > 0:
                         database_metadata_tree.get(table_name)[column_name] = column_type
         return database_metadata_tree
+
 
     @staticmethod
     def _convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs):
@@ -161,10 +168,12 @@ class Database_html(object):
         item += """</div>"""
         return item
 
+
     @staticmethod
     def _convert_column_metadata_to_item(column_name, column_type, **kwargs):
         item = "<b>" + column_name + "</b> : " + column_type
         return """<a href="#" class="list-group-item">""" + item + """</a>"""
+
 
     @staticmethod
     def get_schema_tree(connection, **options) :
@@ -203,12 +212,14 @@ class Database_html(object):
                 return database_metadata_tree
         return None
 
+
     @staticmethod
     def adjustToKustoEntityNameRules(name: str) -> str:
         if isinstance(name, str):
             name = re.sub(r'[\s\n\r\f\t]+', ' ', name.strip())
             name = re.sub(r'[^0-9a-zA-Z._\s-]+', ' ', name)
         return name
+
 
     @staticmethod
     def get_schema_file_path(connection, **options):
@@ -225,6 +236,7 @@ class Database_html(object):
         else:
             return None
 
+
     @staticmethod
     def popup_schema(file_path, connection, **options):
         if file_path:
@@ -232,3 +244,4 @@ class Database_html(object):
             button_text = "popup schema " + conn_name
             window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
             Display.show_window(window_name, file_path, button_text=button_text, onclick_visibility="visible", **options)
+

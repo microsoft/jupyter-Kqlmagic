@@ -4,12 +4,14 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from .constants import Constants
-from .my_utils import get_valid_filename, adjust_path
-from .kql_response import KqlQueryResponse, KqlSchemaResponse
 import hashlib
 import json
 import os
+
+
+from .constants import Constants
+from .my_utils import get_valid_filename, adjust_path
+from .kql_response import KqlQueryResponse, KqlSchemaResponse
 
 
 class CacheClient(object):
@@ -34,6 +36,7 @@ class CacheClient(object):
     @property
     def data_source(self):
         return self.files_folder
+
 
     def _get_query_hash_filename(self, query):
         lines = [l.replace("\r", "").replace("\t", " ").strip() for l in query.split("\n")]
@@ -137,3 +140,4 @@ class CacheClient(object):
         outfile.flush()
         outfile.close()
         return file_path
+

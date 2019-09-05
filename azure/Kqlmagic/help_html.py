@@ -5,6 +5,8 @@
 # --------------------------------------------------------------------------
 
 import time
+
+
 from IPython.core.display import display
 from IPython.core.magics.display import Javascript
 
@@ -16,6 +18,7 @@ class Help_html(object):
     notebooks_host = None
     showfiles_base_url = None
     _pending_helps = {}
+
 
     @staticmethod
     def flush(window_location, **kwargs):
@@ -51,6 +54,7 @@ class Help_html(object):
         Help_html._pending_helps = {}
         if refresh:
             Help_html._reconnect(**kwargs)
+
 
     @staticmethod
     def add_menu_item(text, file_path: str, reconnect=True, **kwargs):
@@ -89,8 +93,10 @@ class Help_html(object):
         elif Help_html._pending_helps.get(text) is None:
             Help_html._pending_helps[text] = file_path
 
+
     @staticmethod
     def _reconnect(**kwargs):
         if kwargs is None or kwargs.get("notebook_app") != "jupyterlab":
             display(Javascript("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}"""))
             time.sleep(1)
+

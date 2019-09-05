@@ -28,6 +28,7 @@ KEYWORDS            = 'database ipython jupyter jupyterlab jupyter-notebook quer
 
 INSTALL_REQUIRES    = [
                         'ipython>=7.1.1',
+                        'ipykernel>=5.1.1',
                         'plotly>=3.10.0',
                         'prettytable>=0.7.2',
                         'matplotlib>=3.0.0',
@@ -44,6 +45,8 @@ INSTALL_REQUIRES    = [
                         'Markdown>=3.0.1',
                         'beautifulsoup4>=4.6.3',
                         'lxml>=4.2.5',
+                        'pytz>=2019.1',
+                        'pyjwt>=1.7.1',
 ]
 
 EXTRAS_REQUIRE      = {
@@ -53,6 +56,11 @@ EXTRAS_REQUIRE      = {
         'pytest-docstyle',
         'pytest-flakes',
         'pytest-cov',
+
+        'twine',
+        'pip',
+        'wheel',
+        'black',
     ],
     'widgets':[
         'ipywidgets'

@@ -7,9 +7,12 @@
 """A module that manage package version.
 """
 
-from .constants import Constants
 from bs4 import BeautifulSoup
 from markdown import markdown
+
+
+from .constants import Constants
+
 
 _KQL_URL = "http://aka.ms/kdocs"
 _APPINSIGHTS_URL= "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-overview?toc=/azure/azure-monitor/toc.json"

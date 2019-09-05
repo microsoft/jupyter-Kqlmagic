@@ -5,6 +5,8 @@
 # --------------------------------------------------------------------------
 
 import os
+
+
 from .kql_engine import KqlEngineError
 from .kusto_engine import KustoEngine
 from .ai_engine import AppinsightsEngine
@@ -19,6 +21,7 @@ class ConnectionError(Exception):
 
 
 class Connection(object):
+
     current = None
     connections = {}
     last_current_by_engine = {}
@@ -31,6 +34,7 @@ class Connection(object):
         for n in e._ALT_URI_SCHEMA_NAMES:
             _ENGINE_MAP[n] = e
 
+
     @classmethod
     def _find_engine(cls, connect_str):
         if connect_str is not None:
@@ -39,6 +43,7 @@ class Connection(object):
                 uri_schema = parts[0].lower().replace("_", "").replace("-", "")
                 return cls._ENGINE_MAP.get(uri_schema)
     
+
     # Object constructor
     def __init__(self, connect_str, user_ns:dict, **options):
 
@@ -78,6 +83,7 @@ class Connection(object):
             conn_engine = CacheEngine(conn_engine, user_ns, last_current, cache_name=options.get("use_cache"))
         Connection._set_current(conn_engine)
 
+
     @classmethod
     def _new_kusto_database_engine(cls, database_name, cluster_friendly_name, alias, user_ns: dict, **options):
         if cluster_friendly_name in cls._ENGINE_MAP.keys():
@@ -97,9 +103,9 @@ class Connection(object):
             ConnStrKeys.ALIAS: alias,
             "cluster_friendly_name": cluster_friendly_name
         }
-
         
         return KustoEngine(details, user_ns, **options, conn_class=Connection)
+
 
     @classmethod
     def _set_current(cls, conn_engine, conn_name=None):
@@ -113,9 +119,11 @@ class Connection(object):
             cls.connections[name] = conn_engine
             cls.connections[conn_engine.bind_url] = conn_engine
 
+
     @classmethod
     def get_connection_by_name(cls, name):
         return cls.connections.get(name)
+
 
     @classmethod
     def get_connection(cls, descriptor, user_ns, **options):
@@ -131,6 +139,7 @@ class Connection(object):
         cls.last_current_by_engine[cls.current.__class__.__name__] = cls.current        
         return cls.current
 
+
     @classmethod
     def connection_list(cls):
         return [k for k in sorted(cls.connections) if not k.startswith("@") and cls.connections[k].bind_url != k]
@@ -139,6 +148,7 @@ class Connection(object):
     def get_connection_list_by_schema(cls, uri_schema_name):
         prefix = uri_schema_name + "://"
         return [k for k in Connection.connection_list() if cls.connections[k].bind_url.startswith(prefix)]
+
 
     @classmethod
     def get_connection_list_formatted(cls):
@@ -151,6 +161,8 @@ class Connection(object):
             result.append(template.format(key))
         return result
 
+
     @classmethod
     def get_current_connection_formatted(cls):
         return f" * {cls.current.get_conn_name()}"
+

@@ -3,12 +3,17 @@
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
 # --------------------------------------------------------------------------
+
 from datetime import datetime, timedelta
 import json
 import string
 import random
 import threading
+
+
 from adal.constants import TokenResponseFields
+
+
 from .sso_storage import SsoStorage, get_sso_store
 from .log import logger
 
@@ -22,6 +27,7 @@ def _string_cmp(str1, str2):
 
 # pylint: disable=too-few-public-methods
 class AdalTokenCacheKey(object): 
+
     def __init__(self, authority, resource, client_id, user_id):
         logger().debug(f"AdalTokenCacheKey authority {authority} client_id {client_id}  user_id {user_id} ")
         
@@ -30,14 +36,17 @@ class AdalTokenCacheKey(object):
         self.client_id = client_id
         self.user_id = user_id
 
+
     def __hash__(self):
         return hash((self.authority, self.resource, self.client_id, self.user_id))
+
 
     def __eq__(self, other):
         return _string_cmp(self.authority, other.authority) and \
                _string_cmp(self.resource, other.resource) and \
                _string_cmp(self.client_id, other.client_id) and \
                _string_cmp(self.user_id, other.user_id)
+
 
     def __ne__(self, other):
         return not self == other
@@ -62,6 +71,7 @@ class AdalTokenCache(object):
         if store:
             cache = AdalTokenCache(store)
             return cache
+
 
     def __init__(self, store: SsoStorage, state=None):
         self._lock = threading.RLock()

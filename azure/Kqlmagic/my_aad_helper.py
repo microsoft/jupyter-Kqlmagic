@@ -13,6 +13,7 @@ from datetime import timedelta, datetime
 from urllib.parse import urlparse
 import uuid
 import smtplib
+import webbrowser
 
 
 import dateutil.parser
@@ -28,6 +29,7 @@ from .constants import ConnStrKeys
 from .adal_token_cache import AdalTokenCache
 from .kql_engine import KqlEngineError
 from .parser import Parser
+from .email_notification import EmailNotification
 
 
 class AuthenticationError(Exception):
@@ -96,6 +98,9 @@ global_adal_context = {}
 # cached shared context per authority
 global_adal_context_sso = {}
 
+# email notification object
+global_email_notification: EmailNotification = None
+
 
 class _MyAadHelper(object):
 
@@ -161,6 +166,7 @@ class _MyAadHelper(object):
     def acquire_token(self, **options):
         """Acquire tokens from AAD."""
 
+        global global_email_notification
         token = None
         if self._adal_context_sso:
             adal_context = self._adal_context_sso
@@ -188,15 +194,12 @@ class _MyAadHelper(object):
         if self._authentication_method is AuthenticationMethod.aad_username_password:
             logger().debug("_MyAadHelper::acquire_token - aad/user-password - resource: '%s', username: '%s', password: '...', client: '%s'", self._resource, self._username, self._client_id)
             token = adal_context.acquire_token_with_username_password(self._resource, self._username, self._password, self._client_id)
+
         elif self._authentication_method is AuthenticationMethod.aad_application_key:
             logger().debug("_MyAadHelper::acquire_token - aad/client-secret - resource: '%s', client: '%s', secret: '...'", self._resource, self._client_id)
             token = adal_context.acquire_token_with_client_credentials(self._resource, self._client_id, self._client_secret)
+
         elif self._authentication_method is AuthenticationMethod.aad_device_login:
-            # print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
-            # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
-            # token = adal_context.acquire_token_with_device_code(
-            #     self._resource, code, self._client_id
-            # )
             logger().debug("_MyAadHelper::acquire_token - aad/code - resource: '%s', client: '%s'", self._resource, self._client_id)
             code: dict = adal_context.acquire_user_code(self._resource, self._client_id)
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
@@ -204,16 +207,24 @@ class _MyAadHelper(object):
             
             # if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
             #     raise Exception("error: using papermill without an email specified is not supported")
+            if options.get("device_code_login_notification") =="email":
+                if global_email_notification is None:
+                    kv = Parser.parse_and_get_kv_string(options.get('device_code_notification_email'), {})
+                    global_email_notification = global_email_notification or EmailNotification(**kv)
+                subject = f"Kqlmagic device_code {device_code} authentication (context: {global_email_notification.context})"
+                resource = self._resource.replace("://", ":// ")
+                email_message = f"Device_code: {device_code}\n\nYou are asked to authorize access to resource: {resource}\n\nOpen the page {url} and enter the code {device_code} to authenticate\n\nKqlmagic"
+                global_email_notification.send_email(subject, email_message)
+                Display.showInfoMessage(f"An email was sent to {global_email_notification.send_to} with device_code {device_code} to authenticate", **options)
 
-            # if options.get("login_code_destination") =="email":
-            #     email_message = "Copy code: "+ device_code + " and authenticate in: " + url
-
-            #     kv = Parser.parse_and_get_kv_string(options.get('code_notification_email'), {})
-                
-            #     self.send_email(email_message, kv)
                
-            if False:
-                pass
+            elif options.get("device_code_login_notification") =="browser":
+                print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
+                webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+
+            elif options.get("device_code_login_notification") =="terminal":
+                print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
+
             else:
                 html_str = (
                     """<!DOCTYPE html>
@@ -262,7 +273,6 @@ class _MyAadHelper(object):
 
                 if options.get("notebook_app") in ["visualstudiocode", "ipython"]:
                     Display.show_window('verification_url', url, **options)
-                    # Display.showInfoMessage(f"Code: {device_code}")
                     Display.showInfoMessage(f"Copy code: {device_code} to verification url: {url} and authenticate", **options)
                 else:
                     Display.show_html(html_str)

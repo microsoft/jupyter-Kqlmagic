@@ -139,3 +139,11 @@ if fernet_installed:
                 hints.append(f"{i}. {password_hints.get(type(policy))}")
                 return os.linesep.join(hints)
 
+else:
+    class FernetCrypto(object):
+
+        def __init__(self, options: dict):
+            pass
+
+    def check_password_strength(password) -> str:
+        pass

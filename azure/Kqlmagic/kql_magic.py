@@ -64,23 +64,51 @@ class Kqlmagic(Magics, Configurable):
 
     logger().debug("Kqlmagic:: - init configurable traitlets")
 
-    auto_limit = Int(0, config=True, allow_none=True, help="Automatically limit the size of the returned result sets. Abbreviation: al")
+    auto_limit = Int(
+        0, 
+        config=True, 
+        allow_none=True, 
+        help="Automatically limit the size of the returned result sets. Abbreviation: al"
+    )
+
     prettytable_style = Enum(
         ["DEFAULT", "MSWORD_FRIENDLY", "PLAIN_COLUMNS", "RANDOM"],
         "DEFAULT",
         config=True,
         help="Set the table printing style to any of prettytable's defined styles. Abbreviation: ptst",
     )
-    short_errors = Bool(True, config=True, help="Don't display the full traceback on KQL Programming Error. Abbreviation: se")
+
+    short_errors = Bool(
+        True, 
+        config=True, 
+        help="Don't display the full traceback on KQL Programming Error. Abbreviation: se"
+    )
+
     display_limit = Int(
         None,
         config=True,
         allow_none=True,
         help="Automatically limit the number of rows displayed (full result set is still stored). Abbreviation: dl",
     )
-    auto_dataframe = Bool(False, config=True, help="Return Pandas dataframe instead of regular result sets. Abbreviation: ad")
-    columns_to_local_vars = Bool(False, config=True, help="Return data into local variables from column names. Abbreviation: c2lv")
-    feedback = Bool(True, config=True, help="Show number of records returned, and assigned variables. Abbreviation: f")
+
+    auto_dataframe = Bool(
+        False, 
+        config=True, 
+        help="Return Pandas dataframe instead of regular result sets. Abbreviation: ad"
+    )
+
+    columns_to_local_vars = Bool(
+        False, 
+        config=True, 
+        help="Return data into local variables from column names. Abbreviation: c2lv"
+    )
+
+    feedback = Bool(
+        True, 
+        config=True, 
+        help="Show number of records returned, and assigned variables. Abbreviation: f"
+    )
+
     show_conn_info = Enum(
         ["list", "current", "None"],
         "current",
@@ -88,6 +116,7 @@ class Kqlmagic(Magics, Configurable):
         allow_none=True,
         help="Show connection info, either current, the whole list, or None. Abbreviation: sci",
     )
+
     dsn_filename = Unicode(
         "odbc.ini",
         config=True,
@@ -97,34 +126,96 @@ class Kqlmagic(Magics, Configurable):
         "matching section in the DSN file. Abbreviation: dl",
     )
 
-    cloud = Enum([Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST, Cloud.USNAT, Cloud.USSEC, Cloud.TEST],
+    cloud = Enum(
+        [Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST, Cloud.USNAT, Cloud.USSEC, Cloud.TEST],
         Cloud.PUBLIC,
         config=True,
         help="Default cloud "
         "the kql connection will use the cloud as specified "
     )
 
-    enable_sso = Bool(False, config = True, help=f"Enables or disables SSO. if enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly")
+    enable_sso = Bool(
+        False, 
+        config = True, 
+        help=f"Enables or disables SSO. if enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly"
+    )
 
-    sso_db_gc_interval = Int(168, config=True,help= "Garbage Collection interval for not changed SSO cache entries. Default is one week.")
-    # login_code_destination = Unicode("browser", config = True, help = 
-    # "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
+    sso_db_gc_interval = Int(
+        168, 
+        config=True,
+        help= "Garbage Collection interval for not changed SSO cache entries. Default is one week."
+    )
 
-    timeout = Int(None, config=True, allow_none=True, help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait")
-    plot_package = Enum(["None", "matplotlib", "plotly", "plotly_orca"], "plotly", config=True, help="Set the plot package (plotlt_orca requires plotly orca to be installed on the server). Abbreviation: pp")
+    device_code_login_notification = Enum(
+        ["frontend", "browser", "terminal", "email"],
+        "frontend", 
+        config = True, 
+        help = "Set device_code login notification method, default: frontend. Abbreviation: dcln"
+    )
+
+    device_code_notification_email = Unicode(
+        "", 
+        config=True, 
+        help=f"""Email details. Should be set by {Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL. 
+        the email details string format is: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text"""
+    )
+
+    timeout = Int(
+        None, 
+        config=True, 
+        allow_none=True, 
+        help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait"
+    )
+
+    plot_package = Enum(
+        ["None", "matplotlib", "plotly", "plotly_orca"], 
+        "plotly", 
+        config=True, 
+        help="Set the plot package (plotlt_orca requires plotly orca to be installed on the server). Abbreviation: pp"
+    )
+
     table_package = Enum(
-        ["prettytable", "pandas", "plotly", "qgrid"], "prettytable", config=True, help="Set the table display package. Abbreviation: tp"
+        ["prettytable", "pandas", "plotly", "qgrid"], 
+        "prettytable", 
+        config=True, 
+        help="Set the table display package. Abbreviation: tp"
     )
+
     last_raw_result_var = Unicode(
-        "_kql_raw_result_", config=True, help="Set the name of the variable that will contain last raw result. Abbreviation: var"
+        "_kql_raw_result_", 
+        config=True, 
+        help="Set the name of the variable that will contain last raw result. Abbreviation: var"
     )
-    enable_suppress_result = Bool(True, config=True, help="Suppress result when magic ends with a semicolon ;. Abbreviation: esr")
-    show_query_time = Bool(True, config=True, help="Print query execution elapsed time. Abbreviation: sqt")
 
-    show_query = Bool(False, config=True, help="Print parametrized query. Abbreviation: sq")
+    enable_suppress_result = Bool(
+        True, 
+        config=True, 
+        help="Suppress result when magic ends with a semicolon ;. Abbreviation: esr"
+    )
 
-    show_query_link = Bool(False, config=True, help="Show query deep link as a button, to run query in the deafult tool. Abbreviation: sql")
-    query_link_destination = Enum(["Kusto.Explorer", "Kusto.WebExplorer"], "Kusto.WebExplorer", config=True, help="Set the deep link destination. Abbreviation: qld")
+    show_query_time = Bool(
+        True, 
+        config=True, 
+        help="Print query execution elapsed time. Abbreviation: sqt"
+    )
+
+    show_query = Bool(
+        False, 
+        config=True, 
+        help="Print parametrized query. Abbreviation: sq"
+    )
+
+    show_query_link = Bool(
+        False, 
+        config=True, 
+        help="Show query deep link as a button, to run query in the deafult tool. Abbreviation: sql"
+    )
+
+    query_link_destination = Enum(
+        ["Kusto.Explorer", "Kusto.WebExplorer"], 
+        "Kusto.WebExplorer", 
+        config=True, help="Set the deep link destination. Abbreviation: qld"
+    )
 
     plotly_fs_includejs = Bool(
         False,
@@ -133,55 +224,119 @@ class Kqlmagic(Magics, Configurable):
     )
 
     validate_connection_string = Bool(
-        True, config=True, help="Validate connectionString with an implicit query, when query statement is missing. Abbreviation: vc"
+        True, 
+        config=True, 
+        help="Validate connectionString with an implicit query, when query statement is missing. Abbreviation: vc"
     )
-    auto_popup_schema = Bool(True, config=True, help="Popup schema when connecting to a new database. Abbreviation: aps")
 
-    json_display = Enum(["raw", "native", "formatted"], "formatted", config=True, help="Set json/dict display format. Abbreviation: jd")
-    palette_name = Unicode(Palettes.DEFAULT_NAME, config=True, help="Set pallete by name to be used for charts. Abbreviation: pn")
-    palette_colors = Int(Palettes.DEFAULT_N_COLORS, config=True, help="Set pallete number of colors to be used for charts. Abbreviation: pc")
-    palette_desaturation = Float(Palettes.DEFAULT_DESATURATION, config=True, help="Set pallete desaturation to be used for charts. Abbreviation: pd")
+    auto_popup_schema = Bool(
+        True, 
+        config=True, 
+        help="Popup schema when connecting to a new database. Abbreviation: aps"
+    )
 
-    temp_folder_name = Unicode("{0}_temp_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name for temporary files")
-    export_folder_name = Unicode("{0}_exported_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name  for exported files")
-    cache_folder_name = Unicode("{0}_cache_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name for cache files")
+    json_display = Enum(
+        ["raw", "native", "formatted"], 
+        "formatted", 
+        config=True, 
+        help="Set json/dict display format. Abbreviation: jd"
+    )
+
+    palette_name = Unicode(
+        Palettes.DEFAULT_NAME, 
+        config=True, 
+        help="Set pallete by name to be used for charts. Abbreviation: pn"
+    )
+
+    palette_colors = Int(
+        Palettes.DEFAULT_N_COLORS, 
+        config=True, 
+        help="Set pallete number of colors to be used for charts. Abbreviation: pc"
+    
+    )
+    palette_desaturation = Float(
+        Palettes.DEFAULT_DESATURATION, 
+        config=True, 
+        help="Set pallete desaturation to be used for charts. Abbreviation: pd"
+    )
+
+    temp_folder_name = Unicode(
+        f"{Constants.MAGIC_CLASS_NAME}_temp_files", 
+        config=True, 
+        help="Set the folder name for temporary files"
+    )
+
+    export_folder_name = Unicode(
+        f"{Constants.MAGIC_CLASS_NAME}_exported_files", 
+        config=True, 
+        help="Set the folder name  for exported files"
+    )
+
+    cache_folder_name = Unicode(
+        f"{Constants.MAGIC_CLASS_NAME}_cache_files", 
+        config=True, 
+        help="Set the folder name for cache files"
+    )
 
     # valid values: jupyterlab or jupyternotebook
-    notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "auto", config=True, help="Set notebook application used.") #TODO: add "papermill"
+    notebook_app = Enum(
+        ["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], 
+        "auto", 
+        config=True, 
+        help="Set notebook application used."
+    ) #TODO: add "papermill"
 
-    # code_notification_email = Unicode("", config=True, help="Required parameters: SMTPEndPoint, SMTPPort, sendFrom, sendFromPassword, sendTo.")
+    test_notebook_app = Enum(
+        ["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], 
+        "none", 
+        config=True, 
+        help="Set testing application mode, results should return for the specified notebook application."
+    ) #TODO: add "papermill"
 
-    test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.") #TODO: add "papermill"
+    add_kql_ref_to_help = Bool(
+        True, 
+        config=True, 
+        help=f"On {Constants.MAGIC_CLASS_NAME} load, auto add kql reference to Help menu."
+    )
 
-    add_kql_ref_to_help = Bool(True, config=True, help=f"On {Constants.MAGIC_CLASS_NAME} load, auto add kql reference to Help menu.")
-    add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
-    cache = Unicode(None, config=True, allow_none=True, help="Cache query results to the specified folder.")
-    use_cache = Unicode(None, config=True, allow_none=True, help="Use cached query results from the specified folder, instead of executing the query.")
+    add_schema_to_help = Bool(
+        True, 
+        config=True, 
+        help="On connection to database@cluster add  schema to Help menu."
+    )
 
-    check_magic_version = Bool(True, config=True, help=f"On {Constants.MAGIC_CLASS_NAME} load, check whether new version of {Constants.MAGIC_CLASS_NAME} exist")
-    show_what_new = Bool(True, config=True, help=f"On {Constants.MAGIC_CLASS_NAME} load, get history file of {Constants.MAGIC_CLASS_NAME} and show what new button to open it")
-    show_init_banner = Bool(True, config=True, help=f"On {Constants.MAGIC_CLASS_NAME} load, show init banner")
+    cache = Unicode(
+        None, 
+        config=True, 
+        allow_none=True, 
+        help="Cache query results to the specified folder."
+    )
+
+    use_cache = Unicode(
+        None, 
+        config=True, 
+        allow_none=True, 
+        help="Use cached query results from the specified folder, instead of executing the query."
+    )
+
+    check_magic_version = Bool(
+        True, 
+        config=True, 
+        help=f"On {Constants.MAGIC_CLASS_NAME} load, check whether new version of {Constants.MAGIC_CLASS_NAME} exist"
+    )
+    show_what_new = Bool(
+        True, 
+        config=True, 
+        help=f"On {Constants.MAGIC_CLASS_NAME} load, get history file of {Constants.MAGIC_CLASS_NAME} and show what new button to open it"
+    )
+
+    show_init_banner = Bool(
+        True, 
+        config=True, 
+        help=f"On {Constants.MAGIC_CLASS_NAME} load, show init banner"
+    )
 
     logger().debug("Kqlmagic:: - define class code")
-
-    # @validate("login_code_destination")
-    # def _valid_value_login_code_destination(self, proposal):
-
-    #     try:
-    #         dest = proposal["value"].lower()
-
-    #         self.validate_login_code(dest)
-    #     except (AttributeError, ValueError) as e:
-    #         message = "The 'login_code_destination' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
-    #         raise TraitError(message)
-    #     return proposal["value"].lower()
-
-    # def validate_login_code(self, dest):
-
-    #     if (dest != "browser") and (dest !="email"):
-    #             raise ValueError(
-    #                 "must be either \"browser\" or \"email\", but a value of {0} was specified.".format(dest)
-    #             )
 
 
     @validate("palette_name")
@@ -326,7 +481,7 @@ class Kqlmagic(Magics, Configurable):
         root_path = ip.starting_dir
 
         logger().debug("Kqlmagic::__init__ - set temp folder")
-        folder_name = ip.run_line_magic("config", "{0}.temp_folder_name".format(Constants.MAGIC_CLASS_NAME))
+        folder_name = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.temp_folder_name")
         showfiles_folder_Full_name = adjust_path(root_path + "/" + folder_name)
         if not os.path.exists(showfiles_folder_Full_name):
             os.makedirs(showfiles_folder_Full_name)
@@ -338,7 +493,7 @@ class Kqlmagic(Magics, Configurable):
         Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
         
         logger().debug("Kqlmagic::__init__ - discover hosting notebook app")
-        app = ip.run_line_magic("config", "{0}.notebook_app".format(Constants.MAGIC_CLASS_NAME)) or "auto"
+        app = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.notebook_app") or "auto"
         if app == "auto":
             if os.getenv("VSCODE_CWD") and os.getenv("MPLBACKEND"):
                 app = "visualstudiocode"
@@ -348,7 +503,7 @@ class Kqlmagic(Magics, Configurable):
                     app = "jupyternotebook"
                 except:
                     app = "ipython"
-            ip.run_line_magic("config", "{0}.notebook_app='{1}'".format(Constants.MAGIC_CLASS_NAME, app))
+            ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.notebook_app='{app}'")
             # print("notebook_app: {0}".format(app))
         
         if app != "jupyterlab":
@@ -458,7 +613,6 @@ class Kqlmagic(Magics, Configurable):
                 except:
                     logger().debug("Kqlmagic::__init__ - failed to fetch HISTORY.md")
                     pass
-
 
         logger().debug("Kqlmagic::__init__ - set default connection")
         _set_default_connections()
@@ -822,7 +976,7 @@ class Kqlmagic(Magics, Configurable):
             saved_result.metadata["end_time"] = end_time
 
             if saved_result.is_partial_table and not suppress_results:
-                Display.showWarningMessage("partial results, query had errors (see {0}.dataSetCompletion)".format(options.get("last_raw_result_var")))
+                Display.showWarningMessage(f"partial results, query had errors (see {options.get('last_raw_result_var')}.dataSetCompletion)")
 
             if options.get("feedback", self.feedback):
                 if options.get("show_query_time", self.show_query_time):
@@ -847,7 +1001,7 @@ class Kqlmagic(Magics, Configurable):
             if options.get("result_var") and result_set is None:
                 result_var = options["result_var"]
                 if options.get("feedback", self.feedback):
-                    saved_result.feedback_info.append("Returning data to local variable {}".format(result_var))
+                    saved_result.feedback_info.append(f"Returning data to local variable {result_var}")
                 self.shell.user_ns.update({result_var: result if result is not None else saved_result})
                 result = None
 
@@ -858,11 +1012,11 @@ class Kqlmagic(Magics, Configurable):
 
             if options.get("save_as") is not None:
                 if options.get("feedback", self.feedback):
-                    saved_result.feedback_info.append("query results saved as {0}".format(save_as_file_path))
+                    saved_result.feedback_info.append(f"query results saved as {save_as_file_path}")
             if options.get("save_to") is not None:
                 if options.get("feedback", self.feedback):
                     path = "/".join(save_as_file_path.split("/")[:-1])
-                    saved_result.feedback_info.append("query results saved to {0}".format(path))
+                    saved_result.feedback_info.append(f"query results saved to {path}")
 
             saved_result.suppress_result = False
             saved_result.display_info = False
@@ -900,14 +1054,12 @@ class Kqlmagic(Magics, Configurable):
 
 
 def _override_default_configuration(ip, load_mode):
-    """override default {0} configuration from environment variable {1}_CONFIGURATION.
+    f"""override default {Constants.MAGIC_CLASS_NAME} configuration from environment variable {1}_CONFIGURATION.
        the settings should be separated by a semicolon delimiter.
        for example:
-       {1}_CONFIGURATION = 'auto_limit = 1000; auto_dataframe = True' """.format(
-        Constants.MAGIC_CLASS_NAME, Constants.MAGIC_CLASS_NAME.upper()
-    )
+       {Constants.MAGIC_CLASS_NAME.upper()}_CONFIGURATION = 'auto_limit = 1000; auto_dataframe = True' """
 
-    kql_magic_configuration = os.getenv("{0}_CONFIGURATION".format(Constants.MAGIC_CLASS_NAME.upper()))
+    kql_magic_configuration = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_CONFIGURATION")
     if kql_magic_configuration:
         kql_magic_configuration = kql_magic_configuration.strip()
         if kql_magic_configuration.startswith("'") or kql_magic_configuration.startswith('"'):
@@ -916,9 +1068,9 @@ def _override_default_configuration(ip, load_mode):
         pairs = kql_magic_configuration.split(";")
         for pair in pairs:
             if pair:
-                ip.run_line_magic("config", "{0}.{1}".format(Constants.MAGIC_CLASS_NAME, pair.strip()))
+                ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.{pair.strip()}")
 
-    app = os.getenv("{0}_NOTEBOOK_APP".format(Constants.MAGIC_CLASS_NAME.upper()))
+    app = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_NOTEBOOK_APP")
     if app is not None:
         lookup_key = app.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
         app = {
@@ -933,11 +1085,16 @@ def _override_default_configuration(ip, load_mode):
             # "papermill":"papermill" #TODO: add "papermill"
         }.get(lookup_key)
         if app is not None:
-            ip.run_line_magic("config", '{0}.notebook_app = "{1}"'.format(Constants.MAGIC_CLASS_NAME, app.strip()))
+            ip.run_line_magic("config", f'{Constants.MAGIC_CLASS_NAME}.notebook_app = "{app.strip()}"')
+
+    email_details = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL")
+    if email_details:
+        ip.run_line_magic("config", f'{Constants.MAGIC_CLASS_NAME}.device_code_notification_email = "{email_details.strip()}"')
+
 
 
 def _get_kql_magic_load_mode():
-    load_mode = os.getenv("{0}_LOAD_MODE".format(Constants.MAGIC_CLASS_NAME.upper()))
+    load_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOAD_MODE")
     if load_mode:
         load_mode = load_mode.strip().lower().replace("_", "").replace("-", "")
         if load_mode.startswith("'") or load_mode.startswith('"'):
@@ -946,7 +1103,7 @@ def _get_kql_magic_load_mode():
 
 
 def _set_default_connections():
-    connection_str = os.getenv("{0}_CONNECTION_STR".format(Constants.MAGIC_CLASS_NAME.upper()))
+    connection_str = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_CONNECTION_STR")
     if connection_str:
         connection_str = connection_str.strip()
         if connection_str.startswith("'") or connection_str.startswith('"'):
@@ -961,7 +1118,7 @@ def _set_default_connections():
         except Exception as err:
             print(err)
 
-"""
+f"""
 FAQ
 
 Can I suppress the output of the query?
@@ -1014,16 +1171,14 @@ Answer: Yes you can. Execute the to_dataframe method on the result. For example:
 Can I get the kql query results as a dataframe instead of raw data?
 Answer: Yes you can. Set the kql magic configuration parameter auto_dataframe to true, and all subsequent queries
         will return a dataframe instead of raw data (_kql_raw_result_ will continue to hold the raw results). For example:
-        %config {0}.auto_dataframe = True
+        %config {Constants.MAGIC_CLASS_NAME}.auto_dataframe = True
         %kql var1 << T | where c > 100 // var1 will hold the dataframe
 
-If I use {0}.auto_dataframe = True, How can I get programmaticaly the last dataframe results of the last submitted query?
+If I use {Constants.MAGIC_CLASS_NAME}.auto_dataframe = True, How can I get programmaticaly the last dataframe results of the last submitted query?
 Answer: Execute the to_dataframe method on the result. For example:
         _kql_raw_result_.to_dataframe()
 
-If I use {0}.auto_dataframe = True, How can I get programmaticaly the last raw results of the last submitted query?
+If I use {Constants.MAGIC_CLASS_NAME}.auto_dataframe = True, How can I get programmaticaly the last raw results of the last submitted query?
 Answer: _kql_raw_result_ holds the raw results.
 
-""".format(
-    Constants.MAGIC_CLASS_NAME
-)
+"""

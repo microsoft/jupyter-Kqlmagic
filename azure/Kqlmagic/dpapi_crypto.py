@@ -89,3 +89,8 @@ if dpapi_installed:
         def verify(self, encrypted_data_bytes: bytes) -> None:
             pass
 
+else:
+    class DpapiCrypto(object):
+
+        def __init__(self, **options):
+            pass

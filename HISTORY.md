@@ -1,5 +1,11 @@
 # HISTORY
 
+## Version 0.1.104
+
+  - Fix import missing FernetCrypto
+
+
+
 ## Version 0.1.103
 
   - ### New message appended to init banner

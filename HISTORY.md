@@ -4,56 +4,85 @@
 
   - ### New message appended to init banner
 
-    - A what's new message with a 'what' new' button. When clicked a window is opened with all  Kqlmagic release notes history.
+    - A what's new message with a 'what' new' button.
+      - When clicked a window is opened with all Kqlmagic release notes history.
 
-  - ### New init options (on Kqlmagic load) that can be set only by environment variable KQLMAGIC_CONFIGURATION
+
+  - ### New init options (on Kqlmagic load) that can be set by environment variable KQLMAGIC_CONFIGURATION
   
     - **check_magic_version** (default True):
-  
       - On Kqlmagic load, check whether new version of Kqlmagic exist, and add a notification message to init banner if a new version exist
   
     - **show_what_new** (default True):
-  
       - On Kqlmagic load, loads history file of Kqlmagic from repository, and adds a "what's new" button to open it in a window.
 
     - **show_init_banner** (default True):
-  
       - On Kqlmagic load, show init banner
+
 
   - ### New query options
   
     - **show_query_link** (default False, abbreviation sql):
-  
       - Add query deep link button after query result, clicking the button will open the tool (see query_link_destination option) and execute the query in the tool.
         - note: supported only for Azure Data Explorer queries, will be ignored for Application Insights or Log Analytics queries
   
     - **query_link_destination**  (default "Kusto.WebExplorer", abbreviation qld):
-  
       - Specifies the destination of the query link tool (see show_query_link option)
         - note: only two Azure Data Explorer tools are supported **"Kusto.WebExplorer"** and **"Kusto.Explorer"**
+
 
   - ### New plot package supported
   
     - **"plotly_orca"** was added to **plot_package** option (default **"plotly"**):
-  
       - generates the plot as png image (useful for static front ends)
       - note: requires plotly orca to be installed in the backend server.
 
     - **"None"** was added to **plot_package** option (default **"plotly"**):
-  
       - disable plot, table is returned
+
+
 
 ## Version 0.1.102
 
-- ### New query options
+  - ### New query options
 
-- Version 0.102 - Added option: 'show_query' (abbreviation 'sq', default False): Print parametrized query in the out cell with the result. Aug 27, 2019
-- Verson 0.101 - Support Souvereign Clouds: The default cloud option can be set using %config Kqlmagic.cloud = <cloud-name>
-    - Otherwise, when creating a new connection: %kql <connection-string> -cloud='<cloud-name>' 
-    - Additionaly, two new optional properties were added to the connection string: data-source-url and aad-url. 
-    - These allow further personalization of the connection, as they override the default values assigned to the clouds.
-    - Added clientId to all connection variations.
-     Aug 12, 2019
+    - **show_query** (default False, abbreviation sq):
+
+      - Add parametrized query message before query results.
+
+
+
+## Version 0.1.101
+
+  - ### support Souvereign Clouds
+
+    - supports **"public"**, **"mooncake"**, **"fairfax"**, **"blackforest"**, **"usnat"**, **"ussec"**, **"test"** clouds.
+  
+
+  - ### New query options
+
+    - **cloud**  (default "public", other: [ "public", "mooncake", "fairfax", "blackforest", "usnat", "ussec", "test"]):
+      - Specifies the cloud to be used when a new connection is created
+
+    - **data-source-url**
+      - Override the cloud default data source url
+  
+    - **aad-url**
+      - Override the cloud default aad login url
+        - note: only two Azure Data Explorer tools are supported **"Kusto.WebExplorer"** and **"Kusto.Explorer"**
+
+
+  - ### Connection string enhanced
+
+    - **clientId**
+      - Client id can be specified in all connection string variation to override the default clientId
+
+
+
+
+
+## Version <= 0.1.100
+
 - Fixed nbsp; bug + allow multiple options in connection string Aug 12, 2019
 - Adding support to plotly version 4 Jul 21, 2019
 - Adding another test Jul 21, 2019

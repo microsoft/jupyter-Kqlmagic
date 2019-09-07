@@ -9,14 +9,14 @@
     - note: the 'browser' will open on the ipykernel server.
     - note: for email option to work, device_code_notification_email option have to be set too.
 
-      - **device_code_login_notification** (default: "frontend", Abbreviation: dcln)
+      - **device_code_login_notification** (default: **"frontend"**, Abbreviation: dcln)
         - Specifies device_code login notification method
-        - "frontend" - displays a message with device code, and a button that when clicked opens an authentication page in the frontend browser.
-        - "terminal" - displays a message with device code and link to the authentication page.
-        - "browser" - displays a message with device code, and open an authentication page in a webbrowse on the ipykernel host.
-        - "email" - send an email with device code and link to the authencitaion page.
+        - **"frontend"** - displays a message with device code, and a button that when clicked opens an authentication page in the frontend browser.
+        - **"terminal"** - displays a message with device code and link to the authentication page.
+        - **"browser"** - displays a message with device code, and open an authentication page in a webbrowse on the ipykernel host.
+        - **"email"** - send an email with device code and link to the authencitaion page.
 
-      - **device_code_notification_email** (default: '', Abbreviation: dcne)
+      - **device_code_notification_email** (default: **''**, Abbreviation: dcne)
         - Email details string. initialized by environmental variable KQLMAGIC_DEVICE_CODE_NOTIFICATION_EMAIL.
         - The email details string format: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text'
         - note: context text is optional, is a free text that will be added to the email subject and email body.
@@ -29,21 +29,16 @@
     - note: supported only for Azure Data Explorer queries, will be ignored for Application Insights or Log Analytics queries
     - for example:
   
-    ```python
-        _kql_raw_result_.deep_link()                    # will launch the default deep link tool and execute the query in the tool.
-    ```
+    *_kql_raw_result_.deep_link()*                    # will launch the default deep link tool and execute the query in the tool.
 
-    ```python
-        _kql_raw_result_.deep_link("Kusto.WebExplorer") # will launch Kusto.WebExplorer and execute the query in Kusto.WebExplorer.
-    ```
+    *_kql_raw_result_.deep_link("Kusto.WebExplorer")* # will launch Kusto.WebExplorer and execute the query in Kusto.WebExplorer.
 
-    ```python
-        _kql_raw_result_.deep_link("Kusto.Explorer")    # will launch Kusto.Explorer and execute the query in Kusto.Explorer.
-    ```
+    *_kql_raw_result_.deep_link("Kusto.Explorer")*    # will launch Kusto.Explorer and execute the query in Kusto.Explorer.
+
 
   - ### query errors displayed in pretty json
 
-    - querry errors are displayed in pretty json for better read.
+    - Show querry errors in pretty json for better read.
 
 
 
@@ -63,23 +58,23 @@
 
   - ### New init options (on Kqlmagic load) that can be set by environment variable KQLMAGIC_CONFIGURATION
   
-    - **check_magic_version** (default True):
+    - **check_magic_version** (default **True**):
       - On Kqlmagic load, check whether new version of Kqlmagic exist, and add a notification message to init banner if a new version exist
   
-    - **show_what_new** (default True):
+    - **show_what_new** (default **True**):
       - On Kqlmagic load, loads history file of Kqlmagic from repository, and adds a "what's new" button to open it in a window.
 
-    - **show_init_banner** (default True):
+    - **show_init_banner** (default **True**):
       - On Kqlmagic load, show init banner
 
 
   - ### New query options
   
-    - **show_query_link** (default False, abbreviation sql):
+    - **show_query_link** (default **False**, abbreviation sql):
       - Add query deep link button after query result, clicking the button will open the tool (see query_link_destination option) and execute the query in the tool.
         - note: supported only for Azure Data Explorer queries, will be ignored for Application Insights or Log Analytics queries
   
-    - **query_link_destination**  (default "Kusto.WebExplorer", abbreviation qld):
+    - **query_link_destination**  (default **"Kusto.WebExplorer"**, abbreviation qld):
       - Specifies the destination of the query link tool (see show_query_link option)
         - note: only two Azure Data Explorer tools are supported **"Kusto.WebExplorer"** and **"Kusto.Explorer"**
 
@@ -87,7 +82,7 @@
   - ### New plot package supported
   
     - **"plotly_orca"** was added to **plot_package** option (default **"plotly"**):
-      - generates the plot as png image (useful for static front ends)
+      - Generates the plot as png image (useful for static front ends)
       - note: requires plotly orca to be installed in the backend server.
 
     - **"None"** was added to **plot_package** option (default **"plotly"**):
@@ -109,12 +104,12 @@
 
   - ### support Souvereign Clouds
 
-    - supports **"public"**, **"mooncake"**, **"fairfax"**, **"blackforest"**, **"usnat"**, **"ussec"**, **"test"** clouds.
+    - Supports **"public"**, **"mooncake"**, **"fairfax"**, **"blackforest"**, **"usnat"**, **"ussec"**, **"test"** clouds.
   
 
   - ### New query options
 
-    - **cloud**  (default "public", other: [ "public", "mooncake", "fairfax", "blackforest", "usnat", "ussec", "test"]):
+    - **cloud**  (default **"public"**, other: [ **"public"**, **"mooncake"**, **"fairfax"**, **"blackforest"**, **"usnat"**, **"ussec"**, **"test"**]):
       - Specifies the cloud to be used when a new connection is created
 
     - **data-source-url**

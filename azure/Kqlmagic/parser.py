@@ -22,7 +22,7 @@ from .my_utils import split_lex, get_valid_filename, adjust_path
 class Parser(object):
 
     @classmethod
-    def parse(cls, cell, config, engines: list, user_ns: dict):
+    def parse(cls, cell: str, config: dict, engines: list, user_ns: dict) -> list:
         """Separate input into (connection info, KQL statements, options)"""
 
         cell = cell.strip()
@@ -154,7 +154,7 @@ class Parser(object):
 
 
     @classmethod
-    def _parse_kql_command(cls, code, user_ns: dict):
+    def _parse_kql_command(cls, code: str, user_ns: dict) -> (str, dict):
         if not code.strip().startswith("--"):
             return (code.strip(), {})
         words = code.split()
@@ -180,7 +180,7 @@ class Parser(object):
         else:
             raise ValueError(f"command {word[0]} is missing parameter")
 
-        return (trimmed_code.strip(), {"command":  obj.get("flag"), "param": param})
+        return (trimmed_code.strip(), {"command": obj.get("flag"), "param": param})
 
 
     _QUERY_PROPERTIES_TABLE = {
@@ -413,7 +413,9 @@ class Parser(object):
 
         "dcln": {"abbreviation": "devicecodeloginnotification"},
         "devicecodeloginnotification": {"flag": "device_code_login_notification", "type": "str", "config": "config.device_code_login_notification"},
-        "devicecodenotificationemail": {"flag": "device_code_notification_email", "readonly": "True", "config": "config.device_code_notification_email"},
+
+        "dcne": {"abbreviation": "devicecodenotificationemail"},
+        "devicecodenotificationemail": {"flag": "device_code_notification_email", "type": "str", "config": "config.device_code_notification_email"},
 
         "saveas": {"flag": "save_as", "type": "str", "init": "None"},
         "saveto": {"flag": "save_to", "type": "str", "init": "None"},
@@ -432,7 +434,7 @@ class Parser(object):
 
 
     @classmethod
-    def _parse_kql_options(cls, code, config, user_ns: dict):
+    def _parse_kql_options(cls, code: str, config: dict, user_ns: dict) -> (str, dict):
         words = code.split()
         options = {}
         properties = {}
@@ -539,7 +541,7 @@ class Parser(object):
 
 
     @classmethod
-    def parse_and_get_kv_string(cls, conn_str: str, user_ns: dict):
+    def parse_and_get_kv_string(cls, conn_str: str, user_ns: dict) -> dict:
 
         matched_kv = {}
         rest = conn_str

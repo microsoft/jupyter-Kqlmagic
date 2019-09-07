@@ -306,6 +306,20 @@ class ResultSet(list, ColumnGuesserMixin):
     def title(self):
         return self.visualization_properties.get(VisualizationKeys.TITLE)
 
+    def deep_link(self, qld_param: str=None):
+        if (qld_param and qld_param not in ["Kusto.Explorer", "Kusto.WebExplorer"]):
+            raise ValueError('Unknow deep link destination, the only supported are: ["Kusto.Explorer", "Kusto.WebExplorer"]')
+        options = {**self.options, "query_link_destination": qld_param } if qld_param else self.options
+        deep_link_url = self.conn.get_deep_link(self.parametrized_query, options)
+        if deep_link_url is not None: #only use deep links for kusto connection
+            qld = options.get("query_link_destination").lower().replace('.', '_')
+            isCloseWindow = options.get("query_link_destination") == "Kusto.Explorer"
+            html_str = Display._get_Launch_page_html(f"query_link_{qld}", deep_link_url, isCloseWindow, False, **self.options)
+            Display.show_html(html_str)
+        else:
+            raise ValueError('Deep link not supported for this connection, only Azure Data Explorer connections are supported')
+        return None
+
 
     def _update(self, queryResult):
         self._queryResult = queryResult
@@ -420,8 +434,9 @@ class ResultSet(list, ColumnGuesserMixin):
     def show_button_to_deep_link(self, browser=False):
         deep_link_url = self.conn.get_deep_link(self.parametrized_query, self.options)
         if deep_link_url is not None: #only use deep links for kusto connection 
+            qld = self.options.get("query_link_destination").lower().replace('.', '_')
             Display.show_window(
-                "query_link", 
+                f"query_link_{qld}", 
                 deep_link_url, 
                 f"{self.options.get('query_link_destination')}", 
                 onclick_visibility="visible",

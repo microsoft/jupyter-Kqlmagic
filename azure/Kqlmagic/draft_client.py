@@ -183,7 +183,7 @@ class DraftClient(object):
         #
 
         if response.status_code != requests.codes.ok:  # pylint: disable=E1101
-            raise KqlError([response.text], response)
+            raise KqlError(response.text, response)
 
         json_response = response.json()
 
@@ -193,7 +193,11 @@ class DraftClient(object):
             kql_response = KqlQueryResponse(json_response)
 
         if kql_response.has_exceptions() and not accept_partial_results:
-            raise KqlError(kql_response.get_exceptions(), response, kql_response)
+            try:
+                error_message = json.dumps(kql_response.get_exceptions())
+            except:
+                error_message = str(kql_response.get_exceptions())
+            raise KqlError(error_message, response, kql_response)
 
         return kql_response
 

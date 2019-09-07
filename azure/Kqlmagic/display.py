@@ -283,6 +283,114 @@ class Display(object):
         # print(html_str)
         return html_str
 
+    @staticmethod
+    def _get_Launch_page_html(window_name, file_path, isCloseWindow, isText, **kwargs):
+        # if isText is True, file_path is the text
+        notebooks_host = 'text' if isText else (Display.notebooks_host or "")
+        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_")
+        if window_name[0] in "0123456789":
+            window_name = "w_" + window_name
+        close_window_sleep = '5000' if isCloseWindow else '0'
+        window_params = "fullscreen=no,directories=no,location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,titlebar=no,toolbar=no,"
+
+        html_str = (
+            """<!DOCTYPE html>
+            <html><body>
+            <script>
+
+            function kql_MagicSleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            async function kql_MagicCloseWindow(window_obj, ms) {
+                if (ms > 0) {
+                    await kql_MagicSleep(ms);
+                    window_obj.close();
+                }
+            }
+
+            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {
+                var url;
+                if (notebooks_host == 'text') {
+                    url = ''
+                } else if (file_path.startsWith('http')) {
+                    url = file_path;
+                } else {
+                    var base_url = '';
+
+                    // check if azure notebook
+                    var azure_host = (notebooks_host == null || notebooks_host.length == 0) ? 'https://notebooks.azure.com' : notebooks_host;
+                    var start = azure_host.search('//');
+                    var azure_host_suffix = '.' + azure_host.substring(start+2);
+
+                    var loc = String(window.location);
+                    var end = loc.search(azure_host_suffix);
+                    start = loc.search('//');
+                    if (start > 0 && end > 0) {
+                        var parts = loc.substring(start+2, end).split('-');
+                        if (parts.length == 2) {
+                            var library = parts[0];
+                            var user = parts[1];
+                            base_url = azure_host + '/api/user/' +user+ '/library/' +library+ '/html/';
+                        }
+                    }
+
+                    // check if local jupyter lab
+                    if (base_url.length == 0) {
+                        var configDataScipt  = document.getElementById('jupyter-config-data');
+                        if (configDataScipt != null) {
+                            var jupyterConfigData = JSON.parse(configDataScipt.textContent);
+                            if (jupyterConfigData['appName'] == 'JupyterLab' && jupyterConfigData['serverRoot'] != null &&  jupyterConfigData['treeUrl'] != null) {
+                                var basePath = '""" + Display.showfiles_base_path + """' + '/';
+                                if (basePath.startsWith(jupyterConfigData['serverRoot'])) {
+                                    base_url = '/files/' + basePath.substring(jupyterConfigData['serverRoot'].length+1);
+                                }
+                            } 
+                        }
+                    }
+
+                    // assume local jupyter notebook
+                    if (base_url.length == 0) {
+
+                        var parts = loc.split('/');
+                        parts.pop();
+                        base_url = parts.join('/') + '/';
+                    }
+                    url = base_url + file_path;
+                }
+
+                window.focus();
+                var w = screen.width / 2;
+                var h = screen.height / 2;
+                params = 'width='+w+',height='+h;
+                kql_Magic_""" + window_name + """ = window.open(url, window_name, window_params + params);
+                if (url == '') {
+                    var el = kql_Magic_""" + window_name + """.document.createElement('p');
+                    kql_Magic_""" + window_name + """.document.body.overflow = 'auto';
+                    el.style.top = 0;
+                    el.style.left = 0;
+                    el.innerHTML = file_path;
+                    kql_Magic_""" + window_name + """.document.body.appendChild(el);
+                }
+            }
+
+            kql_MagicLaunchWindowFunction(
+                '""" + file_path + """',
+                '""" + window_params + """',
+                '""" + window_name + """',
+                '""" + notebooks_host + """'
+            );
+
+            kql_MagicCloseWindow(
+                kql_Magic_""" + window_name + """,
+                """ + close_window_sleep + """
+            );
+
+            </script>
+            </body></html>"""
+        )
+        # print(html_str)
+        return html_str
 
     @staticmethod
     def toHtml(**kwargs):

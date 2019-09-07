@@ -6,6 +6,7 @@
 
 import os
 import time
+import json
 import logging
 import hashlib
 import urllib.request
@@ -47,6 +48,7 @@ from .kql_engine import KqlEngineError
 from .palette import Palettes, Palette
 from .cache_engine import CacheEngine
 from .cache_client import CacheClient
+from .kql_response import KqlError
 
 
 _MAGIC_NAME = "kql"
@@ -156,8 +158,8 @@ class Kqlmagic(Magics, Configurable):
     device_code_notification_email = Unicode(
         "", 
         config=True, 
-        help=f"""Email details. Should be set by {Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL. 
-        the email details string format is: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text"""
+        help=f"""Email details. Should be set by {Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL. Abbreviation: dcne
+        the email details string format is: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text'"""
     )
 
     timeout = Int(
@@ -168,7 +170,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     plot_package = Enum(
-        ["None", "matplotlib", "plotly", "plotly_orca"], 
+        ["None", "plotly", "plotly_orca"], 
         "plotly", 
         config=True, 
         help="Set the plot package (plotlt_orca requires plotly orca to be installed on the server). Abbreviation: pp"
@@ -936,7 +938,18 @@ class Kqlmagic(Magics, Configurable):
             params_dict = options.get("params_dict") or user_ns
             parametrized_query_dict = Parameterizer(params_dict).expand(query) if _result_set is None else _result_set.parametrized_query_dict
             parametrized_query = parametrized_query_dict.get('parametrized_query')
-            raw_query_result = conn.execute(parametrized_query, user_ns, **options)
+            try:
+                raw_query_result = conn.execute(parametrized_query, user_ns, **options)
+            except KqlError as err:
+                try:
+                    parsed_error = json.loads(err.message)
+                    message = f"query execution error:\n{json.dumps(parsed_error, indent=4, sort_keys=True)}" 
+                except:
+                    message = err.message
+                Display.showDangerMessage(message)
+                return None
+            except Exception as e:
+                raise e
 
             end_time = time.time()
 

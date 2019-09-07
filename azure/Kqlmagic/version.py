@@ -17,10 +17,10 @@ from .constants import Constants
 from .help import MarkdownString
 
 
-VERSION = "0.1.104"
+VERSION = "0.1.105"
 
 
-def execute_version_command():
+def execute_version_command() -> MarkdownString:
     """ execute the version command.
     command just return a string with the version that will be displayed to the user
 
@@ -132,7 +132,7 @@ def is_int(str_val: str) -> bool:
     return not (len(str_val) == 0 or any([c not in "0123456789" for c in str_val]))
 
 
-def to_int(str_val: str):
+def to_int(str_val: str) -> int:
     """ Converts string to int if possible.
     
     Parameters

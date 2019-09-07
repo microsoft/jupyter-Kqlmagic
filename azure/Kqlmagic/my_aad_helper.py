@@ -98,9 +98,6 @@ global_adal_context = {}
 # cached shared context per authority
 global_adal_context_sso = {}
 
-# email notification object
-global_email_notification: EmailNotification = None
-
 
 class _MyAadHelper(object):
 
@@ -166,7 +163,6 @@ class _MyAadHelper(object):
     def acquire_token(self, **options):
         """Acquire tokens from AAD."""
 
-        global global_email_notification
         token = None
         if self._adal_context_sso:
             adal_context = self._adal_context_sso
@@ -208,14 +204,13 @@ class _MyAadHelper(object):
             # if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
             #     raise Exception("error: using papermill without an email specified is not supported")
             if options.get("device_code_login_notification") =="email":
-                if global_email_notification is None:
-                    kv = Parser.parse_and_get_kv_string(options.get('device_code_notification_email'), {})
-                    global_email_notification = global_email_notification or EmailNotification(**kv)
-                subject = f"Kqlmagic device_code {device_code} authentication (context: {global_email_notification.context})"
-                resource = self._resource.replace("://", ":// ")
+                params = Parser.parse_and_get_kv_string(options.get('device_code_notification_email'), {})
+                email_notification = EmailNotification(**params)
+                subject = f"Kqlmagic device_code {device_code} authentication (context: {email_notification.context})"
+                resource = self._resource.replace("://", ":// ") # just to make sure it won't be replace in email by safelinks
                 email_message = f"Device_code: {device_code}\n\nYou are asked to authorize access to resource: {resource}\n\nOpen the page {url} and enter the code {device_code} to authenticate\n\nKqlmagic"
-                global_email_notification.send_email(subject, email_message)
-                Display.showInfoMessage(f"An email was sent to {global_email_notification.send_to} with device_code {device_code} to authenticate", **options)
+                email_notification.send_email(subject, email_message)
+                Display.showInfoMessage(f"An email was sent to {email_notification.send_to} with device_code {device_code} to authenticate", **options)
 
                
             elif options.get("device_code_login_notification") =="browser":

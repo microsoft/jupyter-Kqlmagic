@@ -356,8 +356,9 @@ class KqlError(Exception):
     Represents error returned from server. Error can contain partial results of the executed query.
     """
 
-    def __init__(self, messages, http_response, kql_response=None):
-        super(KqlError, self).__init__(messages)
+    def __init__(self, message, http_response, kql_response=None):
+        super(KqlError, self).__init__(message)
+        self.message = message
         self.http_response = http_response
         self.kql_response = kql_response
 

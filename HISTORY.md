@@ -1,5 +1,52 @@
 # HISTORY
 
+## Version 0.1.105
+
+  - ### New device_code login notification options
+  
+    - device_code login notification for device_code authentication.
+    - Notification can be sent to 'frontend', 'terminal', 'browser' and 'email'
+    - note: the 'browser' will open on the ipykernel server.
+    - note: for email option to work, device_code_notification_email option have to be set too.
+
+      - **device_code_login_notification** (default: "frontend", Abbreviation: dcln)
+        - Specifies device_code login notification method
+        - "frontend" - displays a message with device code, and a button that when clicked opens an authentication page in the frontend browser.
+        - "terminal" - displays a message with device code and link to the authentication page.
+        - "browser" - displays a message with device code, and open an authentication page in a webbrowse on the ipykernel host.
+        - "email" - send an email with device code and link to the authencitaion page.
+
+      - **device_code_notification_email** (default: '', Abbreviation: dcne)
+        - Email details string. initialized by environmental variable KQLMAGIC_DEVICE_CODE_NOTIFICATION_EMAIL.
+        - The email details string format: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text'
+        - note: context text is optional, is a free text that will be added to the email subject and email body.
+
+
+  - ### New deep_link method in result object
+
+    - deep_link method will open the query link tool provided as a parameter or the default tool as set in query_link_destination option, and execute the query in the tool.
+    - note: see **show_query_link** and **query_link_destination** options
+    - note: supported only for Azure Data Explorer queries, will be ignored for Application Insights or Log Analytics queries
+    - for example:
+  
+    ```python
+        _kql_raw_result_.deep_link()                    # will launch the default deep link tool and execute the query in the tool.
+    ```
+
+    ```python
+        _kql_raw_result_.deep_link("Kusto.WebExplorer") # will launch Kusto.WebExplorer and execute the query in Kusto.WebExplorer.
+    ```
+
+    ```python
+        _kql_raw_result_.deep_link("Kusto.Explorer")    # will launch Kusto.Explorer and execute the query in Kusto.Explorer.
+    ```
+
+  - ### query errors displayed in pretty json
+
+    - querry errors are displayed in pretty json for better read.
+
+
+
 ## Version 0.1.104
 
   - Fix import missing FernetCrypto

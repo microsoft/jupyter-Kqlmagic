@@ -106,7 +106,7 @@ class Database_html(object):
             table_metadata_tree = database_metadata_tree.get(table)
             item += Database_html._convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs)
         header = connectionName
-        title = connectionName.replace("@", "_at_") + " schema"
+        title = f"{connectionName.replace('@', '_at_')} schema"
         result = Database_html.database_metadata_html.format(
             title, Database_html.database_metadata_scripts, Database_html.database_metadata_css, header, item
         )
@@ -148,31 +148,26 @@ class Database_html(object):
 
     @staticmethod
     def _convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs):
-        item = (
-            """<a href='#"""
-            + table
-            + """' class="list-group-item" data-toggle="collapse">
-                     <i class="glyphicon glyphicon-chevron-right"></i><b>"""
-            + table
-            + """</b>
-                  </a>
-                  <div class="list-group collapse" id='"""
-            + table
-            + """'>"""
-        )
+        metadata_items = []
         for column_name in table_metadata_tree.keys():
             column_type = table_metadata_tree.get(column_name)
             if column_type.startswith("System."):
                 column_type = column_type[7:]
-            item += Database_html._convert_column_metadata_to_item(column_name, column_type, **kwargs)
-        item += """</div>"""
+            metadata_item = Database_html._convert_column_metadata_to_item(column_name, column_type, **kwargs)
+            metadata_items.append(metadata_item)
+            
+        item = (
+            f"""<a href='#{table}' class="list-group-item" data-toggle="collapse">
+                     <i class="glyphicon glyphicon-chevron-right"></i><b>{table}</b></a>
+                  <div class="list-group collapse" id='{table}'>{''.join(metadata_items)}</div>"""
+        )
         return item
 
 
     @staticmethod
     def _convert_column_metadata_to_item(column_name, column_type, **kwargs):
-        item = "<b>" + column_name + "</b> : " + column_type
-        return """<a href="#" class="list-group-item">""" + item + """</a>"""
+        item = f"<b>{column_name}</b> : {column_type}"
+        return f"""<a href="#" class="list-group-item">{item}</a>"""
 
 
     @staticmethod
@@ -231,7 +226,7 @@ class Database_html(object):
                 conn_name = connection.get_conn_name()
 
             html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)
-            window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
+            window_name = f"_{conn_name.replace('@', '_at_')}_schema"
             return Display._html_to_file_path(html_str, window_name, **options)
         else:
             return None
@@ -241,7 +236,7 @@ class Database_html(object):
     def popup_schema(file_path, connection, **options):
         if file_path:
             conn_name = connection.kql_engine.get_conn_name() if isinstance(connection, CacheEngine) else connection.get_conn_name()
-            button_text = "popup schema " + conn_name
-            window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
+            button_text = f"popup schema {conn_name}"
+            window_name = f"_{conn_name.replace('@', '_at_')}_schema"
             Display.show_window(window_name, file_path, button_text=button_text, onclick_visibility="visible", **options)
 

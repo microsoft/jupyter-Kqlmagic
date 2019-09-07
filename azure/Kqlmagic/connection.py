@@ -72,11 +72,13 @@ class Connection(object):
                 Connection._set_current(cluster_conn_engine, conn_name=f"@{cluster_friendly_name}")
                 database_name = cluster_conn_engine.get_database()
                 alias = cluster_conn_engine.get_alias()
-            else:
-                database_name, cluster_friendly_name = connect_str.split("@")
+            elif "@" in connect_str:
+                database_name, cluster_friendly_name = connect_str.split("@", 1)
                 alias = None
                 if len(database_name) < 1:
                     raise KqlEngineError(f"invalid connection_str, key {ConnStrKeys.DATABASE} cannot be empty")
+            else:
+                raise KqlEngineError(f"invalid connection_str: {connect_str}")
             conn_engine = Connection._new_kusto_database_engine(database_name, cluster_friendly_name, alias, user_ns, **options)
 
         if options.get("use_cache") and engine != CacheEngine:

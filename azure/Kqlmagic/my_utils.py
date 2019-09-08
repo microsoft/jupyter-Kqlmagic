@@ -108,4 +108,11 @@ def adjust_path(_path: str):
     path = os.path.normpath(path)
     return path
 
+
+def safe_str(s) -> str:
+    try:
+        return f"{s}"
+    except:
+        return "<failed safe_str()>"
+
     

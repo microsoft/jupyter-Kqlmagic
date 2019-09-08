@@ -20,8 +20,9 @@ def get_valid_filename(name: str) -> str:
     underscores; and remove anything that is not an alphanumeric, dash,
     underscore, or dot.
     """
-    name = str(name).strip().replace(' ', '_')
-    return re.sub(r'(?u)[^-\w.]', '', name)
+    # name = str(name).strip().replace(' ', '_')
+    name = str(name).strip()
+    return re.sub(r'(?u)[^-\w. ]', '', name)
 
 
 # Expression to match some_token and some_token="with spaces" (and similarly

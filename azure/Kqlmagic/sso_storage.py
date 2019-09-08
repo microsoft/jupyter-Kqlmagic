@@ -1,16 +1,22 @@
+# -------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See License.txt in the project root for
+# license information.
+# --------------------------------------------------------------------------
+
 import os
 import uuid
 from datetime import datetime, timedelta
 
-from .log import logger
 
+from .log import logger
 from .parser import Parser
 from .display import Display
 from .constants import Constants, CryptoParam, SsoStorageParam, SsoEnvVarParam, SsoStorage, SsoCrypto
+
 from .fernet_crypto import FernetCrypto, fernet_installed, check_password_strength
 from .dpapi_crypto import DpapiCrypto, dpapi_installed
 from .dict_db_storage import DictDbStorage
-
 
 
 _SUPPORTED_STORAGE = [

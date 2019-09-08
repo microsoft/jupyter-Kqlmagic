@@ -4,12 +4,14 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from .constants import Constants
-from .my_utils import get_valid_filename, adjust_path
-from .kql_response import KqlQueryResponse, KqlSchemaResponse
 import hashlib
 import json
 import os
+
+
+from .constants import Constants
+from .my_utils import get_valid_filename, adjust_path
+from .kql_response import KqlQueryResponse, KqlSchemaResponse
 
 
 class CacheClient(object):
@@ -32,17 +34,18 @@ class CacheClient(object):
 
 
     @property
-    def data_source(self):
+    def data_source(self) -> str:
         return self.files_folder
 
-    def _get_query_hash_filename(self, query):
+
+    def _get_query_hash_filename(self, query: str) -> str:
         lines = [l.replace("\r", "").replace("\t", " ").strip() for l in query.split("\n")]
         q_lines = []
         for line in lines:
             if not line.startswith("//"):
                 idx = line.find(" //")
                 q_lines.append(line[: idx if idx >= 0 else len(line)])
-        return "q_" + hashlib.sha1(bytes("".join(q_lines), "utf-8")).hexdigest() + ".json"
+        return f"q_{hashlib.sha1(bytes(''.join(q_lines), 'utf-8')).hexdigest()}.json"
 
 
     def _get_file_path(self, query, database_at_cluster, cache_folder):
@@ -137,3 +140,4 @@ class CacheClient(object):
         outfile.flush()
         outfile.close()
         return file_path
+

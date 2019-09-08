@@ -9,22 +9,27 @@ import seaborn as sns
 
 
 class Color(object):
+
     def __init__(self, rgb_color, name=None, **kwargs):
         self.color = rgb_color
         self.name = name or rgb_color
 
+
     def _repr_html_(self):
         return self._to_html()
+
 
     def _to_html(self):
         c = f'<div style="background-color:{self.color};height:20px;width:20px;display:inline-block;"></div>'
         return f'<div style="display:inline-block;padding:10px;"><div>{self.name}</div>{c}</div>'
+
 
     def __repr__(self):
         return self.color
 
 
 class Palette(list):
+
     def __init__(self, palette_name=None, n_colors=None, desaturation=None, rgb_palette=None, range_start=None, to_reverse=False, **kwargs):
         self.name = palette_name or Palettes.DEFAULT_NAME
         self.n_colors = (n_colors or Palettes.DEFAULT_N_COLORS) if rgb_palette is None else len(rgb_palette)
@@ -49,6 +54,7 @@ class Palette(list):
         super(Palette, self).__init__(**kwargs)
         self.extend(rgb_palette)
 
+
     def _to_html(self, add_details_to_name=True):
         name = self.name + ("[{0}:{1}]".format(self.range_start, self.range_start + len(self)) if self.range_start is not None else "")
         if add_details_to_name:
@@ -63,6 +69,7 @@ class Palette(list):
             s_s += f'<div style="background-color:{color};height:20px;width:20px;display:inline-block;"></div>'
         return f'<div style="display:inline-block;padding:10px;"><div>{name}</div>{s_s}</div>'
 
+
     def __getitem__(self, key):
         item = super(Palette, self).__getitem__(key)
         if isinstance(key, slice):
@@ -71,8 +78,10 @@ class Palette(list):
         else:
             return Color(item, name=f"{self.name}[{(self.range_start or 0) + key}]")
 
+
     def _repr_html_(self):
         return self._to_html()
+
 
     @classmethod
     def parse(cls, name):
@@ -116,6 +125,7 @@ class Palette(list):
 
         return {"name": name, "base_name": base_name, "rgb_palette": rgb_palette, "reversed": reverse, "slice": range}
 
+
     @classmethod
     def validate_palette_name(cls, name):
         parsed = cls.parse(name)
@@ -124,10 +134,12 @@ class Palette(list):
                 f"must be a known palette name or custom palette (see option -popup_palettes) , but a value of {name} was specified."
             )
 
+
     @classmethod
     def validate_palette_desaturation(cls, desaturation):
         if desaturation > 1 or desaturation < 0:
             raise ValueError(f"must be between 0 and 1, but a value of {str(desaturation)} was specified.")
+
 
     @classmethod
     def validate_palette_colors(cls, n_colors):
@@ -136,9 +148,11 @@ class Palette(list):
 
 
 class Palettes(list):
+
     DEFAULT_DESATURATION = 1.0
     DEFAULT_N_COLORS = 10
     DEFAULT_NAME = "tab10"
+
 
     BASE_PALETTE_NAMES = [
         "deep",
@@ -232,6 +246,7 @@ class Palettes(list):
         "winter",
     ]
 
+
     def __init__(self, n_colors=None, desaturation=None, palette_list=None, to_reverse=False, **kwargs):
         self.n_colors = n_colors or self.DEFAULT_N_COLORS
         self.desaturation = desaturation or self.DEFAULT_DESATURATION
@@ -239,6 +254,7 @@ class Palettes(list):
         self.kwargs = kwargs
         super(Palettes, self).__init__(**kwargs)
         self.extend(palette_list or self.BASE_PALETTE_NAMES)
+
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -248,6 +264,7 @@ class Palettes(list):
             return Palettes(palette_list=item, desaturation=self.desaturation, n_colors=self.n_colors, to_reverse=self.to_reverse, **self.kwargs)
         else:
             return Palette(palette_name=item, desaturation=self.desaturation, n_colors=self.n_colors, to_reverse=self.to_reverse, **self.kwargs)
+
 
     def _to_html(self):
         n_colors = self.n_colors
@@ -259,6 +276,7 @@ class Palettes(list):
                 s = Palette(palette_name=name + suffix, n_colors=n_colors, desaturation=desaturation, **self.kwargs)
                 html_str += s._to_html(add_details_to_name=False)
         return html_str
+
 
     def _repr_html_(self):
         return self._to_html()
@@ -303,3 +321,4 @@ class Palettes(list):
             violet, wheat, white, whitesmoke, yellow,
             yellowgreen
             """
+

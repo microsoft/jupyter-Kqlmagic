@@ -217,7 +217,7 @@ class CryptoParam(object):
 
 class SsoStorageParam(object):
     AUTHORITY      =      "authority"
-    CRYPTO_OBJ     =         "crypto_obj"
+    CRYPTO_OBJ     =     "crypto_obj"
     CACHE_NAME     =     "cache_name"
     GC_TTL_IN_SECS = "gc_ttl_in_secs"
 

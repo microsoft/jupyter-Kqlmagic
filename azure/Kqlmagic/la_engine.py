@@ -30,6 +30,7 @@ class LoganalyticsEngine(KqlEngine):
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.ANONYMOUS],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.APPKEY],
     ]
+
     _VALID_KEYS_COMBINATIONS_NEW = [
         {
             "must": [ConnStrKeys.WORKSPACE, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET],
@@ -57,6 +58,7 @@ class LoganalyticsEngine(KqlEngine):
             "optional": [ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL]
         },
     ]
+
 
     # Class methods
     # -------------

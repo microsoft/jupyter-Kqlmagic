@@ -7,15 +7,20 @@
 """A module that manage package version.
 """
 
-VERSION = "0.1.102"
-
 import sys
+
+
 import requests
+
+
 from .constants import Constants
 from .help import MarkdownString
 
 
-def execute_version_command():
+VERSION = "0.1.105"
+
+
+def execute_version_command() -> MarkdownString:
     """ execute the version command.
     command just return a string with the version that will be displayed to the user
 
@@ -25,6 +30,7 @@ def execute_version_command():
         A string with the current version
     """
     return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} version: {VERSION}")
+
 
 def get_pypi_latest_version(package_name: str) -> str:
     """ Retreives latest package version string for PyPI.
@@ -126,7 +132,7 @@ def is_int(str_val: str) -> bool:
     return not (len(str_val) == 0 or any([c not in "0123456789" for c in str_val]))
 
 
-def to_int(str_val: str):
+def to_int(str_val: str) -> int:
     """ Converts string to int if possible.
     
     Parameters
@@ -141,6 +147,7 @@ def to_int(str_val: str):
     """
 
     return int(str_val) if is_int(str_val) else None
+
 
 def validate_required_python_version_running(minimal_required_version: str) -> None:
     """ Validate whether the running python version meets minimal required python version 
@@ -168,3 +175,4 @@ def validate_required_python_version_running(minimal_required_version: str) -> N
             raise RuntimeError("")
     except:
         raise RuntimeError(f"Kqlmagic requires python >= {Constants.MINIMAL_PYTHON_VERSION_REQUIRED}, you use python {sys.version}")
+

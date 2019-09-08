@@ -4,10 +4,12 @@
 # license information.
 # --------------------------------------------------------------------------
 
+import urllib.parse
+
+
 from .kql_engine import KqlEngine, KqlEngineError
 from .kusto_client import Kusto_Client
 from .constants import ConnStrKeys, Schema
-import urllib.parse
 
 
 class KustoEngine(KqlEngine):
@@ -110,3 +112,4 @@ class KustoEngine(KqlEngine):
         url = f"{client.deep_link_data_source}/{self.database_name}?{'&'.join(http_query)}"
         # print (f'deep link: {url}')
         return url
+

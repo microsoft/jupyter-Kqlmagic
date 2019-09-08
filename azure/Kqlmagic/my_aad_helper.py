@@ -10,25 +10,27 @@
 import os
 from enum import Enum, unique
 from datetime import timedelta, datetime
-
 from urllib.parse import urlparse
-# import re
+import uuid
+import smtplib
+import webbrowser
+
 
 import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
+import jwt
+
+
 from .constants import Constants, Cloud
 from .log import logger
 from .display import Display
 from .constants import ConnStrKeys
 from .adal_token_cache import AdalTokenCache
 from .kql_engine import KqlEngineError
-import uuid
-
-import jwt
 from .parser import Parser
+from .email_notification import EmailNotification
 
-import smtplib
 
 class AuthenticationError(Exception):
     pass
@@ -52,6 +54,7 @@ class ConnKeysKCSB(object):
             "application_certificate":            ConnStrKeys.CERTIFICATE,
             "application_certificate_thumbprint": ConnStrKeys.CERTIFICATE_THUMBPRINT,
         }
+
 
     def __getattr__(self, kcsb_attr_name):
         if kcsb_attr_name == "data_source":
@@ -77,6 +80,7 @@ _CLOUD_AAD_URLS = {
         Cloud.BLACKFOREST: "https://login.microsoftonline.de",
 }
 
+
 _CLOUD_DSTS_AAD_DOMAINS = {
         # Define dSTS domains whitelist based on its Supported Environments & National Clouds list here
         # https://microsoft.sharepoint.com/teams/AzureSecurityCompliance/Security/SitePages/dSTS%20Fundamentals.aspx
@@ -94,7 +98,9 @@ global_adal_context = {}
 # cached shared context per authority
 global_adal_context_sso = {}
 
+
 class _MyAadHelper(object):
+
     def __init__(self, kcsb, default_clientid, adal_context = None, adal_context_sso = None, **options):
         global global_adal_context
         global global_adal_context_sso
@@ -184,15 +190,12 @@ class _MyAadHelper(object):
         if self._authentication_method is AuthenticationMethod.aad_username_password:
             logger().debug("_MyAadHelper::acquire_token - aad/user-password - resource: '%s', username: '%s', password: '...', client: '%s'", self._resource, self._username, self._client_id)
             token = adal_context.acquire_token_with_username_password(self._resource, self._username, self._password, self._client_id)
+
         elif self._authentication_method is AuthenticationMethod.aad_application_key:
             logger().debug("_MyAadHelper::acquire_token - aad/client-secret - resource: '%s', client: '%s', secret: '...'", self._resource, self._client_id)
             token = adal_context.acquire_token_with_client_credentials(self._resource, self._client_id, self._client_secret)
+
         elif self._authentication_method is AuthenticationMethod.aad_device_login:
-            # print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
-            # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
-            # token = adal_context.acquire_token_with_device_code(
-            #     self._resource, code, self._client_id
-            # )
             logger().debug("_MyAadHelper::acquire_token - aad/code - resource: '%s', client: '%s'", self._resource, self._client_id)
             code: dict = adal_context.acquire_user_code(self._resource, self._client_id)
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
@@ -200,16 +203,23 @@ class _MyAadHelper(object):
             
             # if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
             #     raise Exception("error: using papermill without an email specified is not supported")
+            if options.get("device_code_login_notification") =="email":
+                params = Parser.parse_and_get_kv_string(options.get('device_code_notification_email'), {})
+                email_notification = EmailNotification(**params)
+                subject = f"Kqlmagic device_code {device_code} authentication (context: {email_notification.context})"
+                resource = self._resource.replace("://", ":// ") # just to make sure it won't be replace in email by safelinks
+                email_message = f"Device_code: {device_code}\n\nYou are asked to authorize access to resource: {resource}\n\nOpen the page {url} and enter the code {device_code} to authenticate\n\nKqlmagic"
+                email_notification.send_email(subject, email_message)
+                Display.showInfoMessage(f"An email was sent to {email_notification.send_to} with device_code {device_code} to authenticate", **options)
 
-            # if options.get("login_code_destination") =="email":
-            #     email_message = "Copy code: "+ device_code + " and authenticate in: " + url
-
-            #     kv = Parser.parse_and_get_kv_string(options.get('code_notification_email'), {})
-                
-            #     self.send_email(email_message, kv)
                
-            if False:
-                pass
+            elif options.get("device_code_login_notification") =="browser":
+                print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
+                webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+
+            elif options.get("device_code_login_notification") =="terminal":
+                print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
+
             else:
                 html_str = (
                     """<!DOCTYPE html>
@@ -258,7 +268,6 @@ class _MyAadHelper(object):
 
                 if options.get("notebook_app") in ["visualstudiocode", "ipython"]:
                     Display.show_window('verification_url', url, **options)
-                    # Display.showInfoMessage(f"Code: {device_code}")
                     Display.showInfoMessage(f"Copy code: {device_code} to verification url: {url} and authenticate", **options)
                 else:
                     Display.show_html(html_str)
@@ -294,6 +303,7 @@ class _MyAadHelper(object):
         else:
             raise AuthenticationError("Unknown authentication method.")
         return self._get_header(token)
+
 
     # def email_format(self, dest):
     #     return re.match( r'[\w\.-]+@[\w\.-]+(\.[\w]+)+', dest)

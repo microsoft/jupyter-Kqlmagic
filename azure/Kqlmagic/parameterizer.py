@@ -4,13 +4,19 @@
 # license information.
 # --------------------------------------------------------------------------
 
-import six
 import json
 from datetime import timedelta, datetime
+
+
+import six
 from pandas import DataFrame
+
+
 from .constants import Constants
 
+
 class ExtendedJSONEncoder(json.JSONEncoder):
+
     def defaultt(self, o):
         if isinstance(o, bytes):
             return o.decode("utf-8")
@@ -23,6 +29,7 @@ class Parameterizer(object):
 
     def __init__(self, ns_vars):
         self.ns_vars = ns_vars
+
 
     def expand(self, query: str, **kwargs):
         """expand query to include resolution of python parameters"""
@@ -39,6 +46,7 @@ class Parameterizer(object):
         statements = self._build_let_statements(parameters)
         statements.append(query_body)
         return {'parametrized_query': query_management_prefix + ";".join(statements) ,'query_management_prefix':query_management_prefix, 'statements': statements}
+
 
     def _object_to_kql(self, v) -> str:
         try:
@@ -93,6 +101,7 @@ class Parameterizer(object):
                 statements.append(f"let {k} = {val}")
         return statements
     
+
     _DATAFRAME_TO_KQL_TYPES = {
         "int8": "long",
         "int16": "long",
@@ -121,6 +130,7 @@ class Parameterizer(object):
         "timedelta64": "timespan",
     }
  
+
     def dataframe_to_kql_value(self, val, pair_type:list) -> str:
         pd_type, kql_type = pair_type
         s = str(val)
@@ -194,7 +204,6 @@ class Parameterizer(object):
         return new_pairs_type
 
 
-
     def datatable(self, df: DataFrame) -> str:
         t = {col: str(t).split(".")[-1].split("[",1)[0] for col, t in dict(df.dtypes).items()}
         d = df.to_dict("split")
@@ -207,6 +216,7 @@ class Parameterizer(object):
         data = ", ".join([", ".join([self.dataframe_to_kql_value(val, pairs_t[c[idx]]) for idx, val in enumerate(row)]) for row in r])
         return f" view () {{datatable ({schema}) [{data}]}}"      
  
+
     def _detect_parameters(self, query_let_statments: list):
         """detect in query let staements, the unresolved parameter that can be resolved by python variables"""
         set_keys = []
@@ -232,6 +242,7 @@ class Parameterizer(object):
             set_keys.append(key)
         return parameters
 
+
     def _normalize(self, query: str):
         """convert query to one line without comments"""
         lines = []
@@ -243,6 +254,7 @@ class Parameterizer(object):
                 lines.append(line)
         return " ".join([line.replace("\r", "").replace("\t", " ") for line in lines])
     
+
     def _timedelta_to_timespan(self, total_seconds:float):
         days = total_seconds // Constants.DAY_SECS
         rest_secs = total_seconds - (days * Constants.DAY_SECS)
@@ -258,3 +270,4 @@ class Parameterizer(object):
 
         ticks = rest_secs * Constants.TICK_TO_INT_FACTOR
         return "time({0:01}.{1:02}:{2:02}:{3:02}.{4:07})".format(int(days), int(hours), int(minutes), int(seconds), int(ticks))
+

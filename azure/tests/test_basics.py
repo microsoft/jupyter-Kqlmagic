@@ -4,13 +4,18 @@
 # license information.
 #--------------------------------------------------------------------------
 
-import pytest
-from azure.Kqlmagic.constants import Constants
-from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
-from textwrap import dedent
 import os.path
 import re
 import tempfile
+from textwrap import dedent
+
+
+import pytest
+
+
+from azure.Kqlmagic.constants import Constants
+from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
+
 
 ip = get_ipython() # pylint:disable=undefined-variable
 

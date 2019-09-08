@@ -5,6 +5,8 @@
 # --------------------------------------------------------------------------
 
 import time
+
+
 from IPython.core.display import display
 from IPython.core.magics.display import Javascript
 
@@ -16,6 +18,7 @@ class Help_html(object):
     notebooks_host = None
     showfiles_base_url = None
     _pending_helps = {}
+
 
     @staticmethod
     def flush(window_location, **kwargs):
@@ -34,10 +37,10 @@ class Help_html(object):
             end = window_location.find(suffix)
             start = window_location.find("//")
             # azure notebook environment, assume template: https://library-user.libray.notebooks.azure.com
-            if start > 0 and end > 0:
-                library, user = window_location[start + 2 : end].split("-")
+            if start > 0 and end > 0 and ('-' in window_location):
+                library, user = window_location[start + 2 : end].split("-", 1)
                 azure_notebooks_host = Help_html.notebooks_host or "https://notebooks.azure.com"
-                Help_html.showfiles_base_url = azure_notebooks_host + "/api/user/" + user + "/library/" + library + "/html"
+                Help_html.showfiles_base_url = f"{azure_notebooks_host}/api/user/{user} /library/{library}/html"
             # assume just a remote kernel, as local
             else:
                 parts = window_location.split("/")
@@ -52,6 +55,7 @@ class Help_html(object):
         if refresh:
             Help_html._reconnect(**kwargs)
 
+
     @staticmethod
     def add_menu_item(text, file_path: str, reconnect=True, **kwargs):
         if not text:
@@ -64,7 +68,7 @@ class Help_html(object):
         if file_path.startswith("http"):
             url = file_path
         elif Help_html.showfiles_base_url is not None:
-            url = Help_html.showfiles_base_url + "/" + file_path
+            url = f"{Help_html.showfiles_base_url}/{file_path}"
         else:
             url = None
 
@@ -89,8 +93,10 @@ class Help_html(object):
         elif Help_html._pending_helps.get(text) is None:
             Help_html._pending_helps[text] = file_path
 
+
     @staticmethod
     def _reconnect(**kwargs):
         if kwargs is None or kwargs.get("notebook_app") != "jupyterlab":
             display(Javascript("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}"""))
             time.sleep(1)
+

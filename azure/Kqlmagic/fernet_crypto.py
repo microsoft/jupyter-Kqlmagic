@@ -1,8 +1,13 @@
+# -------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See License.txt in the project root for
+# license information.
+# --------------------------------------------------------------------------
+
 import os
 import uuid
 import base64
-from .constants import CryptoParam
-from .log import logger
+
 
 try:
     from cryptography.fernet import Fernet
@@ -18,6 +23,10 @@ except Exception:
     fernet_installed = False
 else:
     fernet_installed = True
+
+
+from .constants import CryptoParam
+from .log import logger
 
 
 if fernet_installed:
@@ -130,3 +139,11 @@ if fernet_installed:
                 hints.append(f"{i}. {password_hints.get(type(policy))}")
                 return os.linesep.join(hints)
 
+else:
+    class FernetCrypto(object):
+
+        def __init__(self, options: dict):
+            pass
+
+    def check_password_strength(password) -> str:
+        pass

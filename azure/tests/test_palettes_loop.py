@@ -5,13 +5,19 @@
 #--------------------------------------------------------------------------
 
 """ Test for current default color palette. """
-import pytest
-from azure.Kqlmagic.constants import Constants
-from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
-from bs4 import BeautifulSoup
+
 import os.path
 import re
 import tempfile
+
+
+import pytest
+from bs4 import BeautifulSoup
+
+
+from azure.Kqlmagic.constants import Constants
+from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
+
 
 ip = get_ipython() # pylint: disable=undefined-variable
 

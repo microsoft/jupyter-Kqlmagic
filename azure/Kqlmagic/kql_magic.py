@@ -6,80 +6,49 @@
 
 import os
 import time
+import json
 import logging
 import hashlib
-# import re
-
-from .sso_storage import get_sso_store
 import urllib.request
 
-from .version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
-from .help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
-from .constants import Constants, Cloud
-from .my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
+
 from .log import logger
-from .results import ResultSet
+
 
 logger().debug("kql_magic.py - import Magics, magics_class, cell_magic, line_magic, needs_local_scope from IPython.core.magic")
 from IPython.core.magic import Magics, magics_class, cell_magic, line_magic, needs_local_scope
-
 logger().debug("kql_magic.py - import display from IPython.core.display")
 from IPython.core.display import display
-
 logger().debug("kql_magic.py - import Javascript from IPython.core.magics.display")
 from IPython.core.magics.display import Javascript
-
-
-
 logger().debug("kql_magic.py - import Configurable from traitlets.config.configurable")
 from traitlets.config.configurable import Configurable
-
 logger().debug("kql_magic.py - import Bool, Int, Float, Unicode, Enum, TraitError, validate from traitlets")
 from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate
 
 
-logger().debug("kql_magic.py - import ResultSet from .results")
+from .sso_storage import get_sso_store
+from .version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
+from .help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
+from .constants import Constants, Cloud
+from .my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
+
 from .results import ResultSet
-
-logger().debug("kql_magic.py - import Connection from .connection")
+from .results import ResultSet
 from .connection import Connection
-
-
-logger().debug("kql_magic.py - import Parser from .parser")
 from .parser import Parser
-
-logger().debug("kql_magic.py - import Parameterizer from .parameterizer")
 from .parameterizer import Parameterizer
-
-logger().debug("kql_magic.py - import Display from .display")
 from .display import Display
-
-logger().debug("kql_magic.py - import Database_html from .database_html")
 from .database_html import Database_html
-
-logger().debug("kql_magic.py - import Help_html from .help_html")
 from .help_html import Help_html
-
-logger().debug("kql_magic.py - import KustoEngine from .kusto_engine")
 from .kusto_engine import KustoEngine
-
-logger().debug("kql_magic.py - import AppinsightsEngine from .ai_engine")
 from .ai_engine import AppinsightsEngine
-
-logger().debug("kql_magic.py - import LoganalyticsEngine from .la_engine")
 from .la_engine import LoganalyticsEngine
-
-logger().debug("kql_magic.py - import KqlEngineError from .kql_engine")
 from .kql_engine import KqlEngineError
-
-logger().debug("kql_magic.py - import Palettes, Palette from .palette")
 from .palette import Palettes, Palette
-
-logger().debug("kql_magic.py - import CacheEngine from .cache_engine")
 from .cache_engine import CacheEngine
-
-logger().debug("kql_magic.py - import CacheClient from .cache_client")
 from .cache_client import CacheClient
+from .kql_response import KqlError
 
 
 _MAGIC_NAME = "kql"
@@ -97,23 +66,51 @@ class Kqlmagic(Magics, Configurable):
 
     logger().debug("Kqlmagic:: - init configurable traitlets")
 
-    auto_limit = Int(0, config=True, allow_none=True, help="Automatically limit the size of the returned result sets. Abbreviation: al")
+    auto_limit = Int(
+        0, 
+        config=True, 
+        allow_none=True, 
+        help="Automatically limit the size of the returned result sets. Abbreviation: al"
+    )
+
     prettytable_style = Enum(
         ["DEFAULT", "MSWORD_FRIENDLY", "PLAIN_COLUMNS", "RANDOM"],
         "DEFAULT",
         config=True,
         help="Set the table printing style to any of prettytable's defined styles. Abbreviation: ptst",
     )
-    short_errors = Bool(True, config=True, help="Don't display the full traceback on KQL Programming Error. Abbreviation: se")
+
+    short_errors = Bool(
+        True, 
+        config=True, 
+        help="Don't display the full traceback on KQL Programming Error. Abbreviation: se"
+    )
+
     display_limit = Int(
         None,
         config=True,
         allow_none=True,
         help="Automatically limit the number of rows displayed (full result set is still stored). Abbreviation: dl",
     )
-    auto_dataframe = Bool(False, config=True, help="Return Pandas dataframe instead of regular result sets. Abbreviation: ad")
-    columns_to_local_vars = Bool(False, config=True, help="Return data into local variables from column names. Abbreviation: c2lv")
-    feedback = Bool(True, config=True, help="Show number of records returned, and assigned variables. Abbreviation: f")
+
+    auto_dataframe = Bool(
+        False, 
+        config=True, 
+        help="Return Pandas dataframe instead of regular result sets. Abbreviation: ad"
+    )
+
+    columns_to_local_vars = Bool(
+        False, 
+        config=True, 
+        help="Return data into local variables from column names. Abbreviation: c2lv"
+    )
+
+    feedback = Bool(
+        True, 
+        config=True, 
+        help="Show number of records returned, and assigned variables. Abbreviation: f"
+    )
+
     show_conn_info = Enum(
         ["list", "current", "None"],
         "current",
@@ -121,6 +118,7 @@ class Kqlmagic(Magics, Configurable):
         allow_none=True,
         help="Show connection info, either current, the whole list, or None. Abbreviation: sci",
     )
+
     dsn_filename = Unicode(
         "odbc.ini",
         config=True,
@@ -130,36 +128,96 @@ class Kqlmagic(Magics, Configurable):
         "matching section in the DSN file. Abbreviation: dl",
     )
 
-    cloud = Enum([Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST, Cloud.USNAT, Cloud.USSEC, Cloud.TEST],
+    cloud = Enum(
+        [Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST, Cloud.USNAT, Cloud.USSEC, Cloud.TEST],
         Cloud.PUBLIC,
         config=True,
         help="Default cloud "
         "the kql connection will use the cloud as specified "
     )
 
-    enable_sso = Bool(False, config = True, help=f"Enables or disables SSO. if enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly")
+    enable_sso = Bool(
+        False, 
+        config = True, 
+        help=f"Enables or disables SSO. if enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly"
+    )
 
-    sso_db_gc_interval = Int(168, config=True,help= "Garbage Collection interval for not changed SSO cache entries. Default is one week.")
-    # login_code_destination = Unicode("browser", config = True, help = 
-    # "set login code destination, default: browser. non interactive mode: \"email\". details should be provided in %\env")
+    sso_db_gc_interval = Int(
+        168, 
+        config=True,
+        help= "Garbage Collection interval for not changed SSO cache entries. Default is one week."
+    )
 
-    timeout = Int(None, config=True, allow_none=True, help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait")
-    plot_package = Enum(["matplotlib", "plotly", "plotly_static"], "plotly", config=True, help="Set the plot package. Abbreviation: pp")
+    device_code_login_notification = Enum(
+        ["frontend", "browser", "terminal", "email"],
+        "frontend", 
+        config = True, 
+        help = "Set device_code login notification method, default: frontend. Abbreviation: dcln"
+    )
+
+    device_code_notification_email = Unicode(
+        "", 
+        config=True, 
+        help=f"""Email details. Should be set by {Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL. Abbreviation: dcne
+        the email details string format is: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text'"""
+    )
+
+    timeout = Int(
+        None, 
+        config=True, 
+        allow_none=True, 
+        help="Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time. Abbreviation: to, wait"
+    )
+
+    plot_package = Enum(
+        ["None", "plotly", "plotly_orca"], 
+        "plotly", 
+        config=True, 
+        help="Set the plot package (plotlt_orca requires plotly orca to be installed on the server). Abbreviation: pp"
+    )
+
     table_package = Enum(
-        ["prettytable", "pandas", "plotly", "qgrid"], "prettytable", config=True, help="Set the table display package. Abbreviation: tp"
+        ["prettytable", "pandas", "plotly", "qgrid"], 
+        "prettytable", 
+        config=True, 
+        help="Set the table display package. Abbreviation: tp"
     )
+
     last_raw_result_var = Unicode(
-        "_kql_raw_result_", config=True, help="Set the name of the variable that will contain last raw result. Abbreviation: var"
+        "_kql_raw_result_", 
+        config=True, 
+        help="Set the name of the variable that will contain last raw result. Abbreviation: var"
     )
-    enable_suppress_result = Bool(True, config=True, help="Suppress result when magic ends with a semicolon ;. Abbreviation: esr")
-    show_query_time = Bool(True, config=True, help="Print query execution elapsed time. Abbreviation: sqt")
 
-    show_query = Bool(False, config=True, help="Print parametrized query. Abbreviation: sq")
+    enable_suppress_result = Bool(
+        True, 
+        config=True, 
+        help="Suppress result when magic ends with a semicolon ;. Abbreviation: esr"
+    )
 
+    show_query_time = Bool(
+        True, 
+        config=True, 
+        help="Print query execution elapsed time. Abbreviation: sqt"
+    )
 
-    show_query_link = Bool(False, config=True, help="Show query deep link as a button, to run query in the deafult tool. Abbreviation: sql")
-    query_link_destination = Enum(["Kusto.Explorer", "Kusto.WebExplorer"], "Kusto.WebExplorer", config=True, help="Set the deep link destination. Abbreviation: qld")
+    show_query = Bool(
+        False, 
+        config=True, 
+        help="Print parametrized query. Abbreviation: sq"
+    )
 
+    show_query_link = Bool(
+        False, 
+        config=True, 
+        help="Show query deep link as a button, to run query in the deafult tool. Abbreviation: sql"
+    )
+
+    query_link_destination = Enum(
+        ["Kusto.Explorer", "Kusto.WebExplorer"], 
+        "Kusto.WebExplorer", 
+        config=True, help="Set the deep link destination. Abbreviation: qld"
+    )
 
     plotly_fs_includejs = Bool(
         False,
@@ -168,56 +226,119 @@ class Kqlmagic(Magics, Configurable):
     )
 
     validate_connection_string = Bool(
-        True, config=True, help="Validate connectionString with an implicit query, when query statement is missing. Abbreviation: vc"
+        True, 
+        config=True, 
+        help="Validate connectionString with an implicit query, when query statement is missing. Abbreviation: vc"
     )
-    auto_popup_schema = Bool(True, config=True, help="Popup schema when connecting to a new database. Abbreviation: aps")
 
-    json_display = Enum(["raw", "native", "formatted"], "formatted", config=True, help="Set json/dict display format. Abbreviation: jd")
-    palette_name = Unicode(Palettes.DEFAULT_NAME, config=True, help="Set pallete by name to be used for charts. Abbreviation: pn")
-    palette_colors = Int(Palettes.DEFAULT_N_COLORS, config=True, help="Set pallete number of colors to be used for charts. Abbreviation: pc")
-    palette_desaturation = Float(Palettes.DEFAULT_DESATURATION, config=True, help="Set pallete desaturation to be used for charts. Abbreviation: pd")
+    auto_popup_schema = Bool(
+        True, 
+        config=True, 
+        help="Popup schema when connecting to a new database. Abbreviation: aps"
+    )
 
-    temp_folder_name = Unicode("{0}_temp_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name for temporary files")
-    export_folder_name = Unicode("{0}_exported_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name  for exported files")
-    cache_folder_name = Unicode("{0}_cache_files".format(Constants.MAGIC_CLASS_NAME), config=True, help="Set the folder name for cache files")
+    json_display = Enum(
+        ["raw", "native", "formatted"], 
+        "formatted", 
+        config=True, 
+        help="Set json/dict display format. Abbreviation: jd"
+    )
+
+    palette_name = Unicode(
+        Palettes.DEFAULT_NAME, 
+        config=True, 
+        help="Set pallete by name to be used for charts. Abbreviation: pn"
+    )
+
+    palette_colors = Int(
+        Palettes.DEFAULT_N_COLORS, 
+        config=True, 
+        help="Set pallete number of colors to be used for charts. Abbreviation: pc"
+    
+    )
+    palette_desaturation = Float(
+        Palettes.DEFAULT_DESATURATION, 
+        config=True, 
+        help="Set pallete desaturation to be used for charts. Abbreviation: pd"
+    )
+
+    temp_folder_name = Unicode(
+        f"{Constants.MAGIC_CLASS_NAME}_temp_files", 
+        config=True, 
+        help="Set the folder name for temporary files"
+    )
+
+    export_folder_name = Unicode(
+        f"{Constants.MAGIC_CLASS_NAME}_exported_files", 
+        config=True, 
+        help="Set the folder name  for exported files"
+    )
+
+    cache_folder_name = Unicode(
+        f"{Constants.MAGIC_CLASS_NAME}_cache_files", 
+        config=True, 
+        help="Set the folder name for cache files"
+    )
 
     # valid values: jupyterlab or jupyternotebook
-    notebook_app = Enum(["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "auto", config=True, help="Set notebook application used.") #TODO: add "papermill"
+    notebook_app = Enum(
+        ["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], 
+        "auto", 
+        config=True, 
+        help="Set notebook application used."
+    ) #TODO: add "papermill"
 
-    # code_notification_email = Unicode("", config=True, help="Required parameters: SMTPEndPoint, SMTPPort, sendFrom, sendFromPassword, sendTo.")
+    test_notebook_app = Enum(
+        ["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], 
+        "none", 
+        config=True, 
+        help="Set testing application mode, results should return for the specified notebook application."
+    ) #TODO: add "papermill"
 
-    test_notebook_app = Enum(["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], "none", config=True, help="Set testing application mode, results should return for the specified notebook application.") #TODO: add "papermill"
+    add_kql_ref_to_help = Bool(
+        True, 
+        config=True, 
+        help=f"On {Constants.MAGIC_CLASS_NAME} load, auto add kql reference to Help menu."
+    )
 
-    add_kql_ref_to_help = Bool(True, config=True, help=f"On {Constants.MAGIC_CLASS_NAME} load, auto add kql reference to Help menu.")
-    add_schema_to_help = Bool(True, config=True, help="On connection to database@cluster add  schema to Help menu.")
-    cache = Unicode(None, config=True, allow_none=True, help="Cache query results to the specified folder.")
-    use_cache = Unicode(None, config=True, allow_none=True, help="Use cached query results from the specified folder, instead of executing the query.")
+    add_schema_to_help = Bool(
+        True, 
+        config=True, 
+        help="On connection to database@cluster add  schema to Help menu."
+    )
 
-    check_magic_version = Bool(True, config=True, help=f"On {Constants.MAGIC_CLASS_NAME} load, check whether new version of {Constants.MAGIC_CLASS_NAME} exist")
-    show_what_new = Bool(True, config=True, help=f"On {Constants.MAGIC_CLASS_NAME} load, get history file of {Constants.MAGIC_CLASS_NAME} and show what new button to open it")
-    show_init_banner = Bool(True, config=True, help=f"On {Constants.MAGIC_CLASS_NAME} load, show init banner")
+    cache = Unicode(
+        None, 
+        config=True, 
+        allow_none=True, 
+        help="Cache query results to the specified folder."
+    )
 
+    use_cache = Unicode(
+        None, 
+        config=True, 
+        allow_none=True, 
+        help="Use cached query results from the specified folder, instead of executing the query."
+    )
+
+    check_magic_version = Bool(
+        True, 
+        config=True, 
+        help=f"On {Constants.MAGIC_CLASS_NAME} load, check whether new version of {Constants.MAGIC_CLASS_NAME} exist"
+    )
+    show_what_new = Bool(
+        True, 
+        config=True, 
+        help=f"On {Constants.MAGIC_CLASS_NAME} load, get history file of {Constants.MAGIC_CLASS_NAME} and show what new button to open it"
+    )
+
+    show_init_banner = Bool(
+        True, 
+        config=True, 
+        help=f"On {Constants.MAGIC_CLASS_NAME} load, show init banner"
+    )
 
     logger().debug("Kqlmagic:: - define class code")
-
-    # @validate("login_code_destination")
-    # def _valid_value_login_code_destination(self, proposal):
-
-    #     try:
-    #         dest = proposal["value"].lower()
-
-    #         self.validate_login_code(dest)
-    #     except (AttributeError, ValueError) as e:
-    #         message = "The 'login_code_destination' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
-    #         raise TraitError(message)
-    #     return proposal["value"].lower()
-
-    # def validate_login_code(self, dest):
-
-    #     if (dest != "browser") and (dest !="email"):
-    #             raise ValueError(
-    #                 "must be either \"browser\" or \"email\", but a value of {0} was specified.".format(dest)
-    #             )
 
 
     @validate("palette_name")
@@ -229,6 +350,7 @@ class Kqlmagic(Magics, Configurable):
             raise TraitError(message)
         return proposal["value"]
 
+
     @validate("palette_desaturation")
     def _valid_value_palette_desaturation(self, proposal):
         try:
@@ -238,6 +360,7 @@ class Kqlmagic(Magics, Configurable):
             raise TraitError(message)
         return proposal["value"]
 
+
     @validate("palette_colors")
     def _valid_value_palette_color(self, proposal):
         try:
@@ -246,6 +369,7 @@ class Kqlmagic(Magics, Configurable):
             message = "The 'palette_color' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
             raise TraitError(message)
         return proposal["value"]
+
 
     @validate("notebook_app")
     def _valid_value_notebook_app(self, proposal):
@@ -298,7 +422,6 @@ class Kqlmagic(Magics, Configurable):
         return MarkdownString("sso db was cleared.")
 
 
-
     def execute_schema_command(self, connection_string: str, user_ns: dict, **options) -> dict:
         """ execute the schema command.
         command return the schema of the connection in json format, so that it can be used programattically
@@ -344,9 +467,6 @@ class Kqlmagic(Magics, Configurable):
         Configurable.__init__(self, config=shell.config)
         Magics.__init__(self, shell=shell)
 
-
-
-
         ip = get_ipython()  # pylint: disable=undefined-variable
 
         # Add ourself to the list of module configurable via %config
@@ -358,14 +478,12 @@ class Kqlmagic(Magics, Configurable):
         # old_logo = 'data:image/png;base64,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'
         # olq_logo-blue_kql ="data:image/png;base64,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"
 
-        
-
         logger().debug("Kqlmagic::__init__ - override defualt configuraion")
         _override_default_configuration(ip, load_mode)
         root_path = ip.starting_dir
 
         logger().debug("Kqlmagic::__init__ - set temp folder")
-        folder_name = ip.run_line_magic("config", "{0}.temp_folder_name".format(Constants.MAGIC_CLASS_NAME))
+        folder_name = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.temp_folder_name")
         showfiles_folder_Full_name = adjust_path(root_path + "/" + folder_name)
         if not os.path.exists(showfiles_folder_Full_name):
             os.makedirs(showfiles_folder_Full_name)
@@ -377,7 +495,7 @@ class Kqlmagic(Magics, Configurable):
         Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
         
         logger().debug("Kqlmagic::__init__ - discover hosting notebook app")
-        app = ip.run_line_magic("config", "{0}.notebook_app".format(Constants.MAGIC_CLASS_NAME)) or "auto"
+        app = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.notebook_app") or "auto"
         if app == "auto":
             if os.getenv("VSCODE_CWD") and os.getenv("MPLBACKEND"):
                 app = "visualstudiocode"
@@ -387,7 +505,7 @@ class Kqlmagic(Magics, Configurable):
                     app = "jupyternotebook"
                 except:
                     app = "ipython"
-            ip.run_line_magic("config", "{0}.notebook_app='{1}'".format(Constants.MAGIC_CLASS_NAME, app))
+            ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.notebook_app='{app}'")
             # print("notebook_app: {0}".format(app))
         
         if app != "jupyterlab":
@@ -498,10 +616,10 @@ class Kqlmagic(Magics, Configurable):
                     logger().debug("Kqlmagic::__init__ - failed to fetch HISTORY.md")
                     pass
 
-
         logger().debug("Kqlmagic::__init__ - set default connection")
         _set_default_connections()
         logger().debug("Kqlmagic::__init__ - end")
+
 
     @needs_local_scope
     @line_magic(Constants.MAGIC_NAME)
@@ -697,6 +815,7 @@ class Kqlmagic(Magics, Configurable):
                 return None
             raise 
 
+
     def _get_connection_info(self, **options):
         mode = options.get("show_conn_info", self.show_conn_info)
         if mode == "current":
@@ -705,14 +824,17 @@ class Kqlmagic(Magics, Configurable):
             return [Connection.get_current_connection_formatted()]
         return []
 
+
     def _show_connection_info(self, **options):
         msg = self._get_connection_info(**options)
         if len(msg) > 0:
             Display.showInfoMessage(msg)
 
+
     def submit_get_notebook_url(self):
         if self.notebook_app != "jupyterlab":
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
+
 
     def execute_query(self, parsed, user_ns: dict, result_set=None):
         if Help_html.showfiles_base_url is None:
@@ -816,8 +938,18 @@ class Kqlmagic(Magics, Configurable):
             params_dict = options.get("params_dict") or user_ns
             parametrized_query_dict = Parameterizer(params_dict).expand(query) if _result_set is None else _result_set.parametrized_query_dict
             parametrized_query = parametrized_query_dict.get('parametrized_query')
-            raw_query_result = conn.execute(parametrized_query, user_ns, **options)
-
+            try:
+                raw_query_result = conn.execute(parametrized_query, user_ns, **options)
+            except KqlError as err:
+                try:
+                    parsed_error = json.loads(err.message)
+                    message = f"query execution error:\n{json.dumps(parsed_error, indent=4, sort_keys=True)}" 
+                except:
+                    message = err.message
+                Display.showDangerMessage(message)
+                return None
+            except Exception as e:
+                raise e
 
             end_time = time.time()
 
@@ -857,7 +989,7 @@ class Kqlmagic(Magics, Configurable):
             saved_result.metadata["end_time"] = end_time
 
             if saved_result.is_partial_table and not suppress_results:
-                Display.showWarningMessage("partial results, query had errors (see {0}.dataSetCompletion)".format(options.get("last_raw_result_var")))
+                Display.showWarningMessage(f"partial results, query had errors (see {options.get('last_raw_result_var')}.dataSetCompletion)")
 
             if options.get("feedback", self.feedback):
                 if options.get("show_query_time", self.show_query_time):
@@ -882,7 +1014,7 @@ class Kqlmagic(Magics, Configurable):
             if options.get("result_var") and result_set is None:
                 result_var = options["result_var"]
                 if options.get("feedback", self.feedback):
-                    saved_result.feedback_info.append("Returning data to local variable {}".format(result_var))
+                    saved_result.feedback_info.append(f"Returning data to local variable {result_var}")
                 self.shell.user_ns.update({result_var: result if result is not None else saved_result})
                 result = None
 
@@ -893,11 +1025,11 @@ class Kqlmagic(Magics, Configurable):
 
             if options.get("save_as") is not None:
                 if options.get("feedback", self.feedback):
-                    saved_result.feedback_info.append("query results saved as {0}".format(save_as_file_path))
+                    saved_result.feedback_info.append(f"query results saved as {save_as_file_path}")
             if options.get("save_to") is not None:
                 if options.get("feedback", self.feedback):
                     path = "/".join(save_as_file_path.split("/")[:-1])
-                    saved_result.feedback_info.append("query results saved to {0}".format(path))
+                    saved_result.feedback_info.append(f"query results saved to {path}")
 
             saved_result.suppress_result = False
             saved_result.display_info = False
@@ -935,14 +1067,12 @@ class Kqlmagic(Magics, Configurable):
 
 
 def _override_default_configuration(ip, load_mode):
-    """override default {0} configuration from environment variable {1}_CONFIGURATION.
+    f"""override default {Constants.MAGIC_CLASS_NAME} configuration from environment variable {1}_CONFIGURATION.
        the settings should be separated by a semicolon delimiter.
        for example:
-       {1}_CONFIGURATION = 'auto_limit = 1000; auto_dataframe = True' """.format(
-        Constants.MAGIC_CLASS_NAME, Constants.MAGIC_CLASS_NAME.upper()
-    )
+       {Constants.MAGIC_CLASS_NAME.upper()}_CONFIGURATION = 'auto_limit = 1000; auto_dataframe = True' """
 
-    kql_magic_configuration = os.getenv("{0}_CONFIGURATION".format(Constants.MAGIC_CLASS_NAME.upper()))
+    kql_magic_configuration = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_CONFIGURATION")
     if kql_magic_configuration:
         kql_magic_configuration = kql_magic_configuration.strip()
         if kql_magic_configuration.startswith("'") or kql_magic_configuration.startswith('"'):
@@ -951,20 +1081,33 @@ def _override_default_configuration(ip, load_mode):
         pairs = kql_magic_configuration.split(";")
         for pair in pairs:
             if pair:
-                ip.run_line_magic("config", "{0}.{1}".format(Constants.MAGIC_CLASS_NAME, pair.strip()))
+                ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.{pair.strip()}")
 
-    app = os.getenv("{0}_NOTEBOOK_APP".format(Constants.MAGIC_CLASS_NAME.upper()))
+    app = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_NOTEBOOK_APP")
     if app is not None:
         lookup_key = app.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
-        app = {"jupyterlab": "jupyterlab", "jupyternotebook": "jupyternotebook", "ipython": "ipython", "visualstudiocode": "visualstudiocode", 
-                "lab": "jupyterlab", "notebook": "jupyternotebook", "ipy": "ipython", "vsc": "visualstudiocode", "papermill":"papermill"}.get(lookup_key)
+        app = {
+            "jupyterlab": "jupyterlab", 
+            "jupyternotebook": "jupyternotebook", 
+            "ipython": "ipython", 
+            "visualstudiocode": "visualstudiocode", 
+            "lab": "jupyterlab", 
+            "notebook": "jupyternotebook", 
+            "ipy": "ipython", 
+            "vsc": "visualstudiocode", 
+            # "papermill":"papermill" #TODO: add "papermill"
+        }.get(lookup_key)
         if app is not None:
-            ip.run_line_magic("config", '{0}.notebook_app = "{1}"'.format(Constants.MAGIC_CLASS_NAME, app.strip()))
+            ip.run_line_magic("config", f'{Constants.MAGIC_CLASS_NAME}.notebook_app = "{app.strip()}"')
+
+    email_details = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL")
+    if email_details:
+        ip.run_line_magic("config", f'{Constants.MAGIC_CLASS_NAME}.device_code_notification_email = "{email_details.strip()}"')
 
 
 
 def _get_kql_magic_load_mode():
-    load_mode = os.getenv("{0}_LOAD_MODE".format(Constants.MAGIC_CLASS_NAME.upper()))
+    load_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOAD_MODE")
     if load_mode:
         load_mode = load_mode.strip().lower().replace("_", "").replace("-", "")
         if load_mode.startswith("'") or load_mode.startswith('"'):
@@ -973,7 +1116,7 @@ def _get_kql_magic_load_mode():
 
 
 def _set_default_connections():
-    connection_str = os.getenv("{0}_CONNECTION_STR".format(Constants.MAGIC_CLASS_NAME.upper()))
+    connection_str = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_CONNECTION_STR")
     if connection_str:
         connection_str = connection_str.strip()
         if connection_str.startswith("'") or connection_str.startswith('"'):
@@ -988,7 +1131,7 @@ def _set_default_connections():
         except Exception as err:
             print(err)
 
-"""
+f"""
 FAQ
 
 Can I suppress the output of the query?
@@ -1041,16 +1184,14 @@ Answer: Yes you can. Execute the to_dataframe method on the result. For example:
 Can I get the kql query results as a dataframe instead of raw data?
 Answer: Yes you can. Set the kql magic configuration parameter auto_dataframe to true, and all subsequent queries
         will return a dataframe instead of raw data (_kql_raw_result_ will continue to hold the raw results). For example:
-        %config {0}.auto_dataframe = True
+        %config {Constants.MAGIC_CLASS_NAME}.auto_dataframe = True
         %kql var1 << T | where c > 100 // var1 will hold the dataframe
 
-If I use {0}.auto_dataframe = True, How can I get programmaticaly the last dataframe results of the last submitted query?
+If I use {Constants.MAGIC_CLASS_NAME}.auto_dataframe = True, How can I get programmaticaly the last dataframe results of the last submitted query?
 Answer: Execute the to_dataframe method on the result. For example:
         _kql_raw_result_.to_dataframe()
 
-If I use {0}.auto_dataframe = True, How can I get programmaticaly the last raw results of the last submitted query?
+If I use {Constants.MAGIC_CLASS_NAME}.auto_dataframe = True, How can I get programmaticaly the last raw results of the last submitted query?
 Answer: _kql_raw_result_ holds the raw results.
 
-""".format(
-    Constants.MAGIC_CLASS_NAME
-)
+"""

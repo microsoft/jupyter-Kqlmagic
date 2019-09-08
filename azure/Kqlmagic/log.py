@@ -9,8 +9,13 @@ import logging
 import datetime
 import uuid
 import traceback
+
+
 from ipykernel import (get_connection_info)
+
+
 from .constants import Constants
+
 
 def _get_kql_magic_log_level():
     log_level = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_LEVEL")
@@ -19,6 +24,7 @@ def _get_kql_magic_log_level():
         if log_level.startswith("'") or log_level.startswith('"'):
             log_level = log_level[1:-1].strip()
     return log_level
+
 
 def initialize():
     log_level = _get_kql_magic_log_level()
@@ -46,6 +52,7 @@ def initialize():
         logger().debug("start date %s\n", now.isoformat())
         logger().debug("logger level %s\n", log_level)
         logger().debug("logger init done")
+
 
 def create_log_context(correlation_id=None):
     return {"correlation_id": correlation_id or str(uuid.uuid4())}
@@ -98,6 +105,7 @@ class Logger(object):
         self.log_context = log_context
         self._logging = logging.getLogger(Constants.LOGGER_NAME)
 
+
     def _log_message(self, msg, log_stack_trace=None):
         formatted = ""
 
@@ -116,30 +124,36 @@ class Logger(object):
 
         return formatted
 
+
     def critical(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.critical(msg, *args, **kwargs)
+
 
     def error(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.error(msg, *args, **kwargs)
 
+
     def warn(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.warning(msg, *args, **kwargs)
+
 
     def info(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.info(msg, *args, **kwargs)
 
+
     def debug(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.debug(msg, *args, **kwargs)
+
 
     def exception(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
@@ -157,5 +171,6 @@ def set_logger(new_logger):
     global current_logger
     current_logger = new_logger
     return current_logger
+
 
 initialize()

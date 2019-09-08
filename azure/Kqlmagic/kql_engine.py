@@ -3,21 +3,24 @@
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
 # --------------------------------------------------------------------------
+
 import re
 import itertools
 import getpass
-from .kql_proxy import KqlResponse
 import functools
+
+
+from .kql_proxy import KqlResponse
 from .constants import ConnStrKeys
 from .my_utils import get_valid_filename, adjust_path
 from .parser import Parser
 from .log import logger
 
 
-
 _FQN_KUSTO_CLUSTER_PATTERN = re.compile(r"(http(s?)\:\/\/)?(?P<cname>.*)\.kusto\.(windows\.net|chinacloudapi.cn|cloudapi.de|usgovcloudapi.net)$")
 _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(?P<io>(applicationinsights|loganalytics))\.io\/subscriptions\/(?P<subscription>.*)$")
 _FQN_ARIA_KUSTO_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/kusto\.aria\.microsoft\.com$")
+
 
 class KqlEngine(object):
 
@@ -36,32 +39,40 @@ class KqlEngine(object):
         self.validated = None
         self.conn_name = None
 
+
     def __eq__(self, other):
         return self.bind_url and self.bind_url == other.bind_url
+
 
     def is_validated(self):
         return self.validated == True
 
+
     def set_validation_result(self, result):
         self.validated = result == True
 
+
     def get_alias(self):
         return self.alias
+
 
     def get_database(self):
         if not self.database_name:
             raise KqlEngineError("Database is not defined.")
         return self.database_name
 
+
     def get_cluster(self):
         if not self.cluster_name:
             raise KqlEngineError("Cluster is not defined.")
         return self.cluster_name
 
+
     def get_cluster_friendly_name(self):
         if not self.cluster_friendly_name:
             raise KqlEngineError("Cluster friendly name is not defined.")
         return self.cluster_friendly_name
+
 
     def get_database_friendly_name(self):
         if not self.database_friendly_name:
@@ -86,6 +97,7 @@ class KqlEngine(object):
 
     def createDatabaseFriendlyName(self, dname):
         return get_valid_filename(dname)
+
 
     def createClusterFriendlyName(self, cname):
         match = _FQN_KUSTO_CLUSTER_PATTERN.match(cname)
@@ -122,6 +134,7 @@ class KqlEngine(object):
     def get_client(self):
         return self.client
 
+
     def client_execute(self, query, user_namespace=None, **options):
         if query.strip():
             client = self.get_client()
@@ -129,11 +142,13 @@ class KqlEngine(object):
                 raise KqlEngineError("Client is not defined.")
             return client.execute(self.get_database(), query, accept_partial_results=False, **options)
 
+
     def execute(self, query, user_namespace=None, **options):
         if query.strip():
             response = self.client_execute(query, user_namespace, **options)
             # print(response.json_response)
             return KqlResponse(response, **options)
+
 
     def validate(self, **options):
         client = self.get_client()
@@ -146,6 +161,7 @@ class KqlEngine(object):
         if table.rowcount() != 1 or table.colcount() != 1 or [r for r in table.fetchall()][0][0] != 10:
             raise KqlEngineError("Client failed to validate connection.")
 
+
     _CREDENTIAL_KEYS = {
         ConnStrKeys.TENANT,
         ConnStrKeys.AAD_URL,
@@ -157,16 +173,19 @@ class KqlEngine(object):
         ConnStrKeys.PASSWORD,
         ConnStrKeys.CERTIFICATE_THUMBPRINT,
     }
+
     _SECRET_KEYS = {
         ConnStrKeys.CLIENTSECRET, 
         ConnStrKeys.APPKEY, 
         ConnStrKeys.PASSWORD, 
         ConnStrKeys.CERTIFICATE_THUMBPRINT
     }
+
     _NOT_INHERITABLE_KEYS = {
         ConnStrKeys.APPKEY,
         ConnStrKeys.ALIAS
     }
+
     _OPTIONAL_KEYS = {
         ConnStrKeys.TENANT, 
         ConnStrKeys.AAD_URL, 
@@ -174,12 +193,14 @@ class KqlEngine(object):
         ConnStrKeys.ALIAS, 
         ConnStrKeys.CLIENTID
     }
+
     _INHERITABLE_KEYS = {
         ConnStrKeys.CLUSTER, 
         ConnStrKeys.TENANT,
         ConnStrKeys.AAD_URL,
         ConnStrKeys.DATA_SOURCE_URL
     }
+
     _EXCLUDE_FROM_URL_KEYS = {
         ConnStrKeys.DATABASE,
         ConnStrKeys.ALIAS
@@ -300,6 +321,7 @@ class KqlEngine(object):
                 if parsed_conn_kv[key] == f"<{key}>" or parsed_conn_kv[key] == "":
                     raise KqlEngineError(f"key {key} cannot be empty or set to <{key}>")
         logger().debug("kql_engine.py - _check_for_restricted_values - make sure that all required keys are with proper value: {0}".format(matched_keys_set))
+
 
     def _set_and_check_for_cluster_name(self, parsed_conn_kv: dict, uri_schema_name: str) -> None:
         cluster_name = parsed_conn_kv.get(ConnStrKeys.CLUSTER) or uri_schema_name

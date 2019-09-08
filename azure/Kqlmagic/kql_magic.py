@@ -31,7 +31,7 @@ from .sso_storage import get_sso_store
 from .version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
 from .help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
 from .constants import Constants, Cloud
-from .my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
+from .my_utils import adjust_path, adjust_path_to_uri
 
 from .results import ResultSet
 from .results import ResultSet

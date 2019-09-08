@@ -8,6 +8,18 @@
 
 """Setup for Kqlmagic"""
 
+# To use a consistent encoding
+import codecs
+import sys
+import re
+from os import path
+
+
+# Always prefer setuptools over distutils
+from setuptools import setup, find_packages
+from setuptools.command.test import test as TestCommand
+
+
 DESCRIPTION         = "Kqlmagic: Microsoft Azure Monitor magic extension to Jupyter notebook"
 
 NAME                = "Kqlmagic"
@@ -50,36 +62,34 @@ INSTALL_REQUIRES    = [
 ]
 
 EXTRAS_REQUIRE      = {
-    'dev':  [
-        'pytest',
-        'pytest-pep8',
-        'pytest-docstyle',
-        'pytest-flakes',
-        'pytest-cov',
+                        'dev':  [
 
-        'twine',
-        'pip',
-        'wheel',
-        'black',
-    ],
-    'widgets':[
-        'ipywidgets'
-    ],
-    'sso': [
-        'cryptography>=2.7',
-        'password-strength>= 0.0.3',
-    ]
+                            'twine',
+                            'pip',
+                            'wheel',
+                            'black',
+                        ],
+                        'widgets':[
+                            'ipywidgets'
+                        ],
+                        'sso': [
+                            'cryptography>=2.7',
+                            'password-strength>=0.0.3',
+                        ]
 }
 
+TEST_REQUIRE        = [
+                        'pytest',
+                        'pytest-pep8',
+                        'pytest-docstyle',
+                        'pytest-flakes',
+                        'pytest-cov',
+]
 
-# To use a consistent encoding
-import codecs
-
-import re
-from os import path
-
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
+PROJECT_URLS        = {
+                        'Documentation': 'https://github.com/microsoft/jupyter-Kqlmagic/blob/master/README.md',
+                        'Source': 'https://github.com/microsoft/jupyter-Kqlmagic',
+}
 
 CURRENT_PATH = path.abspath(path.dirname(__file__))
 PACKAGE_PATH = 'azure-Kqlmagic'.replace('-', path.sep)
@@ -95,12 +105,40 @@ with codecs.open(path.join(CURRENT_PATH, 'NEWS.txt'), encoding='utf-8') as f:
     NEWS = f.read()
 
 LONG_DESCRIPTION = (README + '\n\n' + NEWS).replace('\r','')
+LONG_DESCRIPTION_CONTENT_TYPE = 'text/x-rst'
+
+
+class PyTest(TestCommand):
+
+    user_options = [('pytest-args=', 'a', "Arguments to pass into py.test")]
+
+
+    def initialize_options(self):
+        TestCommand.initialize_options(self)
+        try:
+            from multiprocessing import cpu_count
+            self.pytest_args = ['-n', str(cpu_count()), '--boxed']
+        except (ImportError, NotImplementedError):
+            self.pytest_args = ['-n', '1', '--boxed']
+
+
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+
+    def run_tests(self):
+        import pytest
+        errno = pytest.main(self.pytest_args)
+        sys.exit(errno)
 
 
 setup(name=NAME,
     version=VERSION,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
+    long_description_content_type=LONG_DESCRIPTION_CONTENT_TYPE,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -128,9 +166,12 @@ setup(name=NAME,
     license=LICENSE,
     python_requires='>=3.6',
     packages=find_packages('azure'),
-    package_dir = {'': 'azure'},
+    package_dir={'': 'azure'},
     include_package_data=True,
     zip_safe=False,
     install_requires=INSTALL_REQUIRES,
     extras_require=EXTRAS_REQUIRE,
+    project_urls=PROJECT_URLS,
+    # cmdclass={'test': PyTest},
+    # tests_require=TEST_REQUIRE,
 )

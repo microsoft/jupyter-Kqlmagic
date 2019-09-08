@@ -29,7 +29,7 @@ else:
 
 
 from .constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
-from .my_utils import get_valid_filename, adjust_path
+from .my_utils import adjust_path
 from .column_guesser import ColumnGuesserMixin
 from .display import Display
 from .palette import Palette, Palettes

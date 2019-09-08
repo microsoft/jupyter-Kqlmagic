@@ -17,7 +17,7 @@ from pygments.lexers.data import JsonLexer
 from pygments.formatters.terminal import TerminalFormatter
 
 
-from .my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
+from .my_utils import adjust_path, adjust_path_to_uri
 
 
 class DateTimeEncoder(json.JSONEncoder):

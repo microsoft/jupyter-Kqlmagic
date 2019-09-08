@@ -24,7 +24,7 @@
 
   - ### New deep_link method in result object
 
-    - deep_link method will open the query link tool provided as a parameter or the default tool as set in query_link_destination option, and execute the query in the tool.
+    - deep_link method opens query link tool provided as a parameter or the default tool as set in query_link_destination option, and execute the query in the tool.
     - note: see **show_query_link** and **query_link_destination** options
     - note: supported only for Azure Data Explorer queries, will be ignored for Application Insights or Log Analytics queries
     - for example:
@@ -38,7 +38,7 @@
 
   - ### query errors displayed in pretty json
 
-    - Show querry errors in pretty json for better read.
+    - Show query errors in pretty json for better read.
 
 
 

@@ -16,7 +16,7 @@ from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
 
 
 from .log import Logger, logger
-from .my_utils import split_lex, get_valid_filename, adjust_path
+from .my_utils import split_lex, adjust_path
 
 
 class Parser(object):

@@ -139,6 +139,7 @@ class Parser(object):
 
     _COMMANDS_TABLE = {
         "version" : {"flag": "version", "type": "bool", "init": "False"},
+        "generatekey" : {"flag": "generate_key", "type": "bool", "init": "False"},
         "usage" : {"flag": "usage", "type": "bool", "init": "False"},
         "submit" : {"flag": "submit", "type": "bool", "init": "False"}, # default
         "help" : {"flag": "help", "type": "str", "init": "None", "default": "help"},

@@ -10,6 +10,7 @@ import json
 import logging
 import hashlib
 import urllib.request
+from .fernet_crypto import generate_key
 
 
 from .log import logger
@@ -422,7 +423,37 @@ class Kqlmagic(Magics, Configurable):
         return MarkdownString("sso db was cleared.")
 
 
-    def execute_schema_command(self, connection_string: str, user_ns: dict, **options) -> dict:
+    def execute_generate_key_command(self) -> None:
+        """ execute the generate_key command.
+        command generates a key for SSO encryption, returns it as a string.
+
+        Returns
+        -------
+        str
+            a string representing the key that was generated
+        """
+        key = generate_key()
+        Display.showInfoMessage(f"Warning: This message will disappear in 5 seconds.")
+
+        Display.showInfoMessage(f"Copy the following generated key:")
+        Display.showInfoMessage(f"{str(key)[2:-1]}")
+
+        html_str = """<!DOCTYPE html>
+            <html><body><script>
+            var index = Jupyter.notebook.get_selected_index();
+            function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+            }                
+          
+
+            sleep(5000).then(() => {
+            Jupyter.notebook.clear_output(index)
+                })
+            </script></body></html>"""
+        Display.show_html(html_str)
+        return 
+
+    def execute_schema_command(self, connection_string:str, user_ns: dict, **options) -> dict:
         """ execute the schema command.
         command return the schema of the connection in json format, so that it can be used programattically
 
@@ -753,6 +784,8 @@ class Kqlmagic(Magics, Configurable):
                         result = self.execute_use_cache_command(param)
                     elif command == "clear_sso_db":
                         result = self.execute_clear_sso_db_command()
+                    elif command == "generate_key":
+                        self.execute_generate_key_command()
                     elif command == "schema":
                         result = self.execute_schema_command(param, user_ns, **options)
                         # the return is here, because it already handle the popupwindow option case

@@ -92,13 +92,13 @@ class DictDbStorage(object):
             return
 
         try:
-            return self._crypto.decrypt(state_encrypted.get("data"))
+            return self._crypto_obj.decrypt(state_encrypted.get("data"))
 
         except:
             try: 
                 self.db_key_conflict = True
 
-                self._crypto.verify(state_encrypted) 
+                self._crypto_obj.verify(state_encrypted) 
                 Display.showWarningMessage("Warning: SSO disabled, due to cache_name conflict")
 
             except: #the token has bad form

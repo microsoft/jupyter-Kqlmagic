@@ -51,6 +51,8 @@ if fernet_installed:
 
 
         def _create_encryption_key(self, options: dict) -> bytes:
+            if options.get(CryptoParam.ENCRYPT_KEY):
+                return options.get(CryptoParam.ENCRYPT_KEY)
             password = options.get(CryptoParam.PASSWORD, str(uuid.uuid4()))
             password_as_bytes = password.encode()
             salt  = options.get(CryptoParam.SALT, uuid.uuid4())
@@ -114,6 +116,13 @@ if fernet_installed:
                 return timestamp
             else:
                 return 0
+
+    def generate_key()-> str:
+        logger().debug(f"crypto.py ::generate_key")
+        if not fernet_installed: 
+            Display.showWarningMessage("Warning: could not generate key because Fernet module is not installed")
+            return
+        return Fernet.generate_key()
 
 
     def check_password_strength(password) -> str:

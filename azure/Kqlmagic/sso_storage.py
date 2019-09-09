@@ -25,7 +25,8 @@ _SUPPORTED_STORAGE = [
 
 
 _SUPPORTED_CRYPTO = [
-    SsoCrypto.DPAPI
+    SsoCrypto.DPAPI,
+    # SsoCrypto.FERNET
 ]
 
 
@@ -41,6 +42,8 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
     secret_salt_uuid = key_vals.get(SsoEnvVarParam.SECRET_SALT_UUID)
     crypto = key_vals.get(SsoEnvVarParam.CRYPTO)
     storage = key_vals.get(SsoEnvVarParam.STORAGE)
+    encryption_key = (key_vals.get(SsoEnvVarParam.ENCRYPT_KEY)).encode() if key_vals.get(SsoEnvVarParam.ENCRYPT_KEY) else None
+    
 
     if storage in _SUPPORTED_STORAGE:
         pass
@@ -77,6 +80,14 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
             Display.showWarningMessage(f"Warning: SSO is not activated due to {SsoCrypto.FERNET} cryptography and/or password-strength modules are not found")
             return
 
+        if encryption_key:
+            crypto_options = {
+                CryptoParam.ENCRYPT_KEY: encryption_key,
+                CryptoParam.LENGTH: 32
+            }
+            crypto_obj = FernetCrypto(crypto_options)
+
+        else:
         if not(secret_key):
             Display.showWarningMessage(f"Warning: SSO is not activated due to environment variable {Constants.SSO_ENV_VAR_NAME} is missing {SsoEnvVarParam.SECRET_KEY} key/value")
             return
@@ -115,4 +126,4 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
 
         if storage == SsoStorage.IPYTHON_DB:
             ip = get_ipython()  # pylint: disable=undefined-variable
-            return DictDbStorage(ip.db, storage_options)
+            return DictDbStorage(db=ip.db, options=storage_options)

@@ -22,7 +22,7 @@ ip = get_ipython() # pylint: disable=E0602
 @pytest.fixture 
 def dict_db():
     dpapi_obj = DpapiCrypto()
-    dict_db = DictDbStorage(db, {SsoStorageParam.CRYPTO_OBJ: dpapi_obj, SsoStorageParam.AUTHORITY:"authority"})
+    dict_db = DictDbStorage({}, {SsoStorageParam.CRYPTO_OBJ: dpapi_obj, SsoStorageParam.AUTHORITY:"authority"})
     return dict_db
 
 

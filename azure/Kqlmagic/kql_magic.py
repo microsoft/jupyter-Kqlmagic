@@ -484,12 +484,12 @@ class Kqlmagic(Magics, Configurable):
 
         logger().debug("Kqlmagic::__init__ - set temp folder")
         folder_name = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.temp_folder_name")
-        showfiles_folder_Full_name = adjust_path(root_path + "/" + folder_name)
+        showfiles_folder_Full_name = adjust_path(root_path, spaces=True) + "/" + adjust_path(folder_name) #dont remove spaces from root directory
         if not os.path.exists(showfiles_folder_Full_name):
             os.makedirs(showfiles_folder_Full_name)
         # ipython will removed folder at shutdown or by restart
         ip.tempdirs.append(showfiles_folder_Full_name)
-        Display.showfiles_base_path = adjust_path_to_uri(root_path)
+        Display.showfiles_base_path = adjust_path_to_uri(root_path, spaces = True) #dont remove spaces from base_path
         Display.showfiles_folder_name = folder_name
 
         Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")

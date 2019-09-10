@@ -5,10 +5,10 @@
 #--------------------------------------------------------------------------
 
 import pytest
-from Kqlmagic.constants import DpapiParam, SsoCrypto, SsoEnvVarParam, SsoStorage, SsoStorageParam
-from Kqlmagic.kql_magic import Kqlmagic as Magic
-from Kqlmagic.dpapi_crypto import DpapiCrypto
-from Kqlmagic.fernet_crypto import FernetCrypto,check_password_strength
+from azure.Kqlmagic.constants import DpapiParam, SsoCrypto, SsoEnvVarParam, SsoStorage, SsoStorageParam
+from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
+from azure.Kqlmagic.dpapi_crypto import DpapiCrypto
+from azure.Kqlmagic.fernet_crypto import FernetCrypto,check_password_strength, generate_key
 
 import os
 import string
@@ -70,6 +70,12 @@ def test_crypto_fernet_params_weak_password():
     assert secret_key == "12345678"
     hint = check_password_strength(secret_key)
     assert hint is not None
+
+def test_crypto_fernet_generate_key():
+    key = generate_key()
+    options_fernet= {SsoEnvVarParam.CACHE_NAME: get_random_string(5), SsoEnvVarParam.ENCRYPT_KEY: key}
+    fernet_obj = FernetCrypto(options = options_fernet)
+    assert fernet_obj.decrypt(fernet_obj.encrypt("abc"))=="abc"
 
 
 def test_crypto_fernet_params_strong_password():

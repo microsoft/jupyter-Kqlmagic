@@ -4,12 +4,12 @@
 # license information.
 #--------------------------------------------------------------------------
 
-import pytest
-from Kqlmagic.constants import Constants, DpapiParam, SsoCrypto, SsoEnvVarParam, SsoStorage, SsoStorageParam
-from Kqlmagic.kql_magic import Kqlmagic as Magic
-from Kqlmagic.dict_db_storage import DictDbStorage
-from Kqlmagic.dpapi_crypto import DpapiCrypto
-from Kqlmagic.fernet_crypto import FernetCrypto,check_password_strength
+import pytest 
+from azure.Kqlmagic.constants import Constants, DpapiParam, SsoCrypto, SsoEnvVarParam, SsoStorage, SsoStorageParam
+from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
+from azure.Kqlmagic.dict_db_storage import DictDbStorage
+from azure.Kqlmagic.dpapi_crypto import DpapiCrypto
+from azure.Kqlmagic.fernet_crypto import FernetCrypto,check_password_strength
 
 import os
 import string
@@ -40,7 +40,6 @@ def get_random_string_digits(stringLength=10):
 def test_ok():
     assert True
 
-db = {}
 #SSOSTORAGE TESTS
 def test_get_db_key(dict_db):
     assert dict_db.db_key ==  os.path.join(Constants.SSO_DB_KEY_PREFIX, "sso" + str(os.getlogin()), "authority")
@@ -48,6 +47,7 @@ def test_get_db_key(dict_db):
 
 def test_db_save_restore(dict_db):
     dict_db.save("abc")
+    assert (dict_db._crypto_obj.decrypt(dict_db.db.get(dict_db.db_key).get("data"))) =="abc"
     assert dict_db.restore() == "abc"
 
 def test_db_bad_save(dict_db):
@@ -65,6 +65,7 @@ def test_db_garbage_collector(dict_db):
     dict_db.save("def")
     dict_db.db.get(dict_db.db_key)["timestamp"] = datetime.utcnow() +timedelta(seconds=100)
     dict_db._db_gc()
+    assert (dict_db._crypto_obj.decrypt(dict_db.db.get(dict_db.db_key).get("data"))) =="def"
     assert dict_db.restore() == "def"
 
     dict_db.db.get(dict_db.db_key)["timestamp"] = datetime.utcnow() -timedelta(seconds=1000)

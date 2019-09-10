@@ -214,6 +214,7 @@ class CryptoParam(object):
     ITERATIONS = "iterations"
     ALGORITHM  =  "algorithm"
     BACKEND    =    "backend"
+    ENCRYPT_KEY = "encryptionkey"
 
 class SsoStorageParam(object):
     AUTHORITY      =      "authority"
@@ -227,6 +228,7 @@ class SsoEnvVarParam(object):
     SECRET_SALT_UUID = "secretsaltuuid"
     CRYPTO           =         "crypto"
     STORAGE          =        "storage"
+    ENCRYPT_KEY = "encryptionkey"
 
 class SsoStorage(object):
     IPYTHON_DB = "ipythondb"

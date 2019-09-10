@@ -1049,8 +1049,12 @@ class Kqlmagic(Magics, Configurable):
             # Return results into the default ipython _ variable
             self.shell.user_ns.update({options.get("last_raw_result_var", self.last_raw_result_var): saved_result})
 
-            if result == saved_result:
-                result = saved_result.fork_result(fork_table_id)
+            if options.get("auto_dataframe", self.auto_dataframe):
+                if result.equals(saved_result):
+                    result = saved_result.fork_result(fork_table_id) 
+            else:
+                if result == saved_result:
+                    result = saved_result.fork_result(fork_table_id)
 
             return result
 

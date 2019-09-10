@@ -25,13 +25,16 @@ _SUPPORTED_STORAGE = [
 
 
 _SUPPORTED_CRYPTO = [
-    SsoCrypto.DPAPI
+    SsoCrypto.DPAPI,
+    SsoCrypto.FERNET
+
 ]
 
 
 def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=no-method-argument
     encryption_keys_string = os.getenv(Constants.SSO_ENV_VAR_NAME)
     if not encryption_keys_string:
+        logger().debug(f"sso_storage.py ::get sso storage -environment variable {Constants.SSO_ENV_VAR_NAME} is not set")
         # Display.showWarningMessage(f"Warning: SSO is not activated because environment variable {SSO_ENV_VAR_NAME} is not set")
         return
 
@@ -41,6 +44,10 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
     secret_salt_uuid = key_vals.get(SsoEnvVarParam.SECRET_SALT_UUID)
     crypto = key_vals.get(SsoEnvVarParam.CRYPTO)
     storage = key_vals.get(SsoEnvVarParam.STORAGE)
+    encryption_key = (key_vals.get(SsoEnvVarParam.ENCRYPT_KEY)).encode() if key_vals.get(SsoEnvVarParam.ENCRYPT_KEY) else None
+    
+    Display.showWarningMessage(f"encryption_key {encryption_key}")
+    Display.showWarningMessage(f"key_vals {key_vals}")
 
     if storage in _SUPPORTED_STORAGE:
         pass
@@ -72,39 +79,50 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
             return
         crypto_obj = DpapiCrypto()
 
+
     elif crypto == SsoCrypto.FERNET:
         if  not fernet_installed:
             Display.showWarningMessage(f"Warning: SSO is not activated due to {SsoCrypto.FERNET} cryptography and/or password-strength modules are not found")
             return
 
-        if not(secret_key):
-            Display.showWarningMessage(f"Warning: SSO is not activated due to environment variable {Constants.SSO_ENV_VAR_NAME} is missing {SsoEnvVarParam.SECRET_KEY} key/value")
-            return
+        if encryption_key:
+            crypto_options = {
+                CryptoParam.ENCRYPT_KEY: encryption_key,
+                CryptoParam.LENGTH: 32
+            }
+            crypto_obj = FernetCrypto(crypto_options)
 
-        if not(secret_salt_uuid):
-            Display.showWarningMessage(f"Warning: SSO is not activated due to environment variable {Constants.SSO_ENV_VAR_NAME} is missing {SsoEnvVarParam.SECRET_SALT_UUID} key/value")
-            return
+        else:
+            if not(secret_key):
+                Display.showWarningMessage(f"Warning: SSO is not activated due to environment variable {Constants.SSO_ENV_VAR_NAME} is missing {SsoEnvVarParam.SECRET_KEY} key/value")
+                return
 
-        hint = check_password_strength(secret_key)
-        if hint:
-            message = f"Warning: SSO could not be activated due to {SsoEnvVarParam.SECRET_KEY} key in environment variable {Constants.SSO_ENV_VAR_NAME} is too simple. It should contain: \n{hint}" 
-            Display.showWarningMessage(message)
-            return
+            if not(secret_salt_uuid):
+                Display.showWarningMessage(f"Warning: SSO is not activated due to environment variable {Constants.SSO_ENV_VAR_NAME} is missing {SsoEnvVarParam.SECRET_SALT_UUID} key/value")
+                return
 
-        try:
-            salt = uuid.UUID(secret_salt_uuid, version=4)            
-        except:
-            Display.showWarningMessage(f"Warning: SSO is not activated due to {SsoEnvVarParam.SECRET_SALT_UUID} key in environment variable {Constants.SSO_ENV_VAR_NAME} is not set to a valid uuid")
-            return
+            hint = check_password_strength(secret_key)
+            if hint:
+                message = f"Warning: SSO could not be activated due to {SsoEnvVarParam.SECRET_KEY} key in environment variable {Constants.SSO_ENV_VAR_NAME} is too simple. It should contain: \n{hint}" 
+                Display.showWarningMessage(message)
+                return
 
-        crypto_options = {
-            CryptoParam.PASSWORD: f"{cache_name or ''}-{secret_key}",
-            CryptoParam.SALT: salt,
-            CryptoParam.LENGTH: 32
-        }
-        crypto_obj = FernetCrypto(crypto_options)
-       
-    if crypto_obj is not None:
+            try:
+                salt = uuid.UUID(secret_salt_uuid, version=4)            
+            except:
+                Display.showWarningMessage(f"Warning: SSO is not activated due to {SsoEnvVarParam.SECRET_SALT_UUID} key in environment variable {Constants.SSO_ENV_VAR_NAME} is not set to a valid uuid")
+                return
+
+            crypto_options = {
+                CryptoParam.PASSWORD: f"{cache_name or ''}-{secret_key}",
+                CryptoParam.SALT: salt,
+                CryptoParam.LENGTH: 32
+            }
+            crypto_obj = FernetCrypto(crypto_options)
+
+    # print(f"getSsoStore::  crypto_obj {crypto_obj}")
+ 
+    if crypto_obj:
         gc_ttl_in_secs = options.get('sso_db_gc_interval', 0) * Constants.HOUR_SECS #convert from hours to seconds
         storage_options = {
             SsoStorageParam.AUTHORITY: authority,
@@ -115,4 +133,5 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
 
         if storage == SsoStorage.IPYTHON_DB:
             ip = get_ipython()  # pylint: disable=undefined-variable
-            return DictDbStorage(ip.db, storage_options)
+
+            return DictDbStorage(db=ip.db, options=storage_options)

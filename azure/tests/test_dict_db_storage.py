@@ -80,7 +80,7 @@ def test_db_garbage_collector(dict_db):
     dict_db._db_gc()
     assert dict_db.db =={}
 
-#DICTDBSTORAGE TESTS WITH DB==IPYTHONDB
+#DICTDBSTORAGE TESTS WITH  DB==IPYTHONDB
 def test_ip_get_db_key(dict_db_ipython):
     dict_db = dict_db_ipython
     assert dict_db_ipython.db_key ==  os.path.join(Constants.SSO_DB_KEY_PREFIX, "sso" + str(os.getlogin()), "authority2")

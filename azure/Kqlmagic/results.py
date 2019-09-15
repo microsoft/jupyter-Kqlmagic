@@ -14,6 +14,7 @@ import re
 import uuid
 import base64
 
+import textwrap
 
 import six
 import prettytable
@@ -223,6 +224,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
         self.display_info = True
         self.suppress_result = False
+        self.figure_object = parametrized_query_dict.get(options.get("result_var"))
 
         self._update(queryResult)
 
@@ -492,6 +494,27 @@ class ResultSet(list, ColumnGuesserMixin):
         "display the table in cell"
         return self.show_table(**{"popup_window": False, **kwargs})
 
+    def update_properties(self,new_properties = None, **kwargs):
+        if new_properties !={}:
+            figure = self.figure_object
+            if figure:
+                for prop in new_properties.keys():
+                    if prop =="legendwrap" or prop=="legendwidth":
+                        if new_properties.get("legendwrap")==True:
+                            legend_width = new_properties.get("legendwidth") or 15
+                            if self.visualization == VisualizationValues.PIE_CHART:
+                                figure.for_each_trace(
+                                    lambda trace: trace.update(labels=['<br>'.join(textwrap.wrap(label.replace("<br>",""), width=legend_width)) for label in trace.labels])
+                                )
+                            else:
+                                figure.for_each_trace(
+                                    lambda trace: trace.update(name='<br>'.join(textwrap.wrap(trace.name.replace("<br>",""), width=legend_width)))
+                                )
+                    else:
+                        try:
+                            figure.layout[prop] = new_properties.get(prop)
+                        except ValueError:
+                            Display.showWarningMessage("Could not update the figure because of an invalid property. Find a list of possible properties on ")
 
     # Printable pretty presentation of the object
     def __str__(self, *args, **kwargs):
@@ -716,6 +739,7 @@ class ResultSet(list, ColumnGuesserMixin):
             figure_or_data = self._render_scatterchart_plotly(self.visualization_properties, " ")
 
         if figure_or_data is not None:
+            self.figure_object = figure_or_data
             self.metadata["figure_or_data"] = figure_or_data
             if options.get("plot_package") == "plotly_orca":
                 image_bytes = self._plotly_fig_to_image(figure_or_data, None, **options)

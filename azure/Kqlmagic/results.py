@@ -514,7 +514,7 @@ class ResultSet(list, ColumnGuesserMixin):
                         try:
                             figure.layout[prop] = new_properties.get(prop)
                         except ValueError:
-                            Display.showWarningMessage("Could not update the figure because of an invalid property. Find a list of possible properties on ")
+                            Display.showWarningMessage("Could not update the figure because of an invalid property. Find a list of possible properties on https://plot.ly/python/reference/")
 
     # Printable pretty presentation of the object
     def __str__(self, *args, **kwargs):

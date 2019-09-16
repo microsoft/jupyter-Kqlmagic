@@ -504,11 +504,11 @@ class ResultSet(list, ColumnGuesserMixin):
                             legend_width = new_properties.get("legendwidth") or 15
                             if self.visualization == VisualizationValues.PIE_CHART:
                                 figure.for_each_trace(
-                                    lambda trace: trace.update(labels=['<br>'.join(textwrap.wrap(label.replace("<br>",""), width=legend_width)) for label in trace.labels])
+                                    lambda trace: trace.update(labels=['<br>'.join(textwrap.wrap(str(label).replace("<br>",""), width=legend_width)) for label in trace.labels])
                                 )
                             else:
                                 figure.for_each_trace(
-                                    lambda trace: trace.update(name='<br>'.join(textwrap.wrap(trace.name.replace("<br>",""), width=legend_width)))
+                                    lambda trace: trace.update(name='<br>'.join(textwrap.wrap(str(trace.name).replace("<br>",""), width=legend_width)))
                                 )
                     else:
                         try:
@@ -1237,6 +1237,7 @@ class ResultSet(list, ColumnGuesserMixin):
         """
 
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
+        print(f"in render timechart plotly  self.chart_sub_tables {self.chart_sub_tables}")
         if len(self.chart_sub_tables) < 1:
             return None
         chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)

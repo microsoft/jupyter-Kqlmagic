@@ -20,8 +20,21 @@ def get_valid_filename(name: str) -> str:
     underscores; and remove anything that is not an alphanumeric, dash,
     underscore, or dot.
     """
+    # name = str(name).strip().replace(' ', '_')
     name = str(name).strip().replace(' ', '_')
     return re.sub(r'(?u)[^-\w.]', '', name)
+
+
+def get_valid_filename_with_spaces(name: str) -> str:
+    """
+    Remove leading and trailing spaces; convert other spaces to
+    underscores; and remove anything that is not an alphanumeric, dash,
+    underscore, or dot.
+    """
+    # name = str(name).strip().replace(' ', '_')
+    name = str(name).strip()
+    return re.sub(r'(?u)[^-\w. ]', '', name)
+
 
 
 # Expression to match some_token and some_token="with spaces" (and similarly
@@ -73,7 +86,7 @@ def split_lex(text: str):
     return list(smart_split(text))
 
 
-def adjust_path_to_uri(_path: str):
+def adjust_path_to_uri(_path: str, spaces= False):
     prefix = ""
     path = _path.replace("\\", "/")
     if path.startswith("file:"):
@@ -98,13 +111,12 @@ def adjust_path_to_uri(_path: str):
         
 
     parts = path.split("/")
-    parts = [get_valid_filename(part) for part in parts]
+    parts = [get_valid_filename(part) for part in parts] if not spaces else [get_valid_filename_with_spaces(part) for part in parts]
     path = "/".join(parts)
     return prefix + path
 
-
-def adjust_path(_path: str):
-    path = adjust_path_to_uri(_path)
+def adjust_path(_path: str, spaces = False):
+    path = adjust_path_to_uri(_path, spaces= spaces)
     path = os.path.normpath(path)
     return path
 

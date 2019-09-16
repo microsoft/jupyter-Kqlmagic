@@ -123,7 +123,7 @@ class Display(object):
     @staticmethod
     def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None,isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
         if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]: 
-            url = file_path if file_path.startswith("http") else "file:///" + adjust_path_to_uri(Display.showfiles_base_path + "/" + file_path)
+            url = file_path if file_path.startswith("http") else "file:///" + Display.showfiles_base_path + "/" + adjust_path_to_uri(file_path) #base path is already adjusted to uri in KqlMagic init
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
             return None
@@ -153,8 +153,8 @@ class Display(object):
     @staticmethod
     def _html_to_file_path(html_str, file_name, **kwargs):
         file_path = Display.showfiles_folder_name + "/" + file_name + ".html"
-        full_file_name = Display.showfiles_base_path + "/" + file_path
-        full_file_name = adjust_path(full_file_name)
+        full_file_name = Display.showfiles_base_path + "/" + adjust_path(file_path) #base path is already adjusted to uri in KqlMagic init
+        # full_file_name = adjust_path(full_file_name)
         text_file = open(full_file_name, "w")
         text_file.write(html_str)
         text_file.close()

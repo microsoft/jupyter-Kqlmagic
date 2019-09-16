@@ -5,7 +5,7 @@
 # --------------------------------------------------------------------------
 
 """ Constants file. """
-
+import os
 class Constants(object):
     MINIMAL_PYTHON_VERSION_REQUIRED = "3.6"
     MAGIC_SOURCE_REPOSITORY_NAME = "https://github.com/Microsoft/jupyter-Kqlmagic"
@@ -29,7 +29,8 @@ class Constants(object):
     # SSO
     SSO_GC_INTERVAL_IN_SECS = 1 * HOUR_SECS
     SSO_ENV_VAR_NAME  = f"{MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS"
-    SSO_DB_KEY_PREFIX =        f"{MAGIC_CLASS_NAME.lower()}store/tokens/"
+    SSO_DB_KEY_PREFIX =       f"{MAGIC_CLASS_NAME.lower()}store/tokens/"
+    SSO_DB_KEY_PREFIX_STR = f"{MAGIC_CLASS_NAME.lower()}storetokens"
 
 class Schema(object):
     APPLICATION_INSIGHTS = "applicationinsights"

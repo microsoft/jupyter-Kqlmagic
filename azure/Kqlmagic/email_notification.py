@@ -27,7 +27,7 @@ class EmailNotification(object):
 
     @property
     def context(self):
-        return self._context or 'unknwon'
+        return self._context or 'unknown'
 
 
     def send_email(self, subject, message):
@@ -50,6 +50,7 @@ class EmailNotification(object):
         if self._port and self._smtp_server and self._sender_email and self._receiver_email and self._password:
             if self._is_email_format(self._sender_email) and self._is_email_format(self._receiver_email):
                 return True
+
         raise ValueError("""
             cannot notify device_code login by email because some email parameters are missing. 
             Set KQLMAGIC_CODE_NOTIFICATION_EMAIL in the following way: SMTPEndPoint: \" email server\"; SMTPPort: \"email port\";

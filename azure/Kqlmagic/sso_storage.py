@@ -34,9 +34,11 @@ _SUPPORTED_CRYPTO = [
 def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=no-method-argument
     encryption_keys_string = os.getenv(Constants.SSO_ENV_VAR_NAME)
     if not encryption_keys_string:
-        logger().debug(f"sso_storage.py ::get sso storage -environment variable {Constants.SSO_ENV_VAR_NAME} is not set")
-        # Display.showWarningMessage(f"Warning: SSO is not activated because environment variable {SSO_ENV_VAR_NAME} is not set")
-        return
+        encryption_keys_string = options.get("sso_encryption_keys") #for testing
+        if not encryption_keys_string:
+            logger().debug(f"sso_storage.py ::get sso storage -environment variable {Constants.SSO_ENV_VAR_NAME} is not set")
+            # Display.showWarningMessage(f"Warning: SSO is not activated because environment variable {SSO_ENV_VAR_NAME} is not set")
+            return
 
     key_vals = Parser.parse_and_get_kv_string(encryption_keys_string, {})
     cache_name = key_vals.get(SsoEnvVarParam.CACHE_NAME)  

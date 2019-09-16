@@ -452,20 +452,32 @@ class Display(object):
 
     @staticmethod
     def showSuccessMessage(msg, **options):
-        Display._showMessage(Display.getSuccessMessageHtml(msg))
+        if options.get("test_notebook_app") and options.get("test_notebook_app") !='none':
+            print(f"Success Message: {msg}")
+        else:
+            Display._showMessage(Display.getSuccessMessageHtml(msg))
 
 
     @staticmethod
     def showInfoMessage(msg, **options):
-        Display._showMessage(Display.getInfoMessageHtml(msg))
+        if options.get("test_notebook_app") and options.get("test_notebook_app") !='none':
+            print(f"Info Message: {msg}")
+        else:
+            Display._showMessage(Display.getInfoMessageHtml(msg))
 
 
     @staticmethod
     def showWarningMessage(msg, **options):
-        Display._showMessage(Display.getWarningMessageHtml(msg))
+        if options.get("test_notebook_app") and options.get("test_notebook_app") !='none':
+            print(f"Warning Message: {msg}")
+        else:
+            Display._showMessage(Display.getWarningMessageHtml(msg))
 
 
     @staticmethod
     def showDangerMessage(msg, **options):
-        Display._showMessage(Display.getDangerMessageHtml(msg))
+        if options.get("test_notebook_app") and options.get("test_notebook_app") !='none':
+            print(f"Danger Message: {msg}")
+        else:
+            Display._showMessage(Display.getDangerMessageHtml(msg))
 

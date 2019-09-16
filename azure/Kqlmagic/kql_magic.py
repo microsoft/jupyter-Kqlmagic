@@ -161,6 +161,12 @@ class Kqlmagic(Magics, Configurable):
         help=f"""Email details. Should be set by {Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL. Abbreviation: dcne
         the email details string format is: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text'"""
     )
+    sso_encryption_keys = Unicode(
+        "", 
+        config=True, 
+        help=f"""sso encryption details. Should be set by {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS. 
+        the sso details string format is: cachename='cachename';storage='ipythondb';crypto='dpapi'"""
+    )
 
     timeout = Int(
         None, 
@@ -348,6 +354,13 @@ class Kqlmagic(Magics, Configurable):
         except (AttributeError, ValueError) as e:
             message = "The 'palette_name' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
             raise TraitError(message)
+        return proposal["value"]
+
+    @validate("sso_encryption_keys")
+    def _valid_sso_encryption_keys(self, proposal):
+        TEST_GUID = "513d7874-4f50-4263-9556-aec382b7180a"
+        if TEST_GUID not in proposal["value"]:
+            raise TraitError("sso_encryption_keys cannot be set in config- only via environmental parameters.")
         return proposal["value"]
 
 

@@ -416,6 +416,7 @@ class Parser(object):
 
         "dcne": {"abbreviation": "devicecodenotificationemail"},
         "devicecodenotificationemail": {"flag": "device_code_notification_email", "type": "str", "config": "config.device_code_notification_email"},
+        "ssoencryptionkeys": {"flag": "sso_encryption_keys", "type": "str", "config": "config.sso_encryption_keys"}, #for testing
 
         "saveas": {"flag": "save_as", "type": "str", "init": "None"},
         "saveto": {"flag": "save_to", "type": "str", "init": "None"},

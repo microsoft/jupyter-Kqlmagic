@@ -19,7 +19,7 @@ class DictDbStorage(object):
 
     def __init__(self, db, options: dict, state=None):
         self.authority = options.get(SsoStorageParam.AUTHORITY) or ""
-        self.db = db or {}
+        self.db = db
         self.gc_ttl_in_secs = options.get(SsoStorageParam.GC_TTL_IN_SECS, 0) 
         self._crypto_obj = options.get(SsoStorageParam.CRYPTO_OBJ)
         self.db_key = self._get_db_key(options.get(SsoStorageParam.CACHE_NAME, "sso"), self._crypto_obj.suffix, self.authority)

@@ -582,7 +582,8 @@ class Kqlmagic(Magics, Configurable):
                     logger().debug("Kqlmagic::__init__ - fetch PyPi Kqlmagic latest version")
                     only_stable_version = True
                     pypi_version = get_pypi_latest_version(Constants.MAGIC_PACKAGE_NAME, only_stable_version)
-                    if pypi_version and compare_version(pypi_version, VERSION) > 0:
+                    ignore_current_version_post = True
+                    if pypi_version and compare_version(pypi_version, VERSION, ignore_current_version_post) > 0:
                         Display.showWarningMessage(
                             """You are using {0} version {1}, however version {2} is available. You should consider upgrading, execute '!pip install {0} --no-cache-dir --upgrade'. To see what's new click on the button below.""".format(
                                 Constants.MAGIC_PACKAGE_NAME, VERSION, pypi_version

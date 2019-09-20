@@ -102,7 +102,7 @@ from .constants import Constants
 from .help import MarkdownString
 
 
-VERSION = "0.1.106.post1"
+VERSION = "0.1.106.post2"
 
 
 def execute_version_command() -> MarkdownString:
@@ -117,7 +117,7 @@ def execute_version_command() -> MarkdownString:
     return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} version: {VERSION}")
 
 
-def get_pypi_latest_version(package_name: str, only_stable_version) -> str:
+def get_pypi_latest_version(package_name: str, only_stable_version: bool) -> str:
     """ Retreives latest package version string for PyPI.
 
     Parameters
@@ -159,12 +159,12 @@ def _get_latest_stable_version(json_response: str) -> bool:
     if len(stable_versions)  > 0:
         latest_stable_version = stable_versions[0] 
         for v in stable_versions:
-            if compare_version(v, latest_stable_version) > 0:
+            if compare_version(v, latest_stable_version, False) > 0:
                 latest_stable_version = v
     return latest_stable_version
 
 
-def compare_version(other: str, version) -> int:
+def compare_version(other: str, version: str, ignore_current_version_post: bool) -> int:
     """ Compares current VERSION to another version string.
 
     Parameters
@@ -173,6 +173,8 @@ def compare_version(other: str, version) -> int:
         The other version to compare with, assume string "X.Y.Z" X,Y,Z integers
     version : str
         The current version to compare with, assume string "X.Y.Z" X,Y,Z integers
+    ignore_current_version_post : bool
+        If set the comparison should ignore current version post versions
 
 
     Returns
@@ -208,7 +210,10 @@ def compare_version(other: str, version) -> int:
             # any value not int is interpreted as less than 0
             elif o_int is None:
                 if o_val.startswith("post"):
-                    return 1 if v_int == 0 else -1
+                    if v_int == 0:
+                        return 0 if ignore_current_version_post else 1
+                    else:
+                        return -1
                 if o_val.startswith("dev"):
                     return -1
                 o_int = _pre_release_sub_version(o_val)

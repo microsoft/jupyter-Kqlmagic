@@ -24,7 +24,7 @@
 
   - ### Fix
 
-    - allow file names wit spaces
+    - allow file names with spaces
 
   
 ## Version 0.1.105

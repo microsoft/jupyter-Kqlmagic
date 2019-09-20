@@ -102,7 +102,7 @@ from .constants import Constants
 from .help import MarkdownString
 
 
-VERSION = "0.1.106"
+VERSION = "0.1.106.post1"
 
 
 def execute_version_command() -> MarkdownString:

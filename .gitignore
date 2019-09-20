@@ -112,6 +112,9 @@ venv.bak/
 # private files
 /private_local
 
+# private notebooks
+/my notebooks
+
 
 # Kqlmagic tests
 /azure/tests/tests_results.xml

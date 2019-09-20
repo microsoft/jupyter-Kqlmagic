@@ -1,5 +1,32 @@
 # HISTORY
 
+## Version 0.1.106
+
+  - ### New support for Azure Data Explorer Client Request Properties
+
+    - Many client request properties can be set using the set operator, as part of the query.
+    However, some properties can be set only in the request.
+    - To set client request properties in the request, use the same syntax as kqlmagic options, but instead of using the '-' prefix use the '+' as prefix.
+      - example: %kql +servertimeout='30m' {your-query}
+    - Client request properties can also be set by using the query_properties option. It should be set a dictionary with the properties values.
+  
+    - to see the full list of the client request properties try %kql --help "client-request-properties"
+
+  - ### New help information
+
+    - help on how to use Kqlmagic behind proxies. try %kql --help "proxies"
+    - help on how to use Client Request Properties, and properties list. try %kql --help "client-request-properties"
+    - help on installing Kqlmagic. try %kql --help "kqlmagic-install"
+    - help to quick access Kqlmagic source. opens Kqlmagic github. try %kql --help "kqlmagic-github"
+    - help to quick access Kqlmagic readme. Opens Kqlmagic readme file. try %kql --help "kqlmagic-readme"
+    - help to quick access Kqlmagic license. Opens Kqlmagic license file. try %kql --help "kqlmagic-license"
+    - help to quick access Kqlmagic contributors list. Opens Kqlmagic contributors file. try %kql --help "kqlmagic-contributors"
+
+  - ### Fix
+
+    - allow file names wit spaces
+
+  
 ## Version 0.1.105
 
   - ### New device_code login notification options

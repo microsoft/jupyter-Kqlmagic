@@ -170,15 +170,15 @@ class KqlTableResponse(object):
         return self.data_table.rows_count > 0
 
 
-    def to_dataframe(self, raise_errors=True):
+    def to_dataframe(self, use_dask = False, chunksize = 1000, raise_errors=True):
         """Returns Pandas data frame."""
-
         if self.data_table.columns_count == 0 or self.data_table.rows_count == 0:
             # return pandas.DataFrame()
             pass
 
         frame = pandas.DataFrame(self.data_table.rows, columns=self.data_table.columns_name)
-
+        if use_dask:
+            frame = dd.from_pandas(frame, chunksize=chunksize)
         for (idx, col_name) in enumerate(self.data_table.columns_name):
             col_type = self.data_table.columns_type[idx].lower()
             if col_type == "timespan":
@@ -191,15 +191,18 @@ class KqlTableResponse(object):
                 pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
                 # NA type promotion
                 if pandas_type == "int64" or pandas_type == "int32":
-                    for i in range(0, len(frame[col_name])):
-                        if frame[col_name][i] is None or str(frame[col_name][i]) == "nan":
+                    for _, elem in frame[col_name].iteritems():
+                        if elem is None or str(elem)=="nan":
                             pandas_type = "float64"
                             break
                 elif pandas_type == "bool":
-                    for i in range(0, len(frame[col_name])):
-                        if frame[col_name][i] is None or str(frame[col_name][i]) == "nan":
+                    for _, elem in frame[col_name].iteritems():
+                        if elem is None or str(elem)=="nan":
                             pandas_type = "object"
                             break
+                if use_dask:
+                    frame[col_name] = frame[col_name].astype(pandas_type)
+                else:
                 frame[col_name] = frame[col_name].astype(pandas_type, errors="raise" if raise_errors else "ignore")
         return frame
 

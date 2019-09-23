@@ -68,6 +68,7 @@ if dpapi_installed:
 
 
         def encrypt(self, data: str)-> bytes:
+            logger().debug(f"DpapiCrypto(object)::encrypt(self, data)")
             if data:
                 data_blob = self._toBlob(data)
                 encrypted_blob = DATA_BLOB()
@@ -77,6 +78,7 @@ if dpapi_installed:
 
 
         def decrypt(self, encrypted_data_bytes: bytes)-> str:
+            logger().debug(f"DpapiCrypto(object)::decrypt(self, encrypted_data_bytes)")
             if encrypted_data_bytes:
                 encrypted_data_blob = self._toBlob(encrypted_data_bytes)
                 data_blob = DATA_BLOB()

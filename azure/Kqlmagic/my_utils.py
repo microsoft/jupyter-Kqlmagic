@@ -14,7 +14,7 @@ import os
 #
 # From https://github.com/django/django/blob/master/django/utils/text.py
 #
-def get_valid_filename(name: str) -> str:
+def get_valid_name(name: str) -> str:
     """
     Remove leading and trailing spaces; convert other spaces to
     underscores; and remove anything that is not an alphanumeric, dash,
@@ -86,7 +86,7 @@ def split_lex(text: str):
     return list(smart_split(text))
 
 
-def adjust_path_to_uri(_path: str, spaces= False):
+def convert_to_common_path_obj(_path: str):
     prefix = ""
     path = _path.replace("\\", "/")
     if path.startswith("file:"):
@@ -109,14 +109,20 @@ def adjust_path_to_uri(_path: str, spaces= False):
         prefix = "//"
         path = path[2:]
         
-
     parts = path.split("/")
-    parts = [get_valid_filename(part) for part in parts] if not spaces else [get_valid_filename_with_spaces(part) for part in parts]
+    # parts = [get_valid_name(part) for part in parts] if not allow_spaces else [get_valid_filename_with_spaces(part) for part in parts]
+    parts = [get_valid_filename_with_spaces(part) for part in parts]
     path = "/".join(parts)
-    return prefix + path
+    return {"prefix": prefix, "path": path}
 
-def adjust_path(_path: str, spaces = False):
-    path = adjust_path_to_uri(_path, spaces= spaces)
+
+def adjust_path_to_uri(_path: str) -> str:
+    path_obj = convert_to_common_path_obj(_path)
+    return path_obj.get("prefix") + path_obj.get("path")
+
+
+def adjust_path(_path: str) -> str:
+    path = adjust_path_to_uri(_path)
     path = os.path.normpath(path)
     return path
 

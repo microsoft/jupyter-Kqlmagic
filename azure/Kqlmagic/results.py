@@ -130,7 +130,8 @@ class FileResultDescriptor(bytes):
             return self if self.format in FileResultDescriptor.FILE_BINARY_FORMATS else "".join(chr(x) for x in self)
         else:
             print(self._file_location_message())
-            return open(self.file_or_image, "rb" if self.format in self.FILE_BINARY_FORMATS else "r").read()
+            filename = adjust_path(self.file_or_image)
+            return open(filename, "rb" if self.format in self.FILE_BINARY_FORMATS else "r").read()
 
 
     def _file_location_message(self):
@@ -306,6 +307,7 @@ class ResultSet(list, ColumnGuesserMixin):
     def title(self):
         return self.visualization_properties.get(VisualizationKeys.TITLE)
 
+
     def deep_link(self, qld_param: str=None):
         if (qld_param and qld_param not in ["Kusto.Explorer", "Kusto.WebExplorer"]):
             raise ValueError('Unknow deep link destination, the only supported are: ["Kusto.Explorer", "Kusto.WebExplorer"]')
@@ -314,8 +316,8 @@ class ResultSet(list, ColumnGuesserMixin):
         if deep_link_url is not None: #only use deep links for kusto connection
             qld = options.get("query_link_destination").lower().replace('.', '_')
             isCloseWindow = options.get("query_link_destination") == "Kusto.Explorer"
-            html_str = Display._get_Launch_page_html(f"query_link_{qld}", deep_link_url, isCloseWindow, False, **self.options)
-            Display.show_html(html_str)
+            html_obj = Display.get_show_deeplink_html_obj(f"query_link_{qld}", deep_link_url, isCloseWindow, **self.options)
+            return html_obj
         else:
             raise ValueError('Deep link not supported for this connection, only Azure Data Explorer connections are supported')
         return None
@@ -588,8 +590,8 @@ class ResultSet(list, ColumnGuesserMixin):
             fig = self._getChartHtml(window_mode=False, **_options).get("fig")
             if fig is not None:
 
-                file = params.get("filename")
-                file_or_image_bytes = self._plotly_fig_to_image(fig, file, **params)
+                filename = adjust_path(params.get("filename"))
+                file_or_image_bytes = self._plotly_fig_to_image(fig, filename, **params)
 
                 if file_or_image_bytes:
 
@@ -738,25 +740,25 @@ class ResultSet(list, ColumnGuesserMixin):
         return {}
 
 
-    def _plotly_fig_to_image(self, fig, file, **kwargs):
+    def _plotly_fig_to_image(self, fig, filename, **kwargs):
         params = kwargs or {}
         try:
-            if file: #requires plotly orca package
+            if filename: #requires plotly orca package
 
                 fig.write_image(
-                    file, 
+                    adjust_path(filename),
                     format=params.get("format"), 
                     scale=params.get("scale"), width=params.get("width"), height=params.get("height")
                 )
                 # plotly.io.write_image(
                 #     fig, file, format=params.get("format"), scale=params.get("scale"), width=params.get("width"), height=params.get("height")
                 # )
-                return file        
+                return filename        
             else:
                 return plotly.io.to_image(
                     fig, format=params.get("format"), scale=params.get("scale"), width=params.get("width"), height=params.get("height")
                 )
-        except Exception as e:
+        except:
             return None
 
 

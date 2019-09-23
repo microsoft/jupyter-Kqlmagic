@@ -442,8 +442,8 @@ class Kqlmagic(Magics, Configurable):
         if options.get("popup_window"):
             schema_file_path  = Database_html.get_schema_file_path(conn, **options)
             conn_name = conn.kql_engine.get_conn_name() if isinstance(conn, CacheEngine) else conn.get_conn_name()
-            button_text = "popup schema " + conn_name
-            window_name = "_" + conn_name.replace("@", "_at_") + "_schema"
+            button_text = f"popup schema {conn_name}"
+            window_name = f"_{conn_name.replace('@', '_at_')}_schema"
             html_obj = Display.get_show_window_html_obj(window_name, schema_file_path, button_text=button_text, onclick_visibility="visible", **options)
             return html_obj
         else:
@@ -484,13 +484,13 @@ class Kqlmagic(Magics, Configurable):
 
         logger().debug("Kqlmagic::__init__ - set temp folder")
         folder_name = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.temp_folder_name")
-        showfiles_folder_Full_name = adjust_path(root_path, spaces=True) + "/" + adjust_path(folder_name) #dont remove spaces from root directory
+        showfiles_folder_Full_name = adjust_path(f"{root_path}/{folder_name}") #dont remove spaces from root directory
         if not os.path.exists(showfiles_folder_Full_name):
             os.makedirs(showfiles_folder_Full_name)
         # ipython will removed folder at shutdown or by restart
         ip.tempdirs.append(showfiles_folder_Full_name)
-        Display.showfiles_base_path = adjust_path_to_uri(root_path, spaces = True) #dont remove spaces from base_path
-        Display.showfiles_folder_name = folder_name
+        Display.showfiles_base_path = adjust_path_to_uri(root_path)
+        Display.showfiles_folder_name = adjust_path_to_uri(folder_name)
 
         Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
         
@@ -580,8 +580,10 @@ class Kqlmagic(Magics, Configurable):
             if options.get("check_magic_version"):
                 try:
                     logger().debug("Kqlmagic::__init__ - fetch PyPi Kqlmagic latest version")
-                    pypi_version = get_pypi_latest_version(Constants.MAGIC_PACKAGE_NAME)
-                    if pypi_version and compare_version(pypi_version) > 0:
+                    only_stable_version = True
+                    pypi_version = get_pypi_latest_version(Constants.MAGIC_PACKAGE_NAME, only_stable_version)
+                    ignore_current_version_post = True
+                    if pypi_version and compare_version(pypi_version, VERSION, ignore_current_version_post) > 0:
                         Display.showWarningMessage(
                             """You are using {0} version {1}, however version {2} is available. You should consider upgrading, execute '!pip install {0} --no-cache-dir --upgrade'. To see what's new click on the button below.""".format(
                                 Constants.MAGIC_PACKAGE_NAME, VERSION, pypi_version

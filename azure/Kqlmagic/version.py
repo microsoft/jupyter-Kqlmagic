@@ -102,7 +102,7 @@ from .constants import Constants
 from .help import MarkdownString
 
 
-VERSION = "0.1.105"
+VERSION = "0.1.106.post2"
 
 
 def execute_version_command() -> MarkdownString:
@@ -117,7 +117,7 @@ def execute_version_command() -> MarkdownString:
     return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} version: {VERSION}")
 
 
-def get_pypi_latest_version(package_name: str) -> str:
+def get_pypi_latest_version(package_name: str, only_stable_version: bool) -> str:
     """ Retreives latest package version string for PyPI.
 
     Parameters
@@ -137,29 +137,44 @@ def get_pypi_latest_version(package_name: str) -> str:
     """
 
     #
-    # submit request
+    # reterive package data
     #
 
-    api_url = f"https://pypi.org/pypi/{package_name}/json"
-    response = requests.get(api_url)
+    json_response = _retreive_package_from_pypi(package_name)
+    version = json_response.get("info").get("version") if json_response and json_response.get("info") else None
 
-    #
-    # handle response
-    #
-
-    response.raise_for_status()
-
-    json_response = response.json()
-    return json_response["info"]["version"]
+    if only_stable_version and version and not _is_stable_version(version):
+        version = _get_latest_stable_version(json_response) or version
+    return version
 
 
-def compare_version(other: str) -> int:
+def _is_stable_version(version: str) -> bool:
+    v = _normalize_version(version, 0)
+    return len([True for p in v if to_int(p) is None and not p.startswith("post")]) == 0
+
+
+def _get_latest_stable_version(json_response: str) -> bool:
+    latest_stable_version = None
+    stable_versions = [v for v in json_response['releases'].keys() if _is_stable_version(v)]
+    if len(stable_versions)  > 0:
+        latest_stable_version = stable_versions[0] 
+        for v in stable_versions:
+            if compare_version(v, latest_stable_version, False) > 0:
+                latest_stable_version = v
+    return latest_stable_version
+
+
+def compare_version(other: str, version: str, ignore_current_version_post: bool) -> int:
     """ Compares current VERSION to another version string.
 
     Parameters
     ----------
     other : str
         The other version to compare with, assume string "X.Y.Z" X,Y,Z integers
+    version : str
+        The current version to compare with, assume string "X.Y.Z" X,Y,Z integers
+    ignore_current_version_post : bool
+        If set the comparison should ignore current version post versions
 
 
     Returns
@@ -170,34 +185,117 @@ def compare_version(other: str) -> int:
         1 if VERSION lower than other
     """
 
-    v = VERSION.strip(".")
-    o = other.strip(".")
+    v = _normalize_version(version, len(other) - len(version))
+    o = _normalize_version(other, len(VERSION) - len(other))
     if v == o:
         return 0
 
     for idx, v_val in enumerate(v):
-        if idx < len(o):
-            o_val = o[idx]
-            if o_val != v_val:
-                v_int = to_int(v_val)
-                o_int = to_int(o_val)
-                # both are int, so they can be compared, and also be equal ('05' == '5')
-                if o_int is not None and v_int is not None:
-                    if v_int != o_int:
-                        return -1 if v_int > o_int else 1
-                # both are not int, compare is determined by lexical string compare
-                elif o_int is None and v_int is None:
-                    return -1 if v_val > o_val else 1
-                # any value not int is interpreted as less than 0
-                else:
-                    return -1 if o_int is None else 1
+        o_val = o[idx]
+        if o_val != v_val:
+            v_int = to_int(v_val)
+            o_int = to_int(o_val)
+            # both are int, so they can be compared, and also be equal ('05' == '5')
+            if o_int is not None and v_int is not None:
+                if v_int == o_int:
+                    continue
+                if v_int != o_int:
+                    return 1 if o_int > v_int else -1
+            # both are not int, compare is determined by lexical string compare
+            elif o_int is None and v_int is None:
+                if v_val == o_val:
+                    continue
+                if v_val != o_val:
+                    return 1 if o_val > v_val else -1
+            # any value not int is interpreted as less than 0
+            elif o_int is None:
+                if o_val.startswith("post"):
+                    if v_int == 0:
+                        return 0 if ignore_current_version_post else 1
+                    else:
+                        return -1
+                if o_val.startswith("dev"):
+                    return -1
+                o_int = _pre_release_sub_version(o_val)
+                return 1 if o_int > v_int else -1
+            else:
+                if v_val.startswith("post"):
+                    return -1 if o_int == 0 else 1
+                if v_val.startswith("dev"):
+                    return 1
+                v_int = _pre_release_sub_version(v_val)
+                return -1 if v_int > o_int else 1
+    return 0
 
-    if len(o) == len(v):
-        return 0
-    elif len(o) > len(v):
-        return 1 if any([to_int(o_val) is None or to_int(o_val) > 0 for o_val in o[len(v) :]]) else 0
-    else:
-        return -1 if any([to_int(v_val) is None or to_int(v_val) > 0 for v_val in v[len(o) :]]) else 0
+
+def _pre_release_sub_version(v: str):
+    parts = v.split('a', 1)
+    if len(parts) != 2:
+        parts = v.split('b', 1)
+    if len(parts) != 2:
+        parts = v.split('c', 1)
+    return to_int(parts[0]) or 0
+
+
+def _normalize_version(v: str, padding_len: int) -> list:
+
+    # case insensitive, and remove trailing whitespaces
+    v = v.strip().lower()
+
+    # if starts with "v" remove it
+    v = v[1:] if v.startswith("v") else v
+
+    # handle epoch prefix, if doesn't exist assume 0
+    v = v.replace("!", ".") if len(v.split("!", 1)) == 2 else f"0.{v}"
+
+    # if post or dev use "-" or "_" instead of "." replace
+    v = v.replace("-post",".post").replace("_post",".post").replace("-dev",".dev").replace("_dev",".dev")
+
+    # ignore all the other "-" or "_" delimiters
+    v = v.replace("-", "").replace("_", "")
+
+    # replace the exploct pre version to "a", "b", "c" characters
+    v = v.replace("alpha", "a").replace("beta", "b").replace("pre", "c").replace("rc", "c")
+
+    # if pre-release characters after "." remove "."
+    v = v.replace(".a", "0a").replace(".b", "0b").replace(".c", "0c")
+
+    if padding_len > 0:
+        for idx in range(padding_len):
+            v = f"{v}.0"
+
+    return v.split(".")
+
+
+def _retreive_package_from_pypi(package_name: str) -> dict:
+    """ Retreives package data from PyPI.
+
+    Parameters
+    ----------
+    package_name : str
+        Name of package as define in PyPI.
+
+    Returns
+    -------
+    dict or None
+        The package PyPI data, or None if fails to retrieve
+
+    Raises
+    ------
+    RequestsException
+        If request to PyPI fails.
+    """
+
+    api_url = f"https://pypi.org/pypi/{package_name}/json"
+    response = requests.get(api_url)
+
+    #
+    # handle response
+    #
+
+    response.raise_for_status()
+    json_response = response.json()
+    return json_response
 
 
 def is_int(str_val: str) -> bool:

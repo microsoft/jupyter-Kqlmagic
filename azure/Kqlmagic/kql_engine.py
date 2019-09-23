@@ -12,7 +12,7 @@ import functools
 
 from .kql_proxy import KqlResponse
 from .constants import ConnStrKeys
-from .my_utils import get_valid_filename, adjust_path, safe_str
+from .my_utils import get_valid_name, adjust_path, safe_str
 from .parser import Parser
 from .log import logger
 
@@ -96,7 +96,7 @@ class KqlEngine(object):
 
 
     def createDatabaseFriendlyName(self, dname):
-        return get_valid_filename(dname)
+        return get_valid_name(dname)
 
 
     def createClusterFriendlyName(self, cname):
@@ -348,7 +348,7 @@ class KqlEngine(object):
     def _set_and_check_for_alias(self, parsed_conn_kv: dict, friendly_name: str) -> None:
         alias = parsed_conn_kv.get(ConnStrKeys.ALIAS) or friendly_name
         if alias is not None:
-            if len(alias) < 1 or alias != get_valid_filename(alias):
+            if len(alias) < 1 or alias != get_valid_name(alias):
                 raise KqlEngineError(f"key {ConnStrKeys.ALIAS} cannot be empty or anything that is not an alphanumeric, dash, underscore, or dot. alias: <{alias}>")
         self.alias = alias
         logger().debug(f"kql_engine.py - _set_and_check_for_alias - setting attributes - alias: {self.alias}")

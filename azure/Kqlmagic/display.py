@@ -8,6 +8,7 @@ import uuid
 import webbrowser
 import json
 import datetime
+import urllib.parse
 
 
 from IPython.core.display import display, HTML
@@ -17,7 +18,7 @@ from pygments.lexers.data import JsonLexer
 from pygments.formatters.terminal import TerminalFormatter
 
 
-from .my_utils import adjust_path, adjust_path_to_uri
+from .my_utils import adjust_path, adjust_path_to_uri, get_valid_filename_with_spaces
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -121,9 +122,25 @@ class Display(object):
 
 
     @staticmethod
+    def get_show_deeplink_html_obj(window_name, deep_link_url:str, isCloseWindow: bool, **options):
+            html_str = Display._get_Launch_page_html(window_name, deep_link_url, isCloseWindow, False, **options)
+            if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]:
+                file_name = Display._get_name()
+                file_path = Display._html_to_file_path(html_str, file_name)
+                url = file_path if file_path.startswith("http") else adjust_path_to_uri(f"file:///{Display.showfiles_base_path}/{file_path}") #base path is already adjusted to uri in KqlMagic init
+                url = urllib.parse.quote(url)
+                webbrowser.open(url, new=1, autoraise=True)
+                Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
+                return None
+            else:
+                return HTML(html_str)
+
+
+    @staticmethod
     def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None,isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
         if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]: 
-            url = file_path if file_path.startswith("http") else "file:///" + Display.showfiles_base_path + "/" + adjust_path_to_uri(file_path) #base path is already adjusted to uri in KqlMagic init
+            url = file_path if file_path.startswith("http") else adjust_path_to_uri(f"file:///{Display.showfiles_base_path}/{file_path}") #base path is already adjusted to uri in KqlMagic init
+            url = urllib.parse.quote(url)
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
             return None
@@ -152,9 +169,8 @@ class Display(object):
 
     @staticmethod
     def _html_to_file_path(html_str, file_name, **kwargs):
-        file_path = Display.showfiles_folder_name + "/" + file_name + ".html"
-        full_file_name = Display.showfiles_base_path + "/" + adjust_path(file_path) #base path is already adjusted to uri in KqlMagic init
-        # full_file_name = adjust_path(full_file_name)
+        file_path = f"{Display.showfiles_folder_name}/{file_name}.html"
+        full_file_name = adjust_path(f"{Display.showfiles_base_path}/{file_path}")
         text_file = open(full_file_name, "w")
         text_file.write(html_str)
         text_file.close()
@@ -179,7 +195,7 @@ class Display(object):
         notebooks_host = 'text' if isText else (Display.notebooks_host or "")
         onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
         button_text = button_text or "popup window"
-        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_")
+        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
         if window_name[0] in "0123456789":
             window_name = "w_" + window_name
         window_params = "fullscreen=no,directories=no,location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,titlebar=no,toolbar=no,"
@@ -287,7 +303,7 @@ class Display(object):
     def _get_Launch_page_html(window_name, file_path, isCloseWindow, isText, **kwargs):
         # if isText is True, file_path is the text
         notebooks_host = 'text' if isText else (Display.notebooks_host or "")
-        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_")
+        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
         if window_name[0] in "0123456789":
             window_name = "w_" + window_name
         close_window_sleep = '5000' if isCloseWindow else '0'

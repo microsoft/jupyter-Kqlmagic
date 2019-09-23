@@ -80,7 +80,8 @@ class DictDbStorage(object):
 
     def restore(self) -> str:
         '''restore cache state from db'''
-        if self.gc_ttl_in_secs>0 and (self.last_clear_time + timedelta(seconds=self.gc_ttl_in_secs)) < datetime.utcnow():
+        logger().debug(f"DictDbStorage(object)::restore(self) -> str")
+        if self.gc_ttl_in_secs > 0 and (self.last_clear_time + timedelta(seconds=self.gc_ttl_in_secs)) < datetime.utcnow():
             self.last_clear_time = datetime.utcnow()
             self._db_gc()
 
@@ -92,13 +93,14 @@ class DictDbStorage(object):
             return
 
         try:
-            return self._crypto.decrypt(state_encrypted.get("data"))
+            value = self._crypto_obj.decrypt(state_encrypted.get("data"))
+            return value
 
         except:
             try: 
                 self.db_key_conflict = True
 
-                self._crypto.verify(state_encrypted) 
+                self._crypto_obj.verify(state_encrypted) 
                 Display.showWarningMessage("Warning: SSO disabled, due to cache_name conflict")
 
             except: #the token has bad form

@@ -14,11 +14,17 @@ from markdown import markdown
 from .constants import Constants
 
 
-_KQL_URL = "http://aka.ms/kdocs"
-_APPINSIGHTS_URL= "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-overview?toc=/azure/azure-monitor/toc.json"
-_LOGANALYTICS_URL = "https://docs.microsoft.com/en-us/azure/log-analytics/log-analytics-queries?toc=/azure/azure-monitor/toc.json"
-_AZUREMONITOR_URL = "https://docs.microsoft.com/en-us/azure/azure-monitor/"
-_KUSTO_URL = "https://docs.microsoft.com/en-us/azure/data-explorer/"
+_KQL_URL                   = "http://aka.ms/kdocs"
+_APPINSIGHTS_URL           = "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-overview?toc=/azure/azure-monitor/toc.json"
+_LOGANALYTICS_URL          = "https://docs.microsoft.com/en-us/azure/log-analytics/log-analytics-queries?toc=/azure/azure-monitor/toc.json"
+_AZUREMONITOR_URL          = "https://docs.microsoft.com/en-us/azure/azure-monitor/"
+_KUSTO_URL                 = "https://docs.microsoft.com/en-us/azure/data-explorer/"
+_KQLMAGIC_DOWNLOADS_URL    = "https://pepy.tech/project/Kqlmagic"
+_KQLMAGIC_INSTALL_URL      = "https://pypi.org/project/Kqlmagic/"
+_KQLMAGIC_README_URL       = "https://github.com/microsoft/jupyter-Kqlmagic/blob/master/README.md"
+_KQLMAGIC_GITHUB_URL       = "https://github.com/microsoft/jupyter-Kqlmagic"
+_KQLMAGIC_LICENSE_URL      = "https://github.com/microsoft/jupyter-Kqlmagic/blob/master/LICENSE.TXT"
+_KQLMAGIC_CONTRIBUTORS_URL = "https://github.com/microsoft/jupyter-Kqlmagic/blob/master/CONTRIBUTORS.md"
 
 _NEED_SUPPORT_SECTION = """## Need Support?
 - **Have a feature request for Kqlmagic?** Please post it on [User Voice](https://feedback.azure.com/forums/913690-azure-monitor) to help us prioritize
@@ -29,6 +35,7 @@ _NEED_SUPPORT_SECTION = """## Need Support?
 
 
 _HELP_OPTIONS = ""
+
 
 _HELP_COMMANDS = """## Overview
 Except submitting kql queries, few other commands are included that may help using the Kqlmagic.<br>
@@ -98,9 +105,12 @@ The following commands are supported:<br>
 ```%kql --palettes -palette_desaturation 0.75```
 ```%kql pageViews | count```
 """
-_FAQ = """
-"""
-_USAGE = """## Usage:
+
+
+_FAQ = ""
+
+
+_USAGE = f"""## Usage:
 **line usage:** ```%kql [command] [conn] [result <<] [options] [query]```
 
 **cell usage:** ```%%kql [conn] [result <<] [options] [query] [[EMPTY-LINE [result <<] [options]]*```<br>
@@ -159,9 +169,10 @@ _USAGE = """## Usage:
 
 * [Choose colors palette for your Kqlmagic query chart result](https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FColorYourCharts.ipynb)
 
-""" +_NEED_SUPPORT_SECTION
+{_NEED_SUPPORT_SECTION}"""
 
-_HELP_HELP = """## Overview
+
+_HELP_HELP = f"""## Overview
 Help command is a tool to get more information on a topics that are relevant to Kqlmagic.
 t
 usage: ```%kql --help "topic"```<br>
@@ -173,7 +184,7 @@ usage: ```%kql --help "topic"```<br>
 - **conn** - Lists the available connection string variation, and how their are used to authenticatie to data sources.<br>
 <br>
 
-- **query** / **kql** - [Reference to resources Kusto Queru language, aka kql, documentation](""" +_KQL_URL+ """)<br>
+- **query** / **kql** - [Reference to resources Kusto Query language, aka kql, documentation]({_KQL_URL})<br>
 <br>
 
 - **options** - Lists the available options, and their behavior impact on the submit query command.<br>
@@ -182,32 +193,53 @@ usage: ```%kql --help "topic"```<br>
 - **commands** - Lists the available commands, and what they do.<br>
 <br>
 
+- **proxies** - How to use Kqlmagic via proxies.<br>
+<br>
+
+- **client-request-properties** - How to use Client Request properties, and properties list.<br>
+<br>
+
 - **faq** - Lists frequently asked quetions and answers.<br>
+<br>
+
+- **kqlmagic-downloads** - [Reference to Kqlmagic downloads data]({_KQLMAGIC_DOWNLOADS_URL})<br>
+<br>
+
+- **kqlmagic-readme** - [Reference to Kqlmagic readme]({_KQLMAGIC_README_URL})<br>
+<br>
+
+- **kqlmagic-github** - [Reference to Kqlmagic github]({_KQLMAGIC_GITHUB_URL})<br>
+<br>
+
+- **kqlmagic-license** - [Reference to Kqlmagic license]({_KQLMAGIC_LICENSE_URL})<br>
+<br>
+
+- **kqlmagic-contributors** - [Reference to Kqlmagic contributors]({_KQLMAGIC_CONTRIBUTORS_URL})<br>
 <br>
 
 - **help** - This help.<br>
 <br>
 
-- **AzureMonitor**- [Reference to resources Azure Monitor tools](""" +_AZUREMONITOR_URL+ """)<br>
-Azure Monitor, which now includes Log Analytics and Application Insights, provides sophisticated tools for collecting and analyzing telemetry that allow you to maximize the performance and availability of your cloud and on-premises resources and applications. It helps you understand how your applications are performing and proactively identifies issues affecting them and the resources they depend on.
+- **AzureMonitor**- [Reference to resources Azure Monitor tools]({_AZUREMONITOR_URL})<br>
+Azure Monitor, which now includes Log Analytics and Application Insights, provides sophisticated tools for collecting and analyzing telemetry that allow you to maximize the performance and availability of your cloud and on-premises resources and applications. It helps you understand how your applications are performing and proactively identifies issues affecting them and the resources they depend on.<br>
 <br>
 
-- **AzureDataExplorer** / **kusto**- [Reference to resources Azure Data Explorer (kusto) service](""" +_KUSTO_URL+ """)<br>
-Azure Data Explorer is a fast and highly scalable data exploration service for log and telemetry data. It helps you handle the many data streams emitted by modern software, so you can collect, store, and analyze data. Azure Data Explorer is ideal for analyzing large volumes of diverse data from any data source, such as websites, applications, IoT devices, and more.
+- **AzureDataExplorer** / **kusto**- [Reference to resources Azure Data Explorer (kusto) service]({_KUSTO_URL})<br>
+Azure Data Explorer is a fast and highly scalable data exploration service for log and telemetry data. It helps you handle the many data streams emitted by modern software, so you can collect, store, and analyze data. Azure Data Explorer is ideal for analyzing large volumes of diverse data from any data source, such as websites, applications, IoT devices, and more.<br>
 <br>
 
-- **LogAnalytics**- [Reference to resources Log Analytics service](""" +_LOGANALYTICS_URL+ """)<br>
-Log data collected by Azure Monitor is stored in Log Analytics which collects telemetry and other data from a variety of sources and provides a query language for advanced analytics.
+- **LogAnalytics**- [Reference to resources Log Analytics service]({_LOGANALYTICS_URL})<br>
+Log data collected by Azure Monitor is stored in Log Analytics which collects telemetry and other data from a variety of sources and provides a query language for advanced analytics.<br>
 <br>
 
-- **ApplicationInsights** / **AppInsights**- [Reference to resources Application Insights service](""" +_APPINSIGHTS_URL+ """)<br>
-Application Insights is an extensible Application Performance Management (APM) service for web developers on multiple platforms. Use it to monitor your live web application. It will automatically detect performance anomalies. It includes powerful analytics tools to help you diagnose issues and to understand what users actually do with your app. It's designed to help you continuously improve performance and usability. It works for apps on a wide variety of platforms including .NET, Node.js and J2EE, hosted on-premises or in the cloud. It integrates with your DevOps process, and has connection points to a variety of development tools. It can monitor and analyze telemetry from mobile apps by integrating with Visual Studio App Center.
+- **ApplicationInsights** / **AppInsights**- [Reference to resources Application Insights service]({_APPINSIGHTS_URL})<br>
+Application Insights is an extensible Application Performance Management (APM) service for web developers on multiple platforms. Use it to monitor your live web application. It will automatically detect performance anomalies. It includes powerful analytics tools to help you diagnose issues and to understand what users actually do with your app. It's designed to help you continuously improve performance and usability. It works for apps on a wide variety of platforms including .NET, Node.js and J2EE, hosted on-premises or in the cloud. It integrates with your DevOps process, and has connection points to a variety of development tools. It can monitor and analyze telemetry from mobile apps by integrating with Visual Studio App Center.<br>
 <br>
 
+{_NEED_SUPPORT_SECTION}"""
 
-""" +_NEED_SUPPORT_SECTION
 
-_HELP_CONN = """## Overview
+_HELP_CONN = f"""## Overview
 - To get data from Azure Monitor data resources, the user need to authenticate itself, and if it has the right permission, 
 he would be able to query that data resource.
 - The current supported data sources are: Azure Data Explorer (kusto) clusters, Application Insights, Log Analytics and Cache.
@@ -289,9 +321,10 @@ Notes:<br>
 - if tenant is missing, and a previous connection was established the tenant will be inherited.<br>
 - **a not quoted value, is a python expression, that is evaluated and its result is used as the value. This is how you can parametrize the connection string**
 
+{_NEED_SUPPORT_SECTION}"""
 
-""" +_NEED_SUPPORT_SECTION
 
+_HELP_CACHE = ""
 
 
 _HELP_SSO = f"""## Overview
@@ -307,11 +340,96 @@ he would be able to query that data resource.
     3. Use this environmental parameter again (with your parameters) to use SSO and authenticate automatically. 
 - Additional settings:
     -- Use the option: -enable_sso= False in order to disable SSO- it will not be activated even if correct parameters are given.
-""" +_NEED_SUPPORT_SECTION
+
+{_NEED_SUPPORT_SECTION}"""
+
+
+_HELP_PROXIES = f"""## Overview
+- If you need to use a proxies, configure proxies by setting the environment variables HTTP_PROXY and HTTPS_PROXY.
+
+### http protocol
+- Example setting proxies with **http protocol**:<br><br>
+```$ export HTTP_PROXY="http://10.10.1.10:3128"```<br><br>
+```$ export HTTPS_PROXY="http://10.10.1.10:1080"```<br><br>
+<br>
+- To use HTTP Basic Auth with your proxy, use the http://user:password@host syntax:<br><br>
+```$ export HTTP_PROXY="http://user:pass@10.10.1.10:3128"```<br><br>
+```$ export HTTPS_PROXY="http://user:pass@10.10.1.10:1080"```<br><br>
+<br>
+### socks protocol
+- Please make sure to install first requests socks dependency:<br><br>
+```$pip install requests[socks]```<br><br>
+<br>
+- Example setting proxies with **sock protocol**:<br><br>
+```$ export HTTP_PROXY="socks5://user:pass@10.10.1.10:3128"```<br><br>
+```$ export HTTPS_PROXY="socks5://user:pass@10.10.1.10:1080"```<br><br>
+<br>
+### Note:
+- You can also set the environment variable from within the notebook using %env magic.
+"""
+
+
+_ADX_CLIENT_REQUEST_PROPERTIES = """## Overview
+
+- The client request properties have many uses. 
+Some of them are used to make debugging easier (for example, by providing correlation strings that can be used to track client/service interactions), 
+others are used to affect what limits and policies get applied to the request.
+
+##List of Client Request Properties
+
+- **block_splitting_enabled**: Enables splitting of sequence blocks after aggregation operator. [bool]
+- **database_pattern**: Database pattern overrides database name and picks the 1st database that matches the pattern. '*' means any database that user has access to. [str]
+- **debug_query_externaldata_projection_fusion_disabled**: If set, don't fuse projection into ExternalData operator. [bool]
+- **debug_query_fanout_threads_percent_external_data**: The percentage of threads to fanout execution to for external data nodes. [int]
+- **deferpartialqueryfailures**: If true, disables reporting partial query failures as part of the result set. [bool]
+- **max_memory_consumption_per_query_per_node**: Overrides the default maximum amount of memory a whole query may allocate per node. [int]
+- **maxmemoryconsumptionperiterator**: Overrides the default maximum amount of memory a query operator may allocate. [int]
+- **maxoutputcolumns**: Overrides the default maximum number of columns a query is allowed to produce. [int]
+- **norequesttimeout**: Enables setting the request timeout to its maximum value. [bool]
+- **notruncation**: Enables suppressing truncation of the query results returned to the caller. [bool]
+- **push_selection_through_aggregation**: If true, push simple selection through aggregation [bool]
+- **query_admin_super_slacker_mode**: If true, delegate execution of the query to another node [bool]
+- **query_bin_auto_at**: When evaluating the bin_auto() function, the start value to use. [LiteralExpression]
+- **query_bin_auto_size**: When evaluating the bin_auto() function, the bin size value to use. [LiteralExpression]
+- **query_cursor_after_default**: The default parameter value of the cursor_after() function when called without parameters. [str]
+- **query_cursor_allow_referencing_streaming_ingestion_tables**: Enable usage of cursor functions over databases which have streaming ingestion enabled. [bool]
+- **query_cursor_before_or_at_default**: The default parameter value of the cursor_before_or_at() function when called without parameters. [str]
+- **query_cursor_current**: Overrides the cursor value returned by the cursor_current() or current_cursor() functions. [str]
+- **query_cursor_scoped_tables**: List of table names that should be scoped to cursor_after_default .. cursor_before_or_at_default (upper bound is optional). [dynamic]
+- **query_datascope**: Controls the query's datascope -- whether the query applies to all data or just part of it. ['default', 'all', or 'hotcache']
+- **query_datetimescope_column**: Controls the column name for the query's datetime scope (query_datetimescope_to / query_datetimescope_from). [str]
+- **query_datetimescope_from**: Controls the query's datetime scope (earliest) -- used as auto-applied filter on query_datetimescope_column only (if defined). [DateTime]
+- **query_datetimescope_to**: Controls the query's datetime scope (latest) -- used as auto-applied filter on query_datetimescope_column only (if defined). [DateTime]
+- **query_distribution_nodes_span**: If set, controls the way sub-query merge behaves: the executing node will introduce an additional level in the query hierarchy for each sub-group of nodes; the size of the sub-group is set by this option. [Int]
+- **query_enable_jit_stream**: If true, enabled JIT streams when sending data from managed code to native code. [bool]
+- **query_fanout_nodes_percent**: The percentage of nodes to fanout execution to. [int]
+- **query_fanout_threads_percent**: The percentage of threads to fanout execution to. [int]
+- **query_language**: Controls how the query text is to be interpreted. ['csl','kql' or 'sql']
+- **query_max_entities_in_union**: Overrides the default maximum number of columns a query is allowed to produce. [int]
+- **query_now**: Overrides the datetime value returned by the now(0s) function. [DateTime]
+- **query_results_cache_max_age**: If positive, controls the maximum age of the cached query results which Kusto is allowed to return [TimeSpan]
+- **query_results_progressive_row_count**: Hint for Kusto as to how many records to send in each update (Takes effect only in progressive mode) [int]
+- **query_results_progressive_update_period**: Hint for Kusto as to how often to send progress frames (Takes effect only if in progressive mode) [int]
+- **query_shuffle_broadcast_join**: Enables shuffling over broadcast join.
+- **query_take_max_records**: Enables limiting query results to this number of records. [int]
+- **queryconsistency**: Controls query consistency. ['strongconsistency' or 'normalconsistency' or 'weakconsistency']
+- **request_callout_disabled**: If specified, indicates that the request cannot call-out to a user-provided service. [bool]
+- **request_external_table_disabled**: If specified, indicates that the request cannot invoke code in the ExternalTable. [bool]
+- **request_readonly**: If specified, indicates that the request must not be able to write anything. [bool]
+- **request_remote_entities_disabled**: If specified, indicates that the request cannot access remote databases and clusters. [bool]
+- **request_sandboxed_execution_disabled**: If specified, indicates that the request cannot invoke code in the sandbox. [bool]
+- **response_dynamic_serialization**: Controls the serialization of 'dynamic' values in result sets. ['str', 'json']
+- **response_dynamic_serialization_2**: Controls the serialization of 'dynamic' string and null values in result sets. ['legacy', 'current']
+- **results_progressive_enabled**: If set, enables the progressive query stream
+- **servertimeout**: Overrides the default request timeout. [TimeSpan]
+- **truncationmaxrecords**: Overrides the default maximum number of records a query is allowed to return to the caller (truncation). [int]
+- **truncationmaxsize**: Overrides the dfefault maximum data size a query is allowed to return to the caller (truncation). [int]
+- **validate_permissions**: Validates user's permissions to perform the query and doesn't run the query itself. [bool]
+"""
 
 
 _HELP = {
-    "query" : _KQL_URL,
+    "query": _KQL_URL,
     "kql": _KQL_URL,
     "appinsights": _APPINSIGHTS_URL, 
     "applicationinsights": _APPINSIGHTS_URL,
@@ -319,15 +437,24 @@ _HELP = {
     "azuremonitor": _AZUREMONITOR_URL,
     "kusto": _KUSTO_URL,
     "azuredataexplorer": _KUSTO_URL,
-    "conn" : _HELP_CONN,
-    "options" : "",
-    "help" : _HELP_HELP,
-    "usage" : _USAGE,
-    "commands" : _HELP_COMMANDS,
-    "cache" : "",
-    "faq" : "",
-    "sso" : _HELP_SSO,
+    "conn": _HELP_CONN,
+    "options": _HELP_OPTIONS,
+    "help": _HELP_HELP,
+    "usage": _USAGE,
+    "commands": _HELP_COMMANDS,
+    "cache": _HELP_CACHE,
+    "faq": _FAQ,
+    "sso": _HELP_SSO,
+    "proxies": _HELP_PROXIES,
+    "clientrequestproperties": _ADX_CLIENT_REQUEST_PROPERTIES,
+    "kqlmagicdownloads": _KQLMAGIC_DOWNLOADS_URL,
+    "kqlmagicinstall": _KQLMAGIC_INSTALL_URL,
+    "kqlmagicreadme": _KQLMAGIC_README_URL,
+    "kqlmagicgithub": _KQLMAGIC_GITHUB_URL,
+    "kqlmagiclicense": _KQLMAGIC_LICENSE_URL,
+    "kqlmagiccontributors": _KQLMAGIC_CONTRIBUTORS_URL,
 }
+
 
 class UrlReference(object):
     """ A wrapper class that holds a url reference.
@@ -342,10 +469,12 @@ class UrlReference(object):
         A string to be presented on a button, that on click will open the url
 
      """
+
     def __init__(self, name: str, url: str, button_text: str):
         self.name = name
         self.url = url 
         self.button_text = button_text
+
 
 class MarkdownString(object):
     """ A class that holds a markdown string.
@@ -356,19 +485,24 @@ class MarkdownString(object):
     def __init__(self, markdown_string: str):
         self.markdown_string = markdown_string
 
+
     # Printable unambiguous presentation of the object
     def __repr__(self):
         html = self._repr_html_()
         return ''.join(BeautifulSoup(html, features="lxml").findAll(text=True))
 
+
     def _repr_html_(self):
         return markdown(self.markdown_string)
+
 
     def _repr_markdown_(self):
        return self.markdown_string
     
+
     def __str__(self):
         return self.__repr__()
+
 
 def execute_usage_command() -> MarkdownString:
     """ execute the usage command.
@@ -381,6 +515,7 @@ def execute_usage_command() -> MarkdownString:
     """
     return execute_help_command("usage")
 
+
 def execute_faq_command() -> MarkdownString:
     """ execute the faq command.
     command that returns the faq string that will be displayed to the user.
@@ -392,7 +527,8 @@ def execute_faq_command() -> MarkdownString:
     """
     return execute_help_command("faq")
 
-def execute_help_command(topic: str) -> MarkdownString:
+
+def execute_help_command(topic: str):
     """ execute the help command.
     command that return the help topic string that will be displayed to the user.
 

@@ -533,10 +533,10 @@ class ResultSet(list, ColumnGuesserMixin):
             yield dict(zip(self.columns_name, row))
 
 
-    def to_dataframe(self):
+    def to_dataframe(self, use_dask=False, chunksize = 1000):
         "Returns a Pandas DataFrame instance built from the result set."
         if self._dataframe is None:
-            self._dataframe = self._queryResult.tables[self.fork_table_id].to_dataframe()
+            self._dataframe = self._queryResult.tables[self.fork_table_id].to_dataframe(use_dask=use_dask, chunksize = chunksize)
 
             # import pandas as pd
             # frame = pd.DataFrame(self, columns=(self and self.columns_name) or [])

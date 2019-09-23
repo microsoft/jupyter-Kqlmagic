@@ -252,12 +252,14 @@ class KqlEngine(object):
         # in case of ambiguity, assume it is based on current connection, resolve by copying missing values from current
         if len(valid_combinations) > 1:
             if current is not None:
+                inherited = False
                 for k, v in current._parsed_conn.items():
                     if k not in matched_keys_set and k not in self._NOT_INHERITABLE_KEYS:
                         parsed_conn_kv[k] = v
                         matched_keys_set.add(k)
+                        inherited = True
                 for k in self._CREDENTIAL_KEYS.intersection(matched_keys_set):
-                    if parsed_conn_kv[k] != current._parsed_conn.get(k):
+                    if parsed_conn_kv[k] != current._parsed_conn.get(k) and inherited: #only if inherited from current check that all matches, otherwise it might be a new connection
                         raise KqlEngineError("missing keys.")
         valid_combinations = [c for c in valid_combinations if matched_keys_set.issubset(c)]
 

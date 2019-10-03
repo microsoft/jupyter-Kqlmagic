@@ -408,8 +408,16 @@ class Parser(object):
 
         "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},
         "enablesso": {"flag": "enable_sso", "type": "bool", "config": "config.enable_sso"},
-
         "ssodbgcinterval": {"flag": "sso_db_gc_interval", "type": "int", "config": "config.sso_db_gc_interval"},
+
+        "idtag": {"abbreviation": "requestidtag"},
+        "requestidtag": {"flag": "request_id_tag", "type": "str", "config": "config.request_id_tag"},
+
+        "apptag": {"abbreviation": "requestapptag"},
+        "requestapptag": {"flag": "request_app_tag", "type": "str", "config": "config.request_app_tag"},
+
+        "usertag": {"abbreviation": "requestusertag"},
+        "requestusertag": {"flag": "request_user_tag", "type": "str", "config": "config.request_user_tag"},
 
         "dcln": {"abbreviation": "devicecodeloginnotification"},
         "devicecodeloginnotification": {"flag": "device_code_login_notification", "type": "str", "config": "config.device_code_login_notification"},

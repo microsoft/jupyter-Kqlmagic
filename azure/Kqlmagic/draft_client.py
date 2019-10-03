@@ -148,11 +148,30 @@ class DraftClient(object):
         #
         # create headers
         #
+        
+        client_version = f"{Constants.MAGIC_CLASS_NAME}.Python.Client:{self._WEB_CLIENT_VERSION}"        
+
+        client_request_id = f"{Constants.MAGIC_CLASS_NAME}.execute"
+        client_request_id_tag = options.get("request_id_tag")
+        if client_request_id_tag is not None:
+            client_request_id = f"{client_request_id};{client_request_id_tag};{str(uuid.uuid4())}"
+        else:
+            client_request_id = f"{client_request_id};{str(uuid.uuid4())}"
+
+        app = f"{Constants.MAGIC_CLASS_NAME}"
+        app_tag = options.get("request_app_tag")
+        if app_tag is not None:
+            app = f"{app};{app_tag}"
 
         request_headers = {
-            "x-ms-client-version": f"{Constants.MAGIC_CLASS_NAME}.Python.Client:{self._WEB_CLIENT_VERSION}",
-            "x-ms-client-request-id": f"{Constants.MAGIC_CLASS_NAME}.execute;{str(uuid.uuid4())}",
+            "x-ms-client-version": client_version,
+            "x-ms-client-request-id": client_request_id,
+            "x-ms-app": app
         }
+        user_tag = options.get("request_user_tag")
+        if user_tag is not None:
+            request_headers["x-ms-user"] = user_tag
+
         if self._aad_helper is not None:
             request_headers["Authorization"] = self._aad_helper.acquire_token(**options)
         elif self._appkey is not None:

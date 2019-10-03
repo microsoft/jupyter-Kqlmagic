@@ -25,6 +25,7 @@ _KQLMAGIC_README_URL       = "https://github.com/microsoft/jupyter-Kqlmagic/blob
 _KQLMAGIC_GITHUB_URL       = "https://github.com/microsoft/jupyter-Kqlmagic"
 _KQLMAGIC_LICENSE_URL      = "https://github.com/microsoft/jupyter-Kqlmagic/blob/master/LICENSE.TXT"
 _KQLMAGIC_CONTRIBUTORS_URL = "https://github.com/microsoft/jupyter-Kqlmagic/blob/master/CONTRIBUTORS.md"
+_KQLMAGIC_FAQ_URL          = "https://raw.githubusercontent.com/microsoft/jupyter-Kqlmagic/master/FAQ.html"
 
 _NEED_SUPPORT_SECTION = """## Need Support?
 - **Have a feature request for Kqlmagic?** Please post it on [User Voice](https://feedback.azure.com/forums/913690-azure-monitor) to help us prioritize
@@ -55,6 +56,9 @@ The following commands are supported:<br>
 <br>
 
 - **usage** - Displays usage of Kqlmagic.<br>
+<br>
+
+- **faq** - Displays Frequently Asked Questions on Kqlmagic.<br>
 <br>
 
 - **help "topic"** - Displays information about the topic.<br>
@@ -94,6 +98,7 @@ The following commands are supported:<br>
 ## Examples:
 ```%kql --version```<br><br>
 ```%kql --usage```<br><br>
+```%kql --faq```<br><br>
 ```%kql --help "help"```<br><br>
 ```%kql --help "options"```<br><br>
 ```%kql --help "conn"```<br><br>
@@ -105,9 +110,6 @@ The following commands are supported:<br>
 ```%kql --palettes -palette_desaturation 0.75```
 ```%kql pageViews | count```
 """
-
-
-_FAQ = ""
 
 
 _USAGE = f"""## Usage:
@@ -181,6 +183,9 @@ usage: ```%kql --help "topic"```<br>
 - **usage** - How to use the Kqlmagic.<br>
 <br>
 
+- **faq** - [Reference to Kqlmagic FAQ]({_KQLMAGIC_FAQ_URL})<br>
+<br>
+
 - **conn** - Lists the available connection string variation, and how their are used to authenticatie to data sources.<br>
 <br>
 
@@ -199,25 +204,7 @@ usage: ```%kql --help "topic"```<br>
 - **client-request-properties** - How to use Client Request properties, and properties list.<br>
 <br>
 
-- **faq** - Lists frequently asked quetions and answers.<br>
-<br>
-
-- **kqlmagic-downloads** - [Reference to Kqlmagic downloads data]({_KQLMAGIC_DOWNLOADS_URL})<br>
-<br>
-
-- **kqlmagic-readme** - [Reference to Kqlmagic readme]({_KQLMAGIC_README_URL})<br>
-<br>
-
-- **kqlmagic-github** - [Reference to Kqlmagic github]({_KQLMAGIC_GITHUB_URL})<br>
-<br>
-
-- **kqlmagic-license** - [Reference to Kqlmagic license]({_KQLMAGIC_LICENSE_URL})<br>
-<br>
-
-- **kqlmagic-contributors** - [Reference to Kqlmagic contributors]({_KQLMAGIC_CONTRIBUTORS_URL})<br>
-<br>
-
-- **help** - This help.<br>
+- **request-tags** - How to tag request headers.<br>
 <br>
 
 - **AzureMonitor**- [Reference to resources Azure Monitor tools]({_AZUREMONITOR_URL})<br>
@@ -234,6 +221,27 @@ Log data collected by Azure Monitor is stored in Log Analytics which collects te
 
 - **ApplicationInsights** / **AppInsights**- [Reference to resources Application Insights service]({_APPINSIGHTS_URL})<br>
 Application Insights is an extensible Application Performance Management (APM) service for web developers on multiple platforms. Use it to monitor your live web application. It will automatically detect performance anomalies. It includes powerful analytics tools to help you diagnose issues and to understand what users actually do with your app. It's designed to help you continuously improve performance and usability. It works for apps on a wide variety of platforms including .NET, Node.js and J2EE, hosted on-premises or in the cloud. It integrates with your DevOps process, and has connection points to a variety of development tools. It can monitor and analyze telemetry from mobile apps by integrating with Visual Studio App Center.<br>
+<br>
+
+- **kqlmagic-readme** - [Reference to Kqlmagic readme]({_KQLMAGIC_README_URL})<br>
+<br>
+
+- **kqlmagic-github** - [Reference to Kqlmagic github]({_KQLMAGIC_GITHUB_URL})<br>
+<br>
+
+- **kqlmagic-license** - [Reference to Kqlmagic license]({_KQLMAGIC_LICENSE_URL})<br>
+<br>
+
+- **kqlmagic-contributors** - [Reference to Kqlmagic contributors]({_KQLMAGIC_CONTRIBUTORS_URL})<br>
+<br>
+
+- **kqlmagic-install** - [Reference to Kqlmagic pypi install readme]({_KQLMAGIC_INSTALL_URL})<br>
+<br>
+
+- **kqlmagic-downloads** - [Reference to Kqlmagic downloads data]({_KQLMAGIC_DOWNLOADS_URL})<br>
+<br>
+
+- **help** - This help.<br>
 <br>
 
 {_NEED_SUPPORT_SECTION}"""
@@ -427,6 +435,35 @@ others are used to affect what limits and policies get applied to the request.
 - **validate_permissions**: Validates user's permissions to perform the query and doesn't run the query itself. [bool]
 """
 
+_REQUEST_TAGS = f"""## Overview
+
+- Request tags enables to tag **x-ms-app**, **x-ms-user** and **x-ms-client-request-id** request headers with a custom string.<br>
+The main scenario for tagging request headers is to detect tagged query requests within collected queries telemetry repository.<br>
+For example within ADX cluster, executing <br>```.show queries```
+<br><br>
+
+##List of Request Tags options
+
+ - **request_id_tag** (idtag) option tags **x-ms-client-request-id** header.<br> 
+ The tag will be injected as follows: 
+        <br>```x-ms-client-request-id: {Constants.MAGIC_CLASS_NAME}.execute;{{tag}};{{guid}}```<br><br>
+    - request_id_tag can be set per query request by setting the the option as follows: <br>```%kql -idtag='{{tag}}' {{query}}```<br>
+    - request_id_tag can be set for all requests by setting the default tag: <br>```aa {Constants.MAGIC_CLASS_NAME}.request_id_tag='{{tag}}'```<br>
+<br>
+
+ - **request_app_tag** (apptag) option tags **x-ms-app** header.<br>
+ The tag will be injected as follows: 
+        <br>```x-ms-app: {Constants.MAGIC_CLASS_NAME};{{tag}}```<br><br>
+    - request_app_tag can be set per query request by setting the the option as follows: <br>```%kql -apptag='{{tag}}' {{query}}```<br>
+    - request_app_tag can be set for all requests by setting the default tag: <br>```%config {Constants.MAGIC_CLASS_NAME}.request_app_tag='{{tag}}'```<br>
+ <br>
+
+ - **request_user_tag** (usertag) option tags **x-ms-user** header.<br>
+ The tag will be injected as follows: 
+        <br>```x-ms-user: {{tag}}```<br><br>
+    - request_user_tag can be set per query request by setting the the option as follows: <br>```%kql -usertag='{{tag}}' {{query}}```<br>
+    - request_user_tag can be set for all requests by setting the default tag: <br>```%config {Constants.MAGIC_CLASS_NAME}.request_user_tag='{{tag}}'```<br>
+"""
 
 _HELP = {
     "query": _KQL_URL,
@@ -443,10 +480,11 @@ _HELP = {
     "usage": _USAGE,
     "commands": _HELP_COMMANDS,
     "cache": _HELP_CACHE,
-    "faq": _FAQ,
+    "faq": _KQLMAGIC_FAQ_URL,
     "sso": _HELP_SSO,
     "proxies": _HELP_PROXIES,
     "clientrequestproperties": _ADX_CLIENT_REQUEST_PROPERTIES,
+    "requesttags": _REQUEST_TAGS,
     "kqlmagicdownloads": _KQLMAGIC_DOWNLOADS_URL,
     "kqlmagicinstall": _KQLMAGIC_INSTALL_URL,
     "kqlmagicreadme": _KQLMAGIC_README_URL,
@@ -540,7 +578,7 @@ def execute_help_command(topic: str):
     help_topic_string = _HELP.get(topic.strip().lower().replace("_", "").replace("-", ""))
     if help_topic_string is None:
         raise ValueError(f"{topic} unknown help topic")
-    if help_topic_string.startswith("http"):
+    elif help_topic_string.startswith("http"):
         button_text = f"popup {topic} reference "
         return UrlReference(topic, help_topic_string, button_text)
     elif help_topic_string == '':

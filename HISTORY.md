@@ -1,5 +1,18 @@
 # HISTORY
 
+## Version 0.1.107
+
+  - ### New feature - request headers tagging
+  
+    - Enables to tag **x-ms-app**, **x-ms-user** and **x-ms-client-request-id** request headers with a custom string.
+    - To get more information execute: ```%kql --help 'request-tags'
+
+  - ### New help information
+
+    - help on how to tag request headers. try %kql --help "request-tags"
+    - Started a FAQ page. try %kql --faq
+
+
 ## Version 0.1.106
 
   - ### New support for Azure Data Explorer Client Request Properties
@@ -8,7 +21,7 @@
     However, some properties can be set only in the request.
     - To set client request properties in the request, use the same syntax as kqlmagic options, but instead of using the '-' prefix use the '+' as prefix.
       - example: %kql +servertimeout='30m' {your-query}
-    - Client request properties can also be set by using the query_properties option. It should be set a dictionary with the properties values.
+    - Client request properties can also be set by using the query_properties option. It should be set as a dictionary with the properties values.
   
     - to see the full list of the client request properties try %kql --help "client-request-properties"
 

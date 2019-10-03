@@ -102,7 +102,7 @@ from .constants import Constants
 from .help import MarkdownString
 
 
-VERSION = "0.1.106.post2"
+VERSION = "0.1.107"
 
 
 def execute_version_command() -> MarkdownString:
@@ -149,7 +149,7 @@ def get_pypi_latest_version(package_name: str, only_stable_version: bool) -> str
 
 
 def _is_stable_version(version: str) -> bool:
-    v = _normalize_version(version, 0)
+    v = _normalize_version(version)
     return len([True for p in v if to_int(p) is None and not p.startswith("post")]) == 0
 
 
@@ -165,7 +165,7 @@ def _get_latest_stable_version(json_response: str) -> bool:
 
 
 def compare_version(other: str, version: str, ignore_current_version_post: bool) -> int:
-    """ Compares current VERSION to another version string.
+    """ Compares current version to another version string.
 
     Parameters
     ----------
@@ -180,15 +180,23 @@ def compare_version(other: str, version: str, ignore_current_version_post: bool)
     Returns
     -------
     int
-        1 if VERSION higher than other
-        0 if VERSION equal to other
-        1 if VERSION lower than other
+        -1 if version higher than other
+         0 if version equal to other
+         1 if version lower than other
     """
 
-    v = _normalize_version(version, len(other) - len(version))
-    o = _normalize_version(other, len(VERSION) - len(other))
-    if v == o:
-        return 0
+    # normalize for comaprison
+    v = _normalize_version(version)
+    o = _normalize_version(other)
+    v_len = _len_version(v)
+    o_len = _len_version(o)
+    v = _pad_version(v, o_len - v_len)
+    o = _pad_version(o, v_len - o_len)
+    
+    if len(v) > len(o):
+        o.append(0)
+    elif len(v) < len(o):
+        v.append(0)
 
     for idx, v_val in enumerate(v):
         o_val = o[idx]
@@ -197,49 +205,93 @@ def compare_version(other: str, version: str, ignore_current_version_post: bool)
             o_int = to_int(o_val)
             # both are int, so they can be compared, and also be equal ('05' == '5')
             if o_int is not None and v_int is not None:
-                if v_int == o_int:
-                    continue
                 if v_int != o_int:
-                    return 1 if o_int > v_int else -1
-            # both are not int, compare is determined by lexical string compare
+                    return -1 if o_int < v_int else 1
+            # both are not int
             elif o_int is None and v_int is None:
-                if v_val == o_val:
-                    continue
-                if v_val != o_val:
-                    return 1 if o_val > v_val else -1
+                if v_val.startswith("post"):
+                    if o_val.startswith("post"):
+                        if ignore_current_version_post:
+                            return 0
+                        o_int = _post_sub_version(o_val)
+                        v_int = _post_sub_version(v_val)
+                        if v_int != o_int:
+                            return -1 if o_int < v_int else 1
+                    elif o_val.startswith("dev"):
+                        return -1
+                    else:
+                        return 1
+                elif o_val.startswith("post"):
+                    if v_val.startswith("dev"):
+                        return 1
+                    else:
+                        return -1
+                elif v_val.startswith("dev"):
+                    if o_val.startswith("dev"):
+                        o_int = _post_sub_version(o_val)
+                        v_int = _post_sub_version(v_val)
+                        if v_int != o_int:
+                            return -1 if o_int < v_int else 1
+                    else:
+                        return 1
+                elif o_val.startswith("dev"):
+                    return -1
+                else:
+                    val = _compare_pre_sub_version(o_val, v_val)
+                    if val != 0:
+                        return val
+
             # any value not int is interpreted as less than 0
             elif o_int is None:
                 if o_val.startswith("post"):
-                    if v_int == 0:
-                        return 0 if ignore_current_version_post else 1
-                    else:
-                        return -1
+                    return 0 if ignore_current_version_post else 1
                 if o_val.startswith("dev"):
                     return -1
                 o_int = _pre_release_sub_version(o_val)
-                return 1 if o_int > v_int else -1
+                return -1 if o_int <= v_int else 1
             else:
                 if v_val.startswith("post"):
-                    return -1 if o_int == 0 else 1
+                    return -1
                 if v_val.startswith("dev"):
                     return 1
                 v_int = _pre_release_sub_version(v_val)
-                return -1 if v_int > o_int else 1
+                return -1 if o_int < v_int else 1
     return 0
 
 
 def _pre_release_sub_version(v: str):
-    parts = v.split('a', 1)
-    if len(parts) != 2:
-        parts = v.split('b', 1)
-    if len(parts) != 2:
-        parts = v.split('c', 1)
-    return to_int(parts[0]) or 0
+    parts = _pre_sub_version_parts(v)
+    return parts[0] or 0
+
+def _compare_pre_sub_version(o: str, v: str):
+    v_parts = _pre_sub_version_parts(v)
+    o_parts = _pre_sub_version_parts(o)
+    for idx in range(3):
+        if v_parts[idx] != o_parts[idx]:
+            return 1 if o_parts[idx] > v_parts[idx] else -1
+    return 0
 
 
-def _normalize_version(v: str, padding_len: int) -> list:
+def _pre_sub_version_parts(v: str):
+    for delim in "abc":
+        parts = v.split(delim, 1)
+        if len(parts) == 2:
+            return [to_int(parts[0]) or 0, delim, to_int(parts[1]) or 0]
+    return [0, " ", 0]
 
-    # case insensitive, and remove trailing whitespaces
+def _post_sub_version(v: str):
+    parts = v.split("post", 1)
+    return to_int(parts[1]) or 0
+
+
+def _dev_sub_version(v: str):
+    parts = v.split("dev", 1)
+    return to_int(parts[1]) or 0
+
+
+def _normalize_version(v: str) -> list:
+
+    # case in-sensitive, and remove trailing whitespaces
     v = v.strip().lower()
 
     # if starts with "v" remove it
@@ -260,11 +312,27 @@ def _normalize_version(v: str, padding_len: int) -> list:
     # if pre-release characters after "." remove "."
     v = v.replace(".a", "0a").replace(".b", "0b").replace(".c", "0c")
 
-    if padding_len > 0:
-        for idx in range(padding_len):
-            v = f"{v}.0"
-
     return v.split(".")
+
+
+def _len_version(v_list: list) -> int:
+    """ Compute length of the component, but without the last component if it is a dev or post"""
+    l = len(v_list)
+    return l - 1 if v_list[-1].startswith("dev") or v_list[-1].startswith("post") else l
+
+
+def _pad_version(v_list: list, l: int) -> list:
+    """ pad the list at the end with 0 value, but if last component is dev or post, the padding is before the last"""
+    if l > 0:
+        last = None
+        if  v_list[-1].startswith("dev") or v_list[-1].startswith("post"):
+            last = v_list[-1]
+            v_list = v_list[:-1]
+        for idx in range(l):
+            v_list.append(0)
+        if last:
+            v_list.append(last)
+    return v_list
 
 
 def _retreive_package_from_pypi(package_name: str) -> dict:

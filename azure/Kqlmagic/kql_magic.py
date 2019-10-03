@@ -841,7 +841,13 @@ class Kqlmagic(Magics, Configurable):
                     else:
                         raise ValueError("command {0} not implemented".format(command))
                     if isinstance(result, UrlReference):
-                        html_obj = Display.get_show_window_html_obj(result.name, result.url, result.button_text, onclick_visibility="visible", **options)
+                        file_path = result.url
+                        if result.is_raw:
+                            data = urllib.request.urlopen(result.url)
+                            html_str = data.read().decode('utf-8')
+                            if html_str is not None:
+                                file_path = Display._html_to_file_path(html_str, result.name)
+                        html_obj = Display.get_show_window_html_obj(result.name, file_path, result.button_text, onclick_visibility="visible", **options)
                         return html_obj
                     if options.get("popup_window"):
                         _repr_html_ = getattr(result, "_repr_html_", None)

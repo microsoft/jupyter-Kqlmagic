@@ -137,7 +137,7 @@ class Display(object):
 
 
     @staticmethod
-    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None,isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
+    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
         if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]: 
             url = file_path if file_path.startswith("http") else adjust_path_to_uri(f"file:///{Display.showfiles_base_path}/{file_path}") #base path is already adjusted to uri in KqlMagic init
             url = urllib.parse.quote(url)
@@ -171,8 +171,8 @@ class Display(object):
     def _html_to_file_path(html_str, file_name, **kwargs):
         file_path = f"{Display.showfiles_folder_name}/{file_name}.html"
         full_file_name = adjust_path(f"{Display.showfiles_base_path}/{file_path}")
-        text_file = open(full_file_name, "w")
-        text_file.write(html_str)
+        text_file = open(full_file_name, "wb")
+        text_file.write(bytes(html_str, 'utf-8'))
         text_file.close()
         # ipython will delete file at shutdown or by restart
         ip = get_ipython()  # pylint: disable=undefined-variable

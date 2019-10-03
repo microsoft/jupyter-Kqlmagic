@@ -183,7 +183,7 @@ usage: ```%kql --help "topic"```<br>
 - **usage** - How to use the Kqlmagic.<br>
 <br>
 
-- **faq** - [Reference to Kqlmagic FAQ]({_KQLMAGIC_FAQ_URL})<br>
+- **faq** - Reference to Kqlmagic FAQ<br>
 <br>
 
 - **conn** - Lists the available connection string variation, and how their are used to authenticatie to data sources.<br>
@@ -508,10 +508,11 @@ class UrlReference(object):
 
      """
 
-    def __init__(self, name: str, url: str, button_text: str):
+    def __init__(self, name: str, url: str, button_text: str, is_raw:bool=None):
         self.name = name
         self.url = url 
         self.button_text = button_text
+        self.is_raw = is_raw == True
 
 
 class MarkdownString(object):
@@ -554,7 +555,7 @@ def execute_usage_command() -> MarkdownString:
     return execute_help_command("usage")
 
 
-def execute_faq_command() -> MarkdownString:
+def execute_faq_command() -> UrlReference:
     """ execute the faq command.
     command that returns the faq string that will be displayed to the user.
 
@@ -580,7 +581,7 @@ def execute_help_command(topic: str):
         raise ValueError(f"{topic} unknown help topic")
     elif help_topic_string.startswith("http"):
         button_text = f"popup {topic} reference "
-        return UrlReference(topic, help_topic_string, button_text)
+        return UrlReference(topic, help_topic_string, button_text, topic == "faq")
     elif help_topic_string == '':
         help_topic_string = "Sorry, not implemented yet."
     return MarkdownString(help_topic_string)

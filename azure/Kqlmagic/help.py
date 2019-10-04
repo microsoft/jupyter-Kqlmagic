@@ -241,6 +241,9 @@ Application Insights is an extensible Application Performance Management (APM) s
 - **kqlmagic-downloads** - [Reference to Kqlmagic downloads data]({_KQLMAGIC_DOWNLOADS_URL})<br>
 <br>
 
+- **logging** - How to enable logging.<br>
+<br>
+
 - **help** - This help.<br>
 <br>
 
@@ -333,6 +336,32 @@ Notes:<br>
 
 
 _HELP_CACHE = ""
+
+_HELP_LOGGING = f"""## Overview
+- Logging is available, mainly for development debugging. To enable logging one or more of the below environment variable must be set.<br>
+The log file is created in the same folder as the current notebook.<br>
+<br>
+
+## Logging varaibles
+- **{Constants.MAGIC_PACKAGE_NAME.upper()}_LOG_LEVEL**<br>
+Log level. The following levels are supported: 'FATAL', 'ERROR', 'WARNING', 'INFO', and 'DEBUG'<br>
+The default level is: 'DEBUG'<br>
+<br>
+
+- **{Constants.MAGIC_PACKAGE_NAME.upper()}_LOG_FILE**<br>
+Filename for the log messages.<br>
+<br>
+
+- **{Constants.MAGIC_PACKAGE_NAME.upper()}_LOG_FILE_PREFIX**<br>
+If filename is not specified, the filename will be build from the prefix as follows: '{{prefix}}-{{ipykernel-unique-key}}.log'<br>
+The default preix is: '{Constants.MAGIC_PACKAGE_NAME}'<br>
+<br>
+
+- **{Constants.MAGIC_PACKAGE_NAME.upper()}_LOG_FILE_MODE**<br>
+The mode at which the filename is oppened. The following modes are supported: 'append' and 'write'<br>
+The default mode is: 'write'<br>
+<br>
+"""
 
 
 _HELP_SSO = f"""## Overview
@@ -475,6 +504,7 @@ _HELP = {
     "kusto": _KUSTO_URL,
     "azuredataexplorer": _KUSTO_URL,
     "conn": _HELP_CONN,
+    "logging": _HELP_LOGGING,
     "options": _HELP_OPTIONS,
     "help": _HELP_HELP,
     "usage": _USAGE,

@@ -140,8 +140,8 @@ class Kqlmagic(Magics, Configurable):
         [Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST, Cloud.USNAT, Cloud.USSEC, Cloud.TEST],
         Cloud.PUBLIC,
         config=True,
-        help="""Default cloud\n"
-        "the kql connection will use the cloud as specified"""
+        help="""Default cloud\n
+        the kql connection will use the cloud as specified"""
     )
 
     enable_sso = Bool(
@@ -671,7 +671,7 @@ class Kqlmagic(Magics, Configurable):
                     pass
 
         logger().debug("Kqlmagic::__init__ - set default connection")
-        _set_default_connections()
+        _set_default_connections(**options)
         logger().debug("Kqlmagic::__init__ - end")
 
 
@@ -1175,7 +1175,7 @@ def _get_kql_magic_load_mode():
     return load_mode
 
 
-def _set_default_connections():
+def _set_default_connections(**options):
     connection_str = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_CONNECTION_STR")
     if connection_str:
         connection_str = connection_str.strip()
@@ -1183,7 +1183,7 @@ def _set_default_connections():
             connection_str = connection_str[1:-1]
         
         try:
-            Connection(connection_str, {})
+            Connection(connection_str, {}, **options)
             # ip = get_ipython()  # pylint: disable=E0602
             # result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
             # if conn and _get_kql_magic_load_mode() != "silent":

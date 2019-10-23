@@ -9,6 +9,7 @@ import json
 
 import six
 import pandas
+from .log import logger
 
 
 from .display import Display
@@ -104,7 +105,11 @@ class KqlResponse(object):
         self.completion_query_info = response.completion_query_info_results
         self.completion_query_resource_consumption = response.completion_query_resource_consumption_results
         self.dataSetCompletion = response.dataSetCompletion_results
-        self.tables = [KqlTableResponse(t, response.visualization_results.get(t.id, {})) for t in response.primary_results]
+        if kwargs.get("data_stream"):
+            from .Kql_response_wrapper import tables_gen
+            self.tables = tables_gen(response)
+        else:
+            self.tables =  [KqlTableResponse(t, response.visualization_results.get(t.id, {})) for t in response.primary_results]
 
 
 class KqlTableResponse(object):

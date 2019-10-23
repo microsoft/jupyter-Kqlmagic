@@ -13,7 +13,7 @@ import requests
 
 
 from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
-from .kql_response import KqlQueryResponse, KqlError
+from .kql_response import KqlQueryResponse, KqlError, KqlQueryResponse_CSV
 from .constants import Constants, ConnStrKeys, Cloud
 from .version import VERSION
 from .log import logger
@@ -231,17 +231,14 @@ class Kusto_Client(object):
 
         logger().debug("Kusto_Client::execute - POST request - url: %s, headers: %s, payload: %s, timeout: %s", endpoint, log_request_headers, request_payload, options.get("timeout"))
 
-        response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
-
-        logger().debug("Kusto_Client::execute - response - status: %s, headers: %s, payload: %s", response.status_code, response.headers, response.text)
-
-        # print("response status code: ", response.status_code)
-        # print("response", response)
-        # print("response text", response.text)
-
+        streaming_data = options.get("data_stream")
+        response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"), stream=streaming_data)
         if response.status_code != requests.codes.ok:  # pylint: disable=E1101
             raise KqlError(response.text, response)
 
+        if streaming_data:
+            kql_response = stream_data_to_csv(response, endpoint_version)
+        else:
         kql_response = KqlQueryResponse(response.json(), endpoint_version)
 
         if kql_response.has_exceptions() and not accept_partial_results:
@@ -253,3 +250,48 @@ class Kusto_Client(object):
 
         return kql_response
 
+def stream_data_to_csv(response, endpoint_version): #writes to a few csv files the data returnd from Kusto. 
+    import ijson
+    from .Kql_response_wrapper import ResponseStream
+    import csv
+
+
+    stream = ResponseStream(response.iter_content())
+    json_response = ijson.items(stream, '')
+    header_table = [
+        'FrameType' ,'TableId', 'TableKind' , 'TableName' , 'Columns' , 'Rows'
+    ]
+    header_table_dataset_completion = [
+        'FrameType' ,'HasErrors', 'Cancelled'
+    ]
+    logger().debug(f"Kusto_Client::execute - header_table {header_table}, header_table_dataset_completion {header_table_dataset_completion}")
+
+    with open("DataTable.csv", 'w', newline='') as f1,open("DataSetCompletion.csv", 'w', newline='') as f2,  open("PrimaryResult.csv", 'w', newline='') as f3, open("Tables_V1.csv", 'w', newline='') as f4:
+        csv_write_all_tables = csv.DictWriter(f1,fieldnames=header_table)
+        csv_write_dataset = csv.DictWriter(f2,fieldnames=header_table_dataset_completion)
+        csv_write_primary = csv.DictWriter(f3,fieldnames=header_table)
+        csv_write_v1 = csv.DictWriter(f4,fieldnames=['Tables'])
+
+        csv_write_dataset.writeheader()
+        csv_write_all_tables.writeheader()
+        csv_write_primary.writeheader()
+        csv_write_v1.writeheader()
+
+        for big_item in json_response:
+            if endpoint_version=="v2":
+                logger().debug(f"Kusto_Client::after endpoint is v2")
+                for item in big_item:
+                    logger().debug(f"Kusto_Client::item in big_item is {item}")
+                    if item["FrameType"] == "DataTable":
+                        if item["TableKind"]=="PrimaryResult":
+                            csv_write_primary.writerow(item)
+                        csv_write_all_tables.writerow(item)
+                    if item["FrameType"] == "DataSetCompletion":
+                        csv_write_dataset.writerow(item)
+
+            if endpoint_version=="v1":
+                logger().debug(f"Kusto_Client::after endpoint is v1")
+                csv_write_v1.writerow(big_item)
+                logger().debug(f"Kusto_Client:: after csf write v1")
+
+    return KqlQueryResponse_CSV(json_response, endpoint_version )

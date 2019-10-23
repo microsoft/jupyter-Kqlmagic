@@ -7,6 +7,8 @@
 from datetime import timedelta, datetime
 import re
 import json
+from .log import logger
+import ijson
 
 
 import adal
@@ -194,12 +196,12 @@ class KqlQueryResponse(object):
             self.dataSetCompletion = [f for f in json_response if f["FrameType"] == "DataSetCompletion"]
         else:
             self.all_tables = self.json_response["Tables"]
-            tables_num = self.json_response["Tables"].__len__()
-            last_table = self.json_response["Tables"][tables_num - 1]
+            tables_num = self.all_tables.__len__()
+            last_table = self.all_tables[tables_num - 1]
             if tables_num < 2:
                 self.tables = []
             else:
-                self.tables = [self.json_response["Tables"][r[0]] for r in last_table["Rows"] if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
+                self.tables = [self.all_tables[r[0]] for r in last_table["Rows"] if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
             if len(self.tables) == 0:
                 self.tables = self.all_tables[:1]
             self.primary_results = [KqlResponseTable(idx, t) for idx, t in enumerate(self.tables)]
@@ -240,7 +242,7 @@ class KqlQueryResponse(object):
                                     value = row[value_idx]
                                     self.visualization[row[id_idx]] = self._dynamic_to_object(value)
             else:
-                tables_num = self.json_response["Tables"].__len__()
+                tables_num = self.all_tables.__len__()
                 if tables_num > 1:
                     last_table = self.json_response["Tables"][tables_num - 1]
                     for row in last_table["Rows"]:
@@ -266,9 +268,9 @@ class KqlQueryResponse(object):
                                 value = row[payload_idx]
                                 return self._dynamic_to_object(value)
         else:
-            tables_num = self.json_response["Tables"].__len__()
+            tables_num = self.all_tables.__len__()
             if tables_num > 1:
-                last_table = self.json_response["Tables"][tables_num - 1]
+                last_table = self.all_tables[tables_num - 1]
                 for r in last_table["Rows"]:
                     if r[2] == "QueryStatus":
                         t = self.json_response["Tables"][r[0]]
@@ -294,9 +296,9 @@ class KqlQueryResponse(object):
                                 value = row[payload_idx]
                                 return self._dynamic_to_object(value)
         else:
-            tables_num = self.json_response["Tables"].__len__()
+            tables_num = self.all_tables.__len__()
             if tables_num > 1:
-                last_table = self.json_response["Tables"][tables_num - 1]
+                last_table = self.all_tables[tables_num - 1]
                 for r in last_table["Rows"]:
                     if r[2] == "QueryStatus":
                         t = self.json_response["Tables"][r[0]]
@@ -378,3 +380,216 @@ class KqlError(Exception):
     def get_partial_results(self):
         return self.kql_response
 
+class KqlResponseTable_CSV(KqlResponseTable):
+    """ Iterator over returned rows """
+
+    def __init__(self, id_table, response_table):
+        if  isinstance(response_table, str):
+            response_table = eval(response_table)
+            response_table = response_table[0]
+            self.id = id_table
+            self.rows = response_table["Rows"]
+            self.columns = response_table["Columns"]
+            self.index2column_mapping = []
+            self.index2type_mapping = []
+            for c in self.columns:
+                logger().debug(f"KqlResponseTable_CSV type c in self.columns {type(c)}")
+                logger().debug(f"KqlResponseTable_CSV c in self.columns {c}")
+                self.index2column_mapping.append(c["ColumnName"])
+                ctype = c["ColumnType"] if "ColumnType" in c else c["DataType"]
+                self.index2type_mapping.append(ctype)
+            self.row_index = 0
+            self._rows_count = sum([1 for r in self.rows if isinstance(r,list)]) # len(self.rows)
+
+        else:
+            self.id = id_table
+            self.rows = eval(response_table[5])
+            logger().debug(f"KqlResponseTable_CSV init self.rows {self.rows}")
+
+            self.columns = eval(response_table[4])
+            logger().debug(f"KqlResponseTable_CSV init self.columns {self.columns}")
+
+            self.index2column_mapping = []
+            self.index2type_mapping = []
+            logger().debug(f"KqlResponseTable_CSV self.columns {self.columns}")
+            logger().debug(f"KqlResponseTable_CSV type columns {type(self.columns)}")
+            for c in self.columns:
+                logger().debug(f"KqlResponseTable_CSV type c in self.columns {type(c)}")
+                logger().debug(f"KqlResponseTable_CSV c in self.columns {c}")
+                self.index2column_mapping.append(c["ColumnName"])
+                ctype = c["ColumnType"] if "ColumnType" in c else c["DataType"]
+                self.index2type_mapping.append(ctype)
+            self.row_index = 0
+            self._rows_count = sum([1 for r in self.rows if isinstance(r,list)]) # len(self.rows)
+
+
+        self.converters_lambda_mappings = {
+            "datetime": self.to_datetime,
+            "timespan": self.to_timedelta,
+            "dynamic": self.to_object,
+        }
+
+
+
+
+
+
+
+class KqlQueryResponse_CSV(KqlQueryResponse):
+    """ Wrapper for response- reading the data from CSV """
+
+    def __init__(self, json_response, endpoint_version="v1"):
+        from .Kql_response_wrapper import CSV_table_reader
+        self.csv_map_index = CSV_table_reader.map_key_to_index
+        self.json_response = json_response
+        self.endpoint_version = endpoint_version
+        self.endpoint_version = "v1" if len(CSV_table_reader("Tables_V1"))>0  else endpoint_version 
+        self.visualization = None
+
+        logger().debug(f"KqlQueryResponse: init endpoint_version {endpoint_version}")
+        if self.endpoint_version == "v2":
+            self.all_tables = CSV_table_reader("DataTable")
+            self.tables = CSV_table_reader("PrimaryResult")
+            from .Kql_response_wrapper import primary_results
+            self.primary_results = primary_results(self.tables)
+            self.dataSetCompletion = CSV_table_reader("DataSetCompletion")
+            
+            logger().debug(f"KqlQueryResponse self.all_tables {self.all_tables}")
+            logger().debug(f"KqlQueryResponse self.tables {self.tables}")
+            logger().debug(f"KqlQueryResponse self.primary_results {self.primary_results}")
+            logger().debug(f"KqlQueryResponse self.dataSetCompletion {self.dataSetCompletion}")
+        else:
+            self.all_tables = CSV_table_reader("Tables_V1")
+            tables_num = self.all_tables.__len__()
+            last_table = self.all_tables[tables_num - 1]
+            if tables_num < 2:
+                self.tables = []
+            else:
+                self.tables = [self.all_tables[r[0]] for r in last_table[self.csv_map_index["Rows"]] if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
+            if len(self.tables) == 0:
+                self.tables = self.all_tables[0]
+            primary_results(self.tables)
+
+            logger().debug(f"KqlQueryResponse: init type tables_num {type(tables_num)}")
+            logger().debug(f"KqlQueryResponse: init V1 self.all_tables {self.all_tables}")
+            logger().debug(f"KqlQueryResponse V1 self.all_tables {self.all_tables}")
+            logger().debug(f"KqlQueryResponse tables_num {tables_num}")
+            logger().debug(f"KqlQueryResponse: in V1 self.tables are {self.tables}")
+            logger().debug(f"KqlQueryResponse: self.primary_results {self.primary_results}")
+            self.dataSetCompletion = []
+
+    @property
+    def visualization_results(self):
+        logger().debug(f"KqlQueryResponse: init visualization_results")
+
+        if self.visualization is None:
+            self.visualization = {}
+            if self.endpoint_version == "v2":
+                logger().debug(f"KqlQueryResponse: visualization_results V2")
+                for table in self.all_tables:
+                    if table[self.csv_map_index["TableName"]] == "@ExtendedProperties" and table[self.csv_map_index["TableKind"]] == "QueryProperties":
+                        cols_idx_map = self._map_columns_to_index(table[self.csv_map_index["Columns"]])
+                        types = self._get_columns_types(table[self.csv_map_index["Columns"]])
+                        key_idx = cols_idx_map.get("Key")
+                        id_idx = cols_idx_map.get("TableId")
+                        value_idx = cols_idx_map.get("Value")
+                        logger().debug(f"KqlQueryResponse: variables : cols_idx_map {cols_idx_map} types {types} key_idx {key_idx} id_idx {id_idx} value_idx {value_idx}")
+                        if (
+                            key_idx is not None
+                            and id_idx is not None
+                            and value_idx is not None
+                            and types[key_idx] == "string"
+                            and types[id_idx] == "int"
+                            and types[value_idx] == "dynamic"
+                        ):
+                            for row in eval(table[self.csv_map_index["Rows"]]):
+                                if row[key_idx] == "Visualization":
+                                    # print(f'visualization raw properties for table {id_idx}: {row[value_idx]}')
+                                    value = row[value_idx]
+                                    self.visualization[row[id_idx]] = self._dynamic_to_object(value)
+            else:
+                tables_num = self.all_tables.__len__()
+                logger().debug(f"KqlQueryResponse: visualization_results tables_num {tables_num}")
+                if tables_num > 1:
+                    last_table = self.all_tables[tables_num - 1]
+                    for row in last_table["Rows"]:
+                        if row[2] == "@ExtendedProperties" and row[1] == "QueryProperties":
+                            table = self.json_response["Tables"][row[0]]
+                            # print(f'visualization raw properties for first table: {table['Rows'][0][0]}')
+                            value = table["Rows"][0][0]
+                            self.visualization[0] = self._dynamic_to_object(value)
+        logger().debug(f"KqlQueryResponse: FINISH visualization_results ")
+        logger().debug(f"KqlQueryResponse: {self.visualization} ")
+        return self.visualization
+
+
+    @property
+    def completion_query_info_results(self):
+        logger().debug(f"KqlQueryResponse: completion_query_info_results")
+        if self.endpoint_version == "v2":
+            for table in self.all_tables:
+                if table[self.csv_map_index["TableName"]] == "QueryCompletionInformation":
+                    cols_idx_map = self._map_columns_to_index(table[self.csv_map_index["Columns"]])
+                    event_type_name_idx = cols_idx_map.get("EventTypeName")
+                    payload_idx = cols_idx_map.get("Payload")
+                    logger().debug(f"KqlQueryResponse: variables : cols_idx_map {cols_idx_map} event_type_name_idx {event_type_name_idx} payload_idx {payload_idx} ")
+                    if event_type_name_idx is not None and payload_idx is not None:
+                        for row in eval(table[self.csv_map_index["Rows"]]):
+                            if row[event_type_name_idx] == "QueryInfo":
+                                value = row[payload_idx]
+                                return self._dynamic_to_object(value)
+        else:
+            tables_num = self.all_tables.__len__()
+            if tables_num > 1:
+                last_table = self.all_tables[tables_num - 1]
+                for r in last_table[self.csv_map_index["Rows"]]:
+                    if r[2] == "QueryStatus":
+                        t = self.json_response["Tables"][r[0]]
+                        for sr in t["Rows"]:
+                            if sr[2] == "Info":
+                                info = {"StatusCode": sr[3], "StatusDescription": sr[4], "Count": sr[5]}
+                                # print(f'Info: {info}')
+                                return info
+        return {}
+
+
+    @property
+    def completion_query_resource_consumption_results(self):
+        if self.endpoint_version == "v2":
+            for table in self.all_tables:
+                if table[self.csv_map_index["TableName"]] == "QueryCompletionInformation":
+                    cols_idx_map = self._map_columns_to_index(table[self.csv_map_index["Columns"]])
+                    event_type_name_idx = cols_idx_map.get("EventTypeName")
+                    payload_idx = cols_idx_map.get("Payload")
+                    if event_type_name_idx is not None and payload_idx is not None:
+                        for row in eval(table[self.csv_map_index["Rows"]]):
+                            if row[event_type_name_idx] == "QueryResourceConsumption":
+                                value = row[payload_idx]
+                                return self._dynamic_to_object(value)
+        else:
+            tables_num = self.all_tables.__len__()
+            if tables_num > 1:
+                last_table = self.all_tables[tables_num - 1]
+                for r in last_table[self.csv_map_index["Rows"]]:
+                    if r[2] == "QueryStatus":
+                        t = self.json_response["Tables"][r[0]]
+                        for sr in t["Rows"]:
+                            if sr[2] == "Stats":
+                                stats = sr[4]
+                                # print(f'stats: {stats}')
+                                return self._dynamic_to_object(stats)
+        return {}
+
+
+    def _map_columns_to_index(self, columns: list):
+        map = {}
+        for idx, col in enumerate(eval(columns)):
+            map[col["ColumnName"]] = idx
+        return map
+
+
+    def _get_columns_types(self, columns: list):
+        map = []
+        for col in eval(columns):
+            map.append(col["ColumnType"])
+        return map

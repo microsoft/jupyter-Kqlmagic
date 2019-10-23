@@ -390,6 +390,12 @@ class Kqlmagic(Magics, Configurable):
         Abbreviation: usertag"""
     )
 
+    data_stream = Bool(
+        False, 
+        config=True, 
+        help=f"""if set to True, data returned from Kusto \ Log Analytics or Application Insight is streamed to a file and read in chunks. Use this for consuming large amounts of Data."""
+    )
+
     logger().debug("Kqlmagic:: - define class code")
 
 

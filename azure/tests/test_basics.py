@@ -31,7 +31,7 @@ query2 = "-conn=$TEST_CONNECTION_STR pageViews | where client_City != '' | summa
 
 version_command = "--version"
 version_pw_command = version_command + " -pw"
-version_expected_pattern = r'Kqlmagic version: [0-9]+\.[0-9]+\.[0-9]+'
+version_expected_pattern = r'Kqlmagic version: [0-9]+\.[0-9]+\.[0-9]+\.[\w]+'
 
 def test_ok(register_magic):
     assert True

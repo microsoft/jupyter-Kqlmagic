@@ -91,28 +91,8 @@ def test_duplicate_column_names_accepted(register_magic):
     print(result)
     assert (u'Brecht', u'Brecht') in result
 
-def test_auto_limit(register_magic):
-    ip.run_line_magic('config',  "{0}.auto_limit = 0".format(Constants.MAGIC_CLASS_NAME))
-    result = ip.run_line_magic('kql',  query1)
-    print(result)
-    assert len(result) == 2
-    ip.run_line_magic('config',  "{0}.auto_limit = 1".format(Constants.MAGIC_CLASS_NAME))
-    result = ip.run_line_magic('kql',  query1)
-    print(result)
-    assert len(result) == 1
-    ip.run_line_magic('config',  "{0}.auto_limit = 0".format(Constants.MAGIC_CLASS_NAME))
 
 query6 = "-conn=$TEST_CONNECTION_STR let T = view () { datatable(first_name:string, last_name:string, year_of_death:long)['William', 'Shakespeare', 1616, 'Bertold', 'Brecht', 1956] }; T"
-
-def test_columns_to_local_vars(register_magic):
-    ip.run_line_magic('config',  "{0}.columns_to_local_vars = True".format(Constants.MAGIC_CLASS_NAME))
-    result = ip.run_line_magic('kql', query6)
-    print(result)
-    assert result is None
-    assert 'William' in ip.user_global_ns['first_name']
-    assert 'Shakespeare' in ip.user_global_ns['last_name']
-    assert len(ip.user_global_ns['first_name']) == 2
-    ip.run_line_magic('config',  "{0}.columns_to_local_vars = False".format(Constants.MAGIC_CLASS_NAME))
 
 def test_userns_not_changed(register_magic):
     ip.run_cell(dedent("""
@@ -122,12 +102,6 @@ def test_userns_not_changed(register_magic):
     function()"""))
     assert 'local_var' not in ip.user_ns
     
-
-def test_auto_dataframe(register_magic):
-    ip.run_line_magic('config',  "{0}.auto_dataframe = True".format(Constants.MAGIC_CLASS_NAME))
-    dframe = ip.run_line_magic('kql', query1)
-    # assert dframe.success
-    assert 'foo' in str(dframe)
 
 def test_csv(register_magic):
     ip.run_line_magic('config',  "{0}.auto_dataframe = False".format(Constants.MAGIC_CLASS_NAME))  # uh-oh

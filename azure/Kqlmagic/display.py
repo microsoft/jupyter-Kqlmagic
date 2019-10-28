@@ -8,7 +8,6 @@ import uuid
 import webbrowser
 import json
 import datetime
-import urllib.parse
 
 
 from IPython.core.display import display, HTML
@@ -18,7 +17,7 @@ from pygments.lexers.data import JsonLexer
 from pygments.formatters.terminal import TerminalFormatter
 
 
-from .my_utils import adjust_path, adjust_path_to_uri, get_valid_filename_with_spaces
+from .my_utils import get_valid_filename, adjust_path, adjust_path_to_uri
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -122,25 +121,9 @@ class Display(object):
 
 
     @staticmethod
-    def get_show_deeplink_html_obj(window_name, deep_link_url:str, isCloseWindow: bool, **options):
-            html_str = Display._get_Launch_page_html(window_name, deep_link_url, isCloseWindow, False, **options)
-            if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]:
-                file_name = Display._get_name()
-                file_path = Display._html_to_file_path(html_str, file_name)
-                url = file_path if file_path.startswith("http") else adjust_path_to_uri(f"file:///{Display.showfiles_base_path}/{file_path}") #base path is already adjusted to uri in KqlMagic init
-                url = urllib.parse.quote(url)
-                webbrowser.open(url, new=1, autoraise=True)
-                Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
-                return None
-            else:
-                return HTML(html_str)
-
-
-    @staticmethod
-    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
+    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None,isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
         if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]: 
-            url = file_path if file_path.startswith("http") else adjust_path_to_uri(f"file:///{Display.showfiles_base_path}/{file_path}") #base path is already adjusted to uri in KqlMagic init
-            url = urllib.parse.quote(url)
+            url = file_path if file_path.startswith("http") else "file:///" + adjust_path_to_uri(Display.showfiles_base_path + "/" + file_path)
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
             return None
@@ -169,10 +152,11 @@ class Display(object):
 
     @staticmethod
     def _html_to_file_path(html_str, file_name, **kwargs):
-        file_path = f"{Display.showfiles_folder_name}/{file_name}.html"
-        full_file_name = adjust_path(f"{Display.showfiles_base_path}/{file_path}")
-        text_file = open(full_file_name, "wb")
-        text_file.write(bytes(html_str, 'utf-8'))
+        file_path = Display.showfiles_folder_name + "/" + file_name + ".html"
+        full_file_name = Display.showfiles_base_path + "/" + file_path
+        full_file_name = adjust_path(full_file_name)
+        text_file = open(full_file_name, "w")
+        text_file.write(html_str)
         text_file.close()
         # ipython will delete file at shutdown or by restart
         ip = get_ipython()  # pylint: disable=undefined-variable
@@ -195,7 +179,7 @@ class Display(object):
         notebooks_host = 'text' if isText else (Display.notebooks_host or "")
         onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
         button_text = button_text or "popup window"
-        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
+        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_")
         if window_name[0] in "0123456789":
             window_name = "w_" + window_name
         window_params = "fullscreen=no,directories=no,location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,titlebar=no,toolbar=no,"
@@ -303,7 +287,7 @@ class Display(object):
     def _get_Launch_page_html(window_name, file_path, isCloseWindow, isText, **kwargs):
         # if isText is True, file_path is the text
         notebooks_host = 'text' if isText else (Display.notebooks_host or "")
-        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
+        window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_")
         if window_name[0] in "0123456789":
             window_name = "w_" + window_name
         close_window_sleep = '5000' if isCloseWindow else '0'
@@ -468,20 +452,32 @@ class Display(object):
 
     @staticmethod
     def showSuccessMessage(msg, **options):
-        Display._showMessage(Display.getSuccessMessageHtml(msg))
+        if options.get("test_notebook_app") and options.get("test_notebook_app") !='none':
+            print(f"Success Message: {msg}")
+        else:
+            Display._showMessage(Display.getSuccessMessageHtml(msg))
 
 
     @staticmethod
     def showInfoMessage(msg, **options):
-        Display._showMessage(Display.getInfoMessageHtml(msg))
+        if options.get("test_notebook_app") and options.get("test_notebook_app") !='none':
+            print(f"Info Message: {msg}")
+        else:
+            Display._showMessage(Display.getInfoMessageHtml(msg))
 
 
     @staticmethod
     def showWarningMessage(msg, **options):
-        Display._showMessage(Display.getWarningMessageHtml(msg))
+        if options.get("test_notebook_app") and options.get("test_notebook_app") !='none':
+            print(f"Warning Message: {msg}")
+        else:
+            Display._showMessage(Display.getWarningMessageHtml(msg))
 
 
     @staticmethod
     def showDangerMessage(msg, **options):
-        Display._showMessage(Display.getDangerMessageHtml(msg))
+        if options.get("test_notebook_app") and options.get("test_notebook_app") !='none':
+            print(f"Danger Message: {msg}")
+        else:
+            Display._showMessage(Display.getDangerMessageHtml(msg))
 

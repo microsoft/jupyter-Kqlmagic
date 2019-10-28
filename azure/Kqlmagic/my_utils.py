@@ -14,27 +14,14 @@ import os
 #
 # From https://github.com/django/django/blob/master/django/utils/text.py
 #
-def get_valid_name(name: str) -> str:
+def get_valid_filename(name: str) -> str:
     """
     Remove leading and trailing spaces; convert other spaces to
     underscores; and remove anything that is not an alphanumeric, dash,
     underscore, or dot.
     """
-    # name = str(name).strip().replace(' ', '_')
     name = str(name).strip().replace(' ', '_')
     return re.sub(r'(?u)[^-\w.]', '', name)
-
-
-def get_valid_filename_with_spaces(name: str) -> str:
-    """
-    Remove leading and trailing spaces; convert other spaces to
-    underscores; and remove anything that is not an alphanumeric, dash,
-    underscore, or dot.
-    """
-    # name = str(name).strip().replace(' ', '_')
-    name = str(name).strip()
-    return re.sub(r'(?u)[^-\w. ]', '', name)
-
 
 
 # Expression to match some_token and some_token="with spaces" (and similarly
@@ -86,7 +73,7 @@ def split_lex(text: str):
     return list(smart_split(text))
 
 
-def convert_to_common_path_obj(_path: str):
+def adjust_path_to_uri(_path: str):
     prefix = ""
     path = _path.replace("\\", "/")
     if path.startswith("file:"):
@@ -109,28 +96,16 @@ def convert_to_common_path_obj(_path: str):
         prefix = "//"
         path = path[2:]
         
+
     parts = path.split("/")
-    # parts = [get_valid_name(part) for part in parts] if not allow_spaces else [get_valid_filename_with_spaces(part) for part in parts]
-    parts = [get_valid_filename_with_spaces(part) for part in parts]
+    parts = [get_valid_filename(part) for part in parts]
     path = "/".join(parts)
-    return {"prefix": prefix, "path": path}
+    return prefix + path
 
 
-def adjust_path_to_uri(_path: str) -> str:
-    path_obj = convert_to_common_path_obj(_path)
-    return path_obj.get("prefix") + path_obj.get("path")
-
-
-def adjust_path(_path: str) -> str:
+def adjust_path(_path: str):
     path = adjust_path_to_uri(_path)
     path = os.path.normpath(path)
     return path
-
-
-def safe_str(s) -> str:
-    try:
-        return f"{s}"
-    except:
-        return "<failed safe_str()>"
 
     

@@ -12,7 +12,7 @@ from .kql_engine import KqlEngine, KqlEngineError
 from .cache_client import CacheClient
 from .kql_proxy import KqlResponse
 from .constants import ConnStrKeys
-from .my_utils import get_valid_filename_with_spaces, adjust_path
+from .my_utils import get_valid_filename, adjust_path
 
 
 class CacheEngine(KqlEngine):
@@ -24,20 +24,18 @@ class CacheEngine(KqlEngine):
     _MANDATORY_KEY = ConnStrKeys.FOLDER
     _VALID_KEYS_COMBINATIONS = [[ConnStrKeys.FOLDER, ConnStrKeys.ALIAS]]
 
-    _VALIDATION_FILE_NAME = get_valid_filename_with_spaces("validation_file.json")
+    _VALIDATION_FILE_NAME = get_valid_filename("validation_file.json")
 
 
     # Object constructor
-    def __init__(self, conn_str_or_engine, user_ns: dict, current=None, cache_name=None, **kwargs):
+    def __init__(self, conn_str, user_ns: dict, current=None, cache_name=None, **kwargs):
         super().__init__()
         self._parsed_conn = {}
         self.kql_engine = None
-        if isinstance(conn_str_or_engine, KqlEngine):
-            self.kql_engine = conn_str_or_engine
-            folder_name = self.kql_engine.get_database_friendly_name() + "_at_" + self.kql_engine.cluster_friendly_name()
+        if isinstance(conn_str, KqlEngine):
+            self.kql_engine = conn_str
+            folder_name = conn_str.get_database_friendly_name() + "_at_" + conn_str.cluster_friendly_name()
             conn_str = f"{self._URI_SCHEMA_NAME}://{ConnStrKeys.FOLDER}='{folder_name}'"
-        else:
-            conn_str = conn_str_or_engine
 
         self._parsed_conn = self._parse_common_connection_str(
             conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
@@ -45,7 +43,7 @@ class CacheEngine(KqlEngine):
         self.client = CacheClient()
 
         folder_path = self.client._get_folder_path(self.get_database_friendly_name(), cache_name)
-        validation_file_path = adjust_path(f"{folder_path}/{self._VALIDATION_FILE_NAME}")
+        validation_file_path = adjust_path(folder_path + "/" + self._VALIDATION_FILE_NAME)
         if not os.path.exists(validation_file_path):
             outfile = open(validation_file_path, "w")
             outfile.write(self.validate_json_file_content)

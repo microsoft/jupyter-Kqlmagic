@@ -10,7 +10,7 @@ import os
 
 
 from .constants import Constants
-from .my_utils import get_valid_filename_with_spaces, adjust_path, convert_to_common_path_obj
+from .my_utils import get_valid_filename, adjust_path
 from .kql_response import KqlQueryResponse, KqlSchemaResponse
 
 
@@ -70,13 +70,13 @@ class CacheClient(object):
                 os.makedirs(self.files_folder)
             folder_path = self.files_folder
             if  cache_folder is not None:
-                folder_path = adjust_path(f"{folder_path}/{cache_folder}")
+                folder_path += "/" + adjust_path(cache_folder)
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
-            folder_path = adjust_path(f"{folder_path}/{get_valid_filename_with_spaces(cluster_name)}")
+            folder_path += "/" + get_valid_filename(cluster_name)
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
-            folder_path = f"{folder_path}/{get_valid_filename_with_spaces(database_name)}"
+            folder_path += "/" + get_valid_filename(database_name)
         else:
             folder_path = database_at_cluster
 
@@ -123,17 +123,14 @@ class CacheClient(object):
         if filefolder is not None:
             file_path = f"{filefolder}/{self._get_query_hash_filename(query)}"
         if file_path is not None:
-            path_obj = convert_to_common_path_obj(file_path)
-
-            parts = path_obj.get("path").split("/")
+            file_path = adjust_path(file_path)
+            parts = file_path.split("/")
             folder_parts = []
             for part in parts[:-1]:
                 folder_parts.append(part)
-                folder_name = path_obj.get("prefix") + "/".join(folder_parts)
-                os_folder_name = adjust_path(folder_name)
-                if not os.path.exists(os_folder_name):
-                    os.makedirs(os_folder_name)
-            file_path = adjust_path(file_path)
+                folder_name = "/".join(folder_parts)
+                if not os.path.exists(folder_name):
+                    os.makedirs(folder_name)
         else:
             database_friendly_name = conn.get_database_friendly_name()
             cluster_friendly_name = conn.get_cluster_friendly_name()

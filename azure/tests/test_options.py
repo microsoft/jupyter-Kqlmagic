@@ -45,13 +45,15 @@ def test_show_conn_info(register_magic): #need to test list
     ip.run_line_magic('kql', connection_string)
     result = ip.run_line_magic('kql', query_no_conn)
     
-    print(result.metadata["conn_info"])
-    assert not result.metadata["conn_info"]
-    ip.run_line_magic('config',  "{0}.show_conn_info = 'current'".format(Constants.MAGIC_CLASS_NAME))
-    ip.run_line_magic('kql', connection_string)
-    result = ip.run_line_magic('kql', query_no_conn)
-    print(result.metadata["conn_info"])
-    assert result.metadata["conn_info"]==[' * DEMO_APP@applicationinsights']
+def test_json_display(register_magic):
+
+    result = ip.run_line_magic('kql',"-json_display='raw' " + query1)
+    print(result.raw_json)
+    assert str(result.raw_json).startswith("""{'Tables': [{'TableName': 'Table_0', 'Columns': [{'ColumnName': 'n', 'DataType': 'Int64', 'ColumnType': 'long'}, """)
+    result = ip.run_line_magic('kql',"-json_display='native' " + query1)
+    print(result.raw_json)
+    from azure.Kqlmagic.display import FormattedJsonDict
+    assert type(result.raw_json) == FormattedJsonDict
 
 def test_show_query_time(register_magic):
     result = ip.run_line_magic('kql', query2)

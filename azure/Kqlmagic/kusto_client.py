@@ -22,29 +22,10 @@ from .kql_engine import KqlEngineError
 
 class Kusto_Client(object):
     """
-    Kusto client wrapper for Python.
-
-    KustoClient works with both 2.x and 3.x flavors of Python. All primitive types are supported.
-    KustoClient takes care of ADAL authentication, parsing response and giving you typed result set,
-    and offers familiar Python DB API.
-
-    Test are run using nose.
-
-    Examples
-    --------
-    To use KustoClient, you can choose betwen two ways of authentication.
-     
-    For the first option, you'll need to have your own AAD application and know your client credentials (client_id and client_secret).
-    >>> kusto_cluster = 'https://help.kusto.windows.net'
-    >>> kusto_client = KustoClient(kusto_cluster, client_id, client_secret='your_app_secret')
-
-    For the second option, you can use KustoClient's client id and authenticate using your username and password.
-    >>> kusto_cluster = 'https://help.kusto.windows.net'
-    >>> client_id = 'e07cf1fb-c6a6-4668-b21a-f74731afa19a'
-    >>> kusto_client = KustoClient(kusto_cluster, client_id, username='your_username', password='your_password')"""
-
+    Kusto client wrapper for Python."""
+ 
     _DEFAULT_CLIENTID = "db662dc1-0cfe-4e1c-a843-19a68e65be58"  # kusto client app, (didn't find app name ?)
-    #    _DEFAULT_CLIENTID = "8430759c-5626-4577-b151-d0755f5355d8" # kusto client app, don't know app name
+
     _MGMT_ENDPOINT_VERSION = "v1"
     _QUERY_ENDPOINT_VERSION = "v2"
     _MGMT_ENDPOINT_TEMPLATE = "{0}/{1}/rest/mgmt"

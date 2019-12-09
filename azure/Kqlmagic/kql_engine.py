@@ -91,7 +91,7 @@ class KqlEngine(object):
             raise KqlEngineError("Database and/or cluster is not defined.")
 
 
-    def get_deep_link(self, query: str, **options) -> str:
+    def get_deep_link(self, query: str, options) -> str:
         return None
 
 

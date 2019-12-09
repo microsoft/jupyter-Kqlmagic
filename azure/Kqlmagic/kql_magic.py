@@ -540,6 +540,10 @@ class Kqlmagic(Magics, Configurable):
         _override_default_configuration(ip, load_mode)
         root_path = ip.starting_dir
 
+        # nteract
+        # root_path = "C:\\Users\\michabin\\Desktop\\nteract-notebooks"
+        #
+
         logger().debug("Kqlmagic::__init__ - set temp folder")
         folder_name = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.temp_folder_name")
         showfiles_folder_Full_name = adjust_path(f"{root_path}/{folder_name}") #dont remove spaces from root directory

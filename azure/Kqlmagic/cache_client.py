@@ -27,6 +27,7 @@ class CacheClient(object):
         cluster_folder : str
             folder that contains all the database_folders that contains the query result files
         """
+
         ip = get_ipython()  # pylint: disable=undefined-variable
         root_path = ip.starting_dir
         cache_folder_name = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.cache_folder_name")
@@ -55,6 +56,7 @@ class CacheClient(object):
         if query string ends with the '.json' extension it returns the string
         otherwise it computes it from the query
         """
+
         file_name = query if query.strip().endswith(".json") else self._get_query_hash_filename(query)
         folder_path = self._get_folder_path(database_at_cluster, cache_folder=cache_folder)
         file_path = f"{folder_path}/{file_name}"
@@ -77,6 +79,7 @@ class CacheClient(object):
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
             folder_path = f"{folder_path}/{get_valid_filename_with_spaces(database_name)}"
+
         else:
             folder_path = database_at_cluster
 
@@ -102,6 +105,7 @@ class CacheClient(object):
         :param str database_at_cluster: name of database and cluster that a folder will be derived that contains all the files with the query results for this specific database.
         :param str query: Query to be executed or a json file with query results.
         """
+
         file_path = self._get_file_path(query, database_at_cluster, cache_folder=options.get("use_cache"))
         str_response = open(file_path, "r").read()
         json_response = json.loads(str_response)
@@ -134,6 +138,7 @@ class CacheClient(object):
                 if not os.path.exists(os_folder_name):
                     os.makedirs(os_folder_name)
             file_path = adjust_path(file_path)
+            
         else:
             database_friendly_name = conn.get_database_friendly_name()
             cluster_friendly_name = conn.get_cluster_friendly_name()

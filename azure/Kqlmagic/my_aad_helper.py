@@ -87,8 +87,7 @@ _CLOUD_DSTS_AAD_DOMAINS = {
         Cloud.PUBLIC :      'dsts.core.windows.net',
         Cloud.MOONCAKE:     'dsts.core.chinacloudapi.cn',  
         Cloud.BLACKFOREST:  'dsts.core.cloudapi.de', 
-        Cloud.FAIRFAX:      'dsts.core.usgovcloudapi.net',  
-        Cloud.TEST:         'dsts.core.azure-test.net',
+        Cloud.FAIRFAX:      'dsts.core.usgovcloudapi.net'
 }
 
 

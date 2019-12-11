@@ -41,9 +41,6 @@ class Cloud(object):
     MOONCAKE    =    "mooncake"
     FAIRFAX     =     "fairfax"
     BLACKFOREST = "blackforest"
-    USNAT       =       "usnat"
-    USSEC       =       "ussec"
-    TEST        =        "test"
 
 class ConnStrKeys(object):
     # make sure all keys are lowercase, without spaces, underscores, and hyphen-minus

@@ -1,5 +1,17 @@
 # HISTORY
 
+## Version 0.1.108
+
+  - ### New help information
+
+    - help on how to enable logging. try %kql --help "logging"
+  
+  - ### Fix
+    - Fixed KQLMAGIC_CONNECTION_STR missing options bug
+    - Fixed missing Orca bug
+    - Fixed deep linking bug
+    - Fixed faq display bug
+
 ## Version 0.1.107
 
   - ### New feature - request headers tagging

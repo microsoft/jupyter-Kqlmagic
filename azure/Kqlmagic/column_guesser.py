@@ -54,6 +54,7 @@ def is_quantity(val) -> bool:
     
     Relies on presence of __sub__.
     """
+    
     return hasattr(val, "__sub__")
 
 

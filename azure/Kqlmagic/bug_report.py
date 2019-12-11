@@ -35,6 +35,7 @@ def _implementation_info() -> dict:
 
         elif implementation == 'PyPy':
             implementation_version = f'{sys.pypy_version_info.major}.{sys.pypy_version_info.minor}.{sys.pypy_version_info.micro}'
+            
             if sys.pypy_version_info.releaselevel != 'final':
                 implementation_version = ''.join([
                     implementation_version, sys.pypy_version_info.releaselevel

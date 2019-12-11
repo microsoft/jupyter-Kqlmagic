@@ -36,17 +36,14 @@ class Kusto_Client(object):
     _MOONCAKE_CLOUD_URL_SUFFIX =    "chinacloudapi.cn"
     _BLACKFOREST_CLOUD_URL_SUFFIX = "cloudapi.de"
     _FAIRFAX_CLOUD_URL_SUFFIX =     "usgovcloudapi.net"
-    _USNAT_CLOUD_URL_SUFFIX =       "core.eaglex.ic.gov"
-    _USSEC_CLOUD_URL_SUFFIX =       "core.microsoft.scloud"
+
 
 
     _CLOUD_URLS = {
         Cloud.PUBLIC:      _PUBLIC_CLOUD_URL_SUFFIX,
         Cloud.MOONCAKE:    _MOONCAKE_CLOUD_URL_SUFFIX,
         Cloud.FAIRFAX:     _FAIRFAX_CLOUD_URL_SUFFIX,
-        Cloud.BLACKFOREST: _BLACKFOREST_CLOUD_URL_SUFFIX,
-        Cloud.USNAT:       _USNAT_CLOUD_URL_SUFFIX,
-        Cloud.USSEC:       _USSEC_CLOUD_URL_SUFFIX
+        Cloud.BLACKFOREST: _BLACKFOREST_CLOUD_URL_SUFFIX
     }
 
     _DATA_SOURCE_TEMPLATE = "https://{0}.kusto.{1}"
@@ -122,10 +119,6 @@ class Kusto_Client(object):
             return Cloud.FAIRFAX
         if http.endswith(self._BLACKFOREST_CLOUD_URL_SUFFIX):
             return Cloud.BLACKFOREST
-        if http.endswith(self._USNAT_CLOUD_URL_SUFFIX):
-            return Cloud.USNAT
-        if http.endswith(self._USSEC_CLOUD_URL_SUFFIX):
-            return Cloud.USSEC
         return Cloud.PUBLIC
 
 

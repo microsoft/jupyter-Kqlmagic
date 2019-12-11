@@ -137,7 +137,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     cloud = Enum(
-        [Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST, Cloud.USNAT, Cloud.USSEC, Cloud.TEST],
+        [Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST],
         Cloud.PUBLIC,
         config=True,
         help="""Default cloud\n
@@ -311,14 +311,14 @@ class Kqlmagic(Magics, Configurable):
         "auto", 
         config=True, 
         help="""Set notebook application used."""
-    ) #TODO: add "papermill"
+    ) #TODO: add "papermill", "nteract"
 
     test_notebook_app = Enum(
         ["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], 
         "none", 
         config=True, 
         help="""Set testing application mode, results should return for the specified notebook application."""
-    ) #TODO: add "papermill"
+    ) #TODO: add "papermill", "nteract"
 
     add_kql_ref_to_help = Bool(
         True, 
@@ -648,6 +648,7 @@ class Kqlmagic(Magics, Configurable):
                 except:
                     logger().debug("Kqlmagic::__init__ - failed to fetch PyPi Kqlmagic latest version")
                     pass
+                
             if options.get("show_what_new"):
                 try:
                     # What's new (history.md)  button #
@@ -1159,7 +1160,7 @@ def _override_default_configuration(ip, load_mode):
             "notebook": "jupyternotebook", 
             "ipy": "ipython", 
             "vsc": "visualstudiocode", 
-            # "papermill":"papermill" #TODO: add "papermill"
+            # "papermill":"papermill" #TODO: add "papermill", "nteract"
         }.get(lookup_key)
         if app is not None:
             ip.run_line_magic("config", f'{Constants.MAGIC_CLASS_NAME}.notebook_app = "{app.strip()}"')

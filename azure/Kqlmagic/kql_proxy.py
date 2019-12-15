@@ -109,7 +109,7 @@ class KqlResponse(object):
             from .Kql_response_wrapper import tables_gen
             self.tables = tables_gen(response)
         else:
-            self.tables =  [KqlTableResponse(t, response.visualization_results.get(t.id, {})) for t in response.primary_results]
+        self.tables =  [KqlTableResponse(t, response.visualization_results.get(t.id, {})) for t in response.primary_results]
 
 
 class KqlTableResponse(object):
@@ -174,16 +174,32 @@ class KqlTableResponse(object):
     def returns_rows(self):
         return self.data_table.rows_count > 0
 
+    def create_frame_from_files(self, foldername, pandas_df):
+        import glob
+        import dask.dataframe as dd
+
+        files = [f for f in glob.glob(f"{foldername}/*.csv", recursive=False)]
+        files = sorted(files, key = lambda x: x[:-4])
+        if not pandas_df:
+            return dd.read_csv(files, names=self.data_table.columns_name)
+        li = []
+        for filename in files:
+            df = pandas.read_csv(filename, index_col=None, header=0, names=self.data_table.columns_name)
+            li.append(df)
+        frame = pandas.concat(li, axis=0, ignore_index=True)
+        return frame
 
     def to_dataframe(self, raise_errors=True):
         """Returns Pandas data frame."""
-
         if self.data_table.columns_count == 0 or self.data_table.rows_count == 0:
             # return pandas.DataFrame()
             pass
-
-        frame = pandas.DataFrame(self.data_table.rows, columns=self.data_table.columns_name)
-
+        from .Kql_response_wrapper import CSV_table_reader
+        foldername = self.data_table.rows.foldername if isinstance(self.data_table.rows, CSV_table_reader) else None
+        if not foldername:
+            frame = pandas.DataFrame(self.data_table.rows, columns=self.data_table.columns_name)
+        else:
+            frame = self.create_frame_from_files(foldername, pandas_df=True)
         for (idx, col_name) in enumerate(self.data_table.columns_name):
             col_type = self.data_table.columns_type[idx].lower()
             if col_type == "timespan":
@@ -208,7 +224,39 @@ class KqlTableResponse(object):
                 frame[col_name] = frame[col_name].astype(pandas_type, errors="raise" if raise_errors else "ignore")
         return frame
 
+    def to_dask(self, raise_errors=True):
+        """Returns Dask data frame."""
+        if self.data_table.columns_count == 0 or self.data_table.rows_count == 0:
+            pass
+        import dask.dataframe as dd
+        from .Kql_response_wrapper import CSV_table_reader
+        foldername = self.data_table.rows.foldername if isinstance(self.data_table.rows, CSV_table_reader) else None
+        if not foldername:
+            frame = dd.from_pandas(self.to_dataframe(),npartitions=1)
+            return frame
+        frame = self.create_frame_from_files(foldername, pandas_df=False)
 
+        for (idx, col_name) in enumerate(self.data_table.columns_name):
+            col_type = self.data_table.columns_type[idx].lower()
+            if col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
+                pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
+                # NA type promotion
+                if pandas_type == "int64" or pandas_type == "int32":
+                    if frame[col_name].isnull().any() or frame[col_name].isna().any() or frame[col_name].isin(["nan"]).any():
+                        pandas_type = "object"
+                        break
+
+                elif pandas_type == "bool":
+                    if frame[col_name].isnull().any() or frame[col_name].isna().any() or frame[col_name].isin(["nan"]).any():
+                        pandas_type = "object"
+                        break
+
+                frame[col_name] = frame[col_name].astype(pandas_type)
+
+        return frame
+
+
+        
     @staticmethod
     def _dynamic_to_object(value):
         try:

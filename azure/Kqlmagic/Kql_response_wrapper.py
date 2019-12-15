@@ -1,5 +1,7 @@
 from io import BytesIO, SEEK_SET, SEEK_END
 import ijson
+from .log import logger
+
 class ResponseStream(object): #wrapper class to wrap a stream as a File object - for ijson
     def __init__(self, request_iterator):
         self._bytes = BytesIO()
@@ -38,10 +40,11 @@ class ResponseStream(object): #wrapper class to wrap a stream as a File object -
         else:
             self._bytes.seek(position, whence)
 
-class CSV_table_reader(list): #a wrapper class for List that iterates over a csv file #
-    map_key_to_index = {
-        'FrameType':0,'TableId':1,'TableKind':2,'TableName':3,'Columns':4,'Rows':5
-    }
+import csv
+import itertools
+
+class CSV_table_reader(list):
+      #a wrapper class for List that iterates over a csv file #
     def __iter__(self):
         self.i = 0
         return self
@@ -53,93 +56,53 @@ class CSV_table_reader(list): #a wrapper class for List that iterates over a csv
         except:
             raise StopIteration
 
-    def __init__(self, filename):
-        self.filename = filename
-    def __getitem__(self, i):
-        import csv
-        if i<0:
-            n = self.__len__()
-            i = n+i
-        with open(self.filename+ ".csv", "r") as infile:
+    def __init__(self, foldername):
+        from .display import Display
+        from .constants import Constants
+
+        self.foldername = f"{Display.showfiles_base_path}/{Display.showfiles_folder_name}/{foldername}"
+        self.buffer_size = Constants.STREAM_BUFFER_SIZE
+        self.buff_start = 0
+        self.current_csv_number = 1
+        self.row_buffer = self.initialize_buffer()
+
+    def initialize_buffer(self):
+        import time
+        now = time.time()
+        with open(f"{self.foldername}/{self.current_csv_number}.csv", "r") as infile:
             r = csv.reader(infile)
-            next(r) #skip headers
+            tmp_buffer = []
+            for num in (itertools.islice(r, 0, self.buffer_size, None)):
+                tmp_buffer.append(num) 
+        after = time.time()
+        print(f"init {self.buffer_size} took  {after-now} s")           
+        return tmp_buffer
+    def __getitem__(self, i):
+        start_edge = self.buff_start
+        k = (i % self.buffer_size)
+        end_edge = self.buff_start + self.buffer_size        
+
+        if i>=start_edge and i<end_edge:
+            return self.row_buffer[k]
+        else:
             try:
-                for i in range(i-1):
-                    next(r)     
-                return next(r)    
-            except StopIteration:
-                raise IndexError(self.filename)
-        # f = open("DataTable.csv",'r')
-        # json_response = ijson.items(f, 'item')
-        # for t in json_response:
-        #     if cnt==i:
-        #         # if t["FrameType"] == "DataTable":
-        #         return t
-        #     # if t["FrameType"] == "DataTable":
-        #     cnt+=1
+                self.current_csv_number = (i // self.buffer_size )+1
+                self.row_buffer = self.initialize_buffer()
+                self.buff_start =(self.current_csv_number-1) * self.buffer_size
+                return self.row_buffer[k]
+            except FileNotFoundError:
+                raise IndexError
 
     def __len__(self):
-        length = 0
-        import csv
-        with open(self.filename+ ".csv", "r") as infile:
-            r = csv.reader(infile)
-            next(r) #skip headers
-            try:
-                next(r)     
-                length+=1
-            except StopIteration:
-                return length
-        return length
-        # f = open("all_tables.txt",'r')
-        # json_response = ijson.items(f, 'item')
+        self.len = self.get_len()
+        return self.len
 
-        # for t in json_response:
-        #     # if t["FrameType"] == "DataTable":
-        #     length+=1
-        # return length
-
-    def __str__(self):
-        res ="["
-        import csv
-        with open(self.filename+ ".csv", "r") as infile:
-            r = csv.reader(infile)
-            try:
-                while True:
-                    row = next(r)   
-                    res+=str(row)[1:-1]
-            except StopIteration:
-                return res
-        return res+"]"
-        # f = open("all_tables.txt",'r')
-        # json_response = ijson.items(f, 'item')
-        # for t in json_response:
-        #     # if t["FrameType"] == "DataTable":
-        #     res+=str(t)
-        # return res
-
-from .kql_proxy import KqlTableResponse
-
-class tables_gen(list):
-    def __init__(self, response):
-        self.response = response
-    def __getitem__(self, i):
+    def get_len(self):
+        i =0
         try:
-            t = self.response.primary_results[i]
-            to_return = KqlTableResponse(t, self.response.visualization_results.get(int(t.id), {}))
-        except  ValueError:
-            to_return = KqlTableResponse(t, self.response.visualization_results.get(t.id, {}))
-        return to_return
-    def __len__(self):
-        return len(self.response.primary_results)
-
-from .kql_response import KqlResponseTable_CSV
-class primary_results(list):
-    def __init__(self, tables):
-        self.tables = tables
-    
-    def __getitem__(self, i):
-        t = self.tables[i]
-        return KqlResponseTable_CSV(t[1], t)
-
-    def __len__(self):
-        return len(self.tables)
+            while True:
+                self.__getitem__(i)
+                i+=1
+        except IndexError:
+            return i
+        return i

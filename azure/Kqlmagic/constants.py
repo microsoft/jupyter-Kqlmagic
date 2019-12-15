@@ -31,6 +31,8 @@ class Constants(object):
     SSO_ENV_VAR_NAME  = f"{MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS"
     SSO_DB_KEY_PREFIX =        f"{MAGIC_CLASS_NAME.lower()}store/tokens/"
 
+    STREAM_BUFFER_SIZE = 10000
+
 class Schema(object):
     APPLICATION_INSIGHTS = "applicationinsights"
     LOG_ANALYTICS        =        "loganalytics"

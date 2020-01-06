@@ -9,7 +9,7 @@ from datetime import timedelta, datetime
 
 
 import six
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 
 from .constants import Constants
@@ -51,7 +51,7 @@ class Parameterizer(object):
     def _object_to_kql(self, v) -> str:
         try:
             val = (
-                f"'{v}'"
+                repr(v)
                 if isinstance(v, str)
                 else "null"
                 if v is None
@@ -64,7 +64,7 @@ class Parameterizer(object):
                 else f"dynamic({json.dumps(dict(v), cls=ExtendedJSONEncoder)})"
                 if isinstance(v, dict)
                 else f"dynamic({json.dumps(list(v), cls=ExtendedJSONEncoder)})"
-                if isinstance(v, list)
+                if isinstance(v, (list,Series))
                 else f"dynamic({json.dumps(list(tuple(v)) ,cls=ExtendedJSONEncoder)})"
                 if isinstance(v, tuple)
                 else f"dynamic({json.dumps(list(set(v)), cls=ExtendedJSONEncoder)})"

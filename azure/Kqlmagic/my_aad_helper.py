@@ -213,8 +213,9 @@ class _MyAadHelper(object):
 
                
             elif options.get("device_code_login_notification") =="browser":
-                print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
-                webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                resource = self._resource
+                self._open_redirection_page(resource, url, device_code)
+
 
             elif options.get("device_code_login_notification") =="terminal":
                 print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
@@ -304,39 +305,19 @@ class _MyAadHelper(object):
         return self._get_header(token)
 
 
-    # def email_format(self, dest):
-    #     return re.match( r'[\w\.-]+@[\w\.-]+(\.[\w]+)+', dest)
+    def _open_redirection_page(self, resource, login_url, device_code):
+        import tempfile
+        from .my_utils import adjust_path
+        from .help import MarkdownString
 
-    # def check_email_params(self, port, smtp_server, sender_email, receiver_email, password):
-    #     if port and smtp_server and sender_email and receiver_email and password:
-    #         if self.email_format(sender_email) and self.email_format(receiver_email):
-    #             return True
-    #     return False
-    
-
-    # def send_email(self, message, key_vals):
-
-    #     port = key_vals.get("smtpport")  
-    #     smtp_server = key_vals.get("smtpendpoint")
-    #     sender_email = key_vals.get("sendfrom")
-
-    #     receiver_email = key_vals.get("sendto") 
-
-    #     password = key_vals.get("sendfrompassword")
-
-    #     if not self.check_email_params(port,smtp_server, sender_email, receiver_email, password):
-    #         raise ValueError("""
-    #             cannot send login code to email because of missing or invalid environmental parameters. 
-    #             Set KQLMAGIC_CODE_NOTIFICATION_EMAIL in the following way: SMTPEndPoint: \" email server\"; SMTPPort: \"email port\"; 
-    #             sendFrom: \"sender email address \"; sendFromPassword: \"email address password \"; sendTo:\" email address to send to\"""" )
-
-    #     # context = ssl.create_default_context()
-    #     # with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-
-    #     with smtplib.SMTP(smtp_server, port) as server:
-    #         server.starttls() 
-    #         server.login(sender_email, password)
-    #         server.sendmail(sender_email, receiver_email, "\n"+message)
+        before = MarkdownString(f""" You are asked to authorize to gain access to resource: {resource} """)._repr_html_()
+        href = """Open the page  <a href=" """ +login_url + """ ">""" + login_url + """ </a>"""
+        after = MarkdownString(f""" and enter the code {device_code} to authenticate. \n KqlMagic.""")._repr_html_()
+        html = str(before) + str(href) + str(after)
+        path = Display._html_to_file_path(html, "login_device_code")
+        full_path = Display.showfiles_base_path + "/" + adjust_path(path)
+        url = 'file://' + full_path
+        webbrowser.open(url)
 
 
     def _get_header(self, token):

@@ -19,6 +19,11 @@ Kqlmagic contributors
 
   * query deep link (idea)
   * show parametrized query (idea)
+  
+* **[miflower](https://github.com/miflower)**
+  
+  * Fix parameterizer to better handle strings
+  * Support pandas Series
 
 * **[Michael Binshtock](https://github.com/mbnshtck)**
 

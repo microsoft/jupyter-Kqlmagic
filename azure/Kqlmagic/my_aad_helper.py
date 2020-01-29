@@ -21,6 +21,8 @@ from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
 import jwt
 
+from azure.common.credentials import get_cli_profile
+from azure.cli.core._profile import _CLIENT_ID as AZCLI_CLIENT_ID
 
 from .constants import Constants, Cloud
 from .log import logger
@@ -53,6 +55,7 @@ class ConnKeysKCSB(object):
             "application_key":                    ConnStrKeys.CLIENTSECRET,
             "application_certificate":            ConnStrKeys.CERTIFICATE,
             "application_certificate_thumbprint": ConnStrKeys.CERTIFICATE_THUMBPRINT,
+            "use_azure_cli":                      ConnStrKeys.AZCLI
         }
 
 
@@ -71,6 +74,7 @@ class AuthenticationMethod(Enum):
     aad_application_key = "aad_application_key"
     aad_application_certificate = "aad_application_certificate"
     aad_device_login = "aad_device_login"
+    aad_azcli_login = "aad_azcli_login"
 
 
 _CLOUD_AAD_URLS = {
@@ -153,6 +157,9 @@ class _MyAadHelper(object):
             self._client_id = client_id
             self._certificate = kcsb.application_certificate
             self._thumbprint = kcsb.application_certificate_thumbprint
+        elif kcsb.use_azure_cli is not None:
+            self._authentication_method = AuthenticationMethod.aad_azcli_login
+            self._client_id = AZCLI_CLIENT_ID
         else:
             self._authentication_method = AuthenticationMethod.aad_device_login
             self._client_id = client_id
@@ -299,6 +306,10 @@ class _MyAadHelper(object):
         elif self._authentication_method is AuthenticationMethod.aad_application_certificate:
             logger().debug("_MyAadHelper::acquire_token - aad/client-certificate - resource: '%s', client: '%s', _certificate: '...', thumbprint: '%s'", self._resource, self._client_id, self._thumbprint)
             token = adal_context.acquire_token_with_client_certificate(self._resource, self._client_id, self._certificate, self._thumbprint)
+        elif self._authentication_method is AuthenticationMethod.aad_azcli_login:
+            profile = get_cli_profile()
+            credential, _, _ = profile.get_raw_token(resource=self._resource)
+            _, _, token = credential
         else:
             raise AuthenticationError("Unknown authentication method.")
         return self._get_header(token)

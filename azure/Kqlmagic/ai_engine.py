@@ -29,6 +29,7 @@ class AppinsightsEngine(KqlEngine):
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET], 
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CODE],
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.CODE],
+        [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.AZCLI],
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
         [ConnStrKeys.APPID, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.ANONYMOUS],

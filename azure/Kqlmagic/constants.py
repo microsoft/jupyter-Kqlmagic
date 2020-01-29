@@ -55,6 +55,7 @@ class ConnStrKeys(object):
     CERTIFICATE_THUMBPRINT = "certificatethumbprint"
     APPKEY                 =                "appkey"
     CODE                   =                  "code"
+    AZCLI                  =                 "azcli"
     ANONYMOUS              =             "anonymous"
     CLUSTER                =               "cluster"
     DATABASE               =              "database"

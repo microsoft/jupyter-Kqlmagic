@@ -208,6 +208,7 @@ class KqlEngine(object):
     
     _SHOULD_BE_NULL_KEYS = {
         ConnStrKeys.CODE,
+        ConnStrKeys.AZCLI,
         ConnStrKeys.ANONYMOUS
     }
 

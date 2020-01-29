@@ -25,6 +25,7 @@ class LoganalyticsEngine(KqlEngine):
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET], 
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CODE],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.CODE],
+        [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.AZCLI],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL,                                                                ConnStrKeys.ANONYMOUS],

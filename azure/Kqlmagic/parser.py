@@ -430,6 +430,7 @@ class Parser(object):
         "query": {"flag": "query", "type": "str", "init": "None"},
         "conn": {"flag": "conn", "type": "str", "init": "None"},
         "queryproperties": {"flag": "query_properties", "type": "dict", "init": "None"},
+        "workspaces": {"flag": "workspaces", "type": "list", "init": "None"},
 
         "pc": {"abbreviation": "palettecolors"},
         "palettecolors": {"flag": "palette_colors", "type": "int", "config": "config.palette_colors"},
@@ -645,6 +646,8 @@ class Parser(object):
                 return bool(val)
             elif _type == "dict":
                 return dict(val)
+            elif _type == "list":
+                return list(val)
             elif _type == "enum":
                 if enums.index(val):
                     return str(val)

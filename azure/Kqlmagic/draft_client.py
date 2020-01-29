@@ -193,6 +193,9 @@ class DraftClient(object):
             response = requests.get(api_url, headers=request_headers)
         else:
             request_payload = {"query": query}
+            workspaces = options.get("workspaces")
+            if workspaces is not None:
+                request_payload['workspaces'] = workspaces
             logger().debug("DraftClient::execute - POST request - url: %s, headers: %s, payload: %s, timeout: %s", api_url, log_request_headers, request_payload, options.get("timeout"))
             response = requests.post(api_url, headers=request_headers, json=request_payload)
 

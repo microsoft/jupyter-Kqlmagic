@@ -170,7 +170,10 @@ class ColumnGuesserMixin(object):
                         mapping=dict(zip(col_x, [None for i in range(len(col_x))])),
                         is_descending_sorted=is_descending_sorted,
                     )
-                chart_sub_table[row[x_col_idx]] = datetime_to_linear_ticks(row[qcol.idx]) if qcol.is_datetime else row[qcol.idx]
+                row_col_value = datetime_to_linear_ticks(row[qcol.idx]) if qcol.is_datetime else row[qcol.idx]
+                if self.columns_type[qcol.idx] == 'decimal':
+                    row_col_value = float(row_col_value if row_col_value is not None else 'NaN') 
+                chart_sub_table[row[x_col_idx]] = row_col_value
         self.chart_sub_tables = list(chart_sub_tables_dict.values())
         return self.chart_sub_tables
 

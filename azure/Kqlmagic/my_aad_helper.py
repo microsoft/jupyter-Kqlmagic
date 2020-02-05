@@ -55,7 +55,8 @@ class ConnKeysKCSB(object):
             "application_key":                    ConnStrKeys.CLIENTSECRET,
             "application_certificate":            ConnStrKeys.CERTIFICATE,
             "application_certificate_thumbprint": ConnStrKeys.CERTIFICATE_THUMBPRINT,
-            "use_azure_cli":                      ConnStrKeys.AZCLI
+            "use_azure_cli":                      ConnStrKeys.AZCLI,
+            "subscription":                       ConnStrKeys.SUBSCRIPTION
         }
 
 
@@ -160,6 +161,8 @@ class _MyAadHelper(object):
         elif kcsb.use_azure_cli is not None:
             self._authentication_method = AuthenticationMethod.aad_azcli_login
             self._client_id = AZCLI_CLIENT_ID
+            self._azcli_subscription = kcsb.subscription
+            self._azcli_tenant = kcsb.authority_id
         else:
             self._authentication_method = AuthenticationMethod.aad_device_login
             self._client_id = client_id
@@ -307,8 +310,11 @@ class _MyAadHelper(object):
             logger().debug("_MyAadHelper::acquire_token - aad/client-certificate - resource: '%s', client: '%s', _certificate: '...', thumbprint: '%s'", self._resource, self._client_id, self._thumbprint)
             token = adal_context.acquire_token_with_client_certificate(self._resource, self._client_id, self._certificate, self._thumbprint)
         elif self._authentication_method is AuthenticationMethod.aad_azcli_login:
+            logger().debug("_MyAadHelper::acquire_token - aad/cli - resource: '%s', subscription: '%s', tenant: '%s'", self._resource, self._azcli_subscription, self._azcli_tenant)
             profile = get_cli_profile()
-            credential, _, _ = profile.get_raw_token(resource=self._resource)
+            if self._azcli_tenant is not None:
+                raise AuthenticationError("Azure CLI authentication 'tenant' connection string key will be supported in the next Azure CLI release.")
+            credential, _, _ = profile.get_raw_token(resource=self._resource, subscription=self._azcli_subscription)
             _, _, token = credential
         else:
             raise AuthenticationError("Unknown authentication method.")

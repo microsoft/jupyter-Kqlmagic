@@ -172,6 +172,7 @@ class KqlEngine(object):
         ConnStrKeys.APPKEY,
         ConnStrKeys.PASSWORD,
         ConnStrKeys.CERTIFICATE_THUMBPRINT,
+        ConnStrKeys.SUBSCRIPTION
     }
 
     _SECRET_KEYS = {
@@ -191,7 +192,8 @@ class KqlEngine(object):
         ConnStrKeys.AAD_URL, 
         ConnStrKeys.DATA_SOURCE_URL, 
         ConnStrKeys.ALIAS, 
-        ConnStrKeys.CLIENTID
+        ConnStrKeys.CLIENTID,
+        ConnStrKeys.SUBSCRIPTION
     }
 
     _INHERITABLE_KEYS = {
@@ -203,7 +205,8 @@ class KqlEngine(object):
 
     _EXCLUDE_FROM_URL_KEYS = {
         ConnStrKeys.DATABASE,
-        ConnStrKeys.ALIAS
+        ConnStrKeys.ALIAS,
+        ConnStrKeys.SUBSCRIPTION
     }
     
     _SHOULD_BE_NULL_KEYS = {

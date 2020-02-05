@@ -29,6 +29,8 @@ class KustoEngine(KqlEngine):
         [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CERTIFICATE, ConnStrKeys.CERTIFICATE_THUMBPRINT],
         [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CODE],
         [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.CODE],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.SUBSCRIPTION,                                      ConnStrKeys.AZCLI],
+        [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT,                                            ConnStrKeys.AZCLI],
         [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER,                                                                ConnStrKeys.AZCLI],
         [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],
         [ConnStrKeys.DATABASE, ConnStrKeys.ALIAS, ConnStrKeys.CLUSTER, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL,                       ConnStrKeys.USERNAME, ConnStrKeys.PASSWORD],

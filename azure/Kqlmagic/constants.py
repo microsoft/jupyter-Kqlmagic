@@ -56,6 +56,7 @@ class ConnStrKeys(object):
     APPKEY                 =                "appkey"
     CODE                   =                  "code"
     AZCLI                  =                 "azcli"
+    SUBSCRIPTION           =          "subscription"
     ANONYMOUS              =             "anonymous"
     CLUSTER                =               "cluster"
     DATABASE               =              "database"

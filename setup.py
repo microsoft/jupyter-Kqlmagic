@@ -75,6 +75,10 @@ EXTRAS_REQUIRE      = {
                         'sso': [
                             'cryptography>=2.7',
                             'password-strength>=0.0.3',
+                        ],
+                        'azcli': [
+                            'azure-core',
+                            'azure-cli-core'
                         ]
 }
 

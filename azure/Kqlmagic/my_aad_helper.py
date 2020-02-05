@@ -21,8 +21,14 @@ from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
 import jwt
 
-from azure.common.credentials import get_cli_profile
-from azure.cli.core._profile import _CLIENT_ID as AZCLI_CLIENT_ID
+try:
+    from azure.common.credentials import get_cli_profile
+    from azure.cli.core._profile import _CLIENT_ID as AZCLI_CLIENT_ID
+except ImportError:
+    azcli_installed = False
+else:
+    azcli_installed = True
+
 
 from .constants import Constants, Cloud
 from .log import logger
@@ -159,6 +165,8 @@ class _MyAadHelper(object):
             self._certificate = kcsb.application_certificate
             self._thumbprint = kcsb.application_certificate_thumbprint
         elif kcsb.use_azure_cli is not None:
+            if not azcli_installed:
+                raise AuthenticationError("Azure CLI authentication requires the 'azure-core' and 'azure-cli-modules' to be installed.")
             self._authentication_method = AuthenticationMethod.aad_azcli_login
             self._client_id = AZCLI_CLIENT_ID
             self._azcli_subscription = kcsb.subscription
@@ -314,6 +322,7 @@ class _MyAadHelper(object):
             profile = get_cli_profile()
             if self._azcli_tenant is not None:
                 raise AuthenticationError("Azure CLI authentication 'tenant' connection string key will be supported in the next Azure CLI release.")
+
             credential, _, _ = profile.get_raw_token(resource=self._resource, subscription=self._azcli_subscription)
             _, _, token = credential
         else:

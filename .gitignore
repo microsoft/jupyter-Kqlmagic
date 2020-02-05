@@ -121,3 +121,8 @@ venv.bak/
 .vscode/launch.json
 .vscode/settings.json
 UpgradeLog.htm
+
+# ides
+.vscode
+.vs
+

@@ -157,7 +157,7 @@ class Parameterizer(object):
                 return self._object_to_kql(val)
          
         # this is the best we not specified
-        return "" if s is None else f"'{s}'"
+        return "" if s is None else repr(s)
 
         
     def guess_object_types(self, pairs_type:dict, r:list) -> dict:

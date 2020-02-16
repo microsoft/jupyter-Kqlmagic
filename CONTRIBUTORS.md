@@ -24,6 +24,7 @@ Kqlmagic contributors
   
   * Fix parameterizer to better handle strings
   * Support pandas Series
+  * fix-quote-in-dataframe (Use repr against dataframe strings)
 
 * **[Michael Binshtock](https://github.com/mbnshtck)**
 

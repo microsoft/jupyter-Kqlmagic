@@ -683,7 +683,7 @@ class Kqlmagic(Magics, Configurable):
     @needs_local_scope
     @line_magic(Constants.MAGIC_NAME)
     @cell_magic(Constants.MAGIC_NAME)
-    def execute(self, line, cell="", local_ns={}):
+    def execute(self, line, cell="", local_ns={}, override_vars={}):
         """Query Kusto or ApplicationInsights using kusto query language (kql). Repository specified by a connect string.
 
         Magic Syntax::
@@ -795,7 +795,7 @@ class Kqlmagic(Magics, Configurable):
                 options = parsed["options"]
                 command = parsed["command"].get("command")
                 if command is None or command == "submit":
-                    result = self.execute_query(parsed, user_ns)
+                    result = self.execute_query(parsed, user_ns, override_vars=override_vars)
                 else:
                     param = parsed["command"].get("param")
                     if command == "version":
@@ -901,7 +901,7 @@ class Kqlmagic(Magics, Configurable):
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
 
 
-    def execute_query(self, parsed, user_ns: dict, result_set=None):
+    def execute_query(self, parsed, user_ns: dict, result_set=None, override_vars={}):
         if Help_html.showfiles_base_url is None:
             now_time = time.time()   
             seconds = now_time - self.start_time
@@ -1001,7 +1001,7 @@ class Kqlmagic(Magics, Configurable):
 
             _result_set: ResultSet = result_set
             params_dict = options.get("params_dict") or user_ns
-            parametrized_query_dict = Parameterizer(params_dict).expand(query) if _result_set is None else _result_set.parametrized_query_dict
+            parametrized_query_dict = Parameterizer(params_dict, override_vars=override_vars).expand(query) if _result_set is None else _result_set.parametrized_query_dict
             parametrized_query = parametrized_query_dict.get('parametrized_query')
             try:
                 raw_query_result = conn.execute(parametrized_query, user_ns, **options)

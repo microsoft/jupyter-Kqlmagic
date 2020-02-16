@@ -27,8 +27,9 @@ class ExtendedJSONEncoder(json.JSONEncoder):
 class Parameterizer(object):
     """parametrize query by prefixing query with kql let statements, that resolve query unresolved let statements"""
 
-    def __init__(self, ns_vars):
+    def __init__(self, ns_vars, override_vars = {}):
         self.ns_vars = ns_vars
+        self.override_vars = override_vars
 
 
     def expand(self, query: str, **kwargs):
@@ -94,11 +95,18 @@ class Parameterizer(object):
         """build let statements that resolve python variable names to python variables values"""
         statements = []
         for k in parameters:
-            if k in self.ns_vars:
+            if k in self.override_vars:
+                v = self.override_vars[k]
+
+            elif k in self.ns_vars:
                 v = self.ns_vars[k]
-                # print('type', type(v))
-                val = self._object_to_kql(v)
-                statements.append(f"let {k} = {val}")
+
+            else:
+                continue
+
+            # print('type', type(v))
+            val = self._object_to_kql(v)
+            statements.append(f"let {k} = {val}")
         return statements
     
 
@@ -235,7 +243,7 @@ class Parameterizer(object):
                     and not param_name == "true"
                     and not param_name == "false"
                     and not param_name in set_keys
-                    and param_name in self.ns_vars
+                    and (param_name in self.ns_vars or param_name in self.override_vars)
                 ):
                     parameters.append(param_name)
             key = kv[0].strip()

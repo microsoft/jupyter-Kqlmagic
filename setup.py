@@ -68,7 +68,7 @@ TEST_REQUIRE        = [
                         'pytest-flakes',
                         'pytest-cov',
 
-                        'PyQt',
+                        'QtPy',
                         'PyQt5'
 ]
 

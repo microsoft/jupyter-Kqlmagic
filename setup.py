@@ -61,22 +61,6 @@ INSTALL_REQUIRES    = [
                         'pyjwt>=1.7.1',
 ]
 
-EXTRAS_REQUIRE      = {
-                        'dev':  [
-                            'twine',
-                            'pip',
-                            'wheel',
-                            'black',
-                        ],
-                        'widgets':[
-                            'ipywidgets'
-                        ],
-                        'sso': [
-                            'cryptography>=2.7',
-                            'password-strength>=0.0.3',
-                        ]
-}
-
 TEST_REQUIRE        = [
                         'pytest',
                         'pytest-pep8',
@@ -87,6 +71,24 @@ TEST_REQUIRE        = [
                         'PyQt',
                         'PyQt5'
 ]
+
+EXTRAS_REQUIRE      = {
+                        'dev':  [
+                            'twine',
+                            'pip',
+                            'wheel',
+                            'black',
+                        ],
+                        'test': TEST_REQUIRE,
+                        'widgets':[
+                            'ipywidgets'
+                        ],
+                        'sso': [
+                            'cryptography>=2.7',
+                            'password-strength>=0.0.3',
+                        ]
+}
+
 
 PROJECT_URLS        = {
                         'Documentation': 'https://github.com/microsoft/jupyter-Kqlmagic/blob/master/README.md',
@@ -136,7 +138,8 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 
-setup(name=NAME,
+setup(
+    name=NAME,
     version=VERSION,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,

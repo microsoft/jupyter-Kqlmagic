@@ -544,12 +544,12 @@ class ResultSet(list, ColumnGuesserMixin):
         return self._dataframe
 
 
-    def submit(self, override_vars={}):
+    def submit(self, override_vars={}, override_options={}):
         "execute the query again"
         magic = self.metadata.get("magic")
         line = self.metadata.get("parsed").get("line")
         cell = self.metadata.get("parsed").get("cell")
-        return magic.execute(line, cell, override_vars=override_vars)
+        return magic.execute(line, cell, override_vars=override_vars, override_options=override_options)
 
 
     def refresh(self):

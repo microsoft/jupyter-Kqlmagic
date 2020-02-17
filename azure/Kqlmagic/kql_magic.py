@@ -683,7 +683,7 @@ class Kqlmagic(Magics, Configurable):
     @needs_local_scope
     @line_magic(Constants.MAGIC_NAME)
     @cell_magic(Constants.MAGIC_NAME)
-    def execute(self, line, cell="", local_ns={}, override_vars={}):
+    def execute(self, line, cell="", local_ns={}, override_vars={}, override_options={}):
         """Query Kusto or ApplicationInsights using kusto query language (kql). Repository specified by a connect string.
 
         Magic Syntax::
@@ -795,7 +795,7 @@ class Kqlmagic(Magics, Configurable):
                 options = parsed["options"]
                 command = parsed["command"].get("command")
                 if command is None or command == "submit":
-                    result = self.execute_query(parsed, user_ns, override_vars=override_vars)
+                    result = self.execute_query(parsed, user_ns, override_vars=override_vars, override_options=override_options)
                 else:
                     param = parsed["command"].get("param")
                     if command == "version":
@@ -901,7 +901,7 @@ class Kqlmagic(Magics, Configurable):
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
 
 
-    def execute_query(self, parsed, user_ns: dict, result_set=None, override_vars={}):
+    def execute_query(self, parsed, user_ns: dict, result_set=None, override_vars={}, override_options={}):
         if Help_html.showfiles_base_url is None:
             now_time = time.time()   
             seconds = now_time - self.start_time
@@ -914,7 +914,8 @@ class Kqlmagic(Magics, Configurable):
                 self.submit_get_notebook_url()
 
         query = parsed["query"].strip()
-        options = parsed["options"]
+        options = {**parsed["options"], **override_options}
+
         suppress_results = options.get("suppress_results", False) and options.get("enable_suppress_result", self.enable_suppress_result)
         connection_string = parsed["connection"]
 

@@ -1,1 +1,1 @@
-Kqlmagic==0.1.108.post4
+Kqlmagic==0.1.108.post5

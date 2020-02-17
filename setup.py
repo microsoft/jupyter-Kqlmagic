@@ -63,7 +63,6 @@ INSTALL_REQUIRES    = [
 
 EXTRAS_REQUIRE      = {
                         'dev':  [
-
                             'twine',
                             'pip',
                             'wheel',
@@ -84,6 +83,9 @@ TEST_REQUIRE        = [
                         'pytest-docstyle',
                         'pytest-flakes',
                         'pytest-cov',
+
+                        'PyQt',
+                        'PyQt5'
 ]
 
 PROJECT_URLS        = {

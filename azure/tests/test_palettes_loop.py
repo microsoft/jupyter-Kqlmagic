@@ -15,8 +15,8 @@ import pytest
 from bs4 import BeautifulSoup
 
 
-from Kqlmagic.constants import Constants
-from Kqlmagic.kql_magic import Kqlmagic as Magic
+from .Kqlmagic.constants import Constants
+from .Kqlmagic.kql_magic import Kqlmagic as Magic
 
 
 ip = get_ipython() # pylint: disable=undefined-variable

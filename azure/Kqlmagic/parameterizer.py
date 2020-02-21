@@ -27,9 +27,9 @@ class ExtendedJSONEncoder(json.JSONEncoder):
 class Parameterizer(object):
     """parametrize query by prefixing query with kql let statements, that resolve query unresolved let statements"""
 
-    def __init__(self, ns_vars, override_vars = {}):
+    def __init__(self, ns_vars: dict, override_vars: dict = None):
         self.ns_vars = ns_vars
-        self.override_vars = override_vars
+        self.override_vars = override_vars if type(override_vars) is dict  else {}
 
 
     def expand(self, query: str, **kwargs):

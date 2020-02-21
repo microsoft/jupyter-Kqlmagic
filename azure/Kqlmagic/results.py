@@ -544,12 +544,17 @@ class ResultSet(list, ColumnGuesserMixin):
         return self._dataframe
 
 
-    def submit(self, override_vars={}, override_options={}):
+    def submit(self, override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
         "execute the query again"
         magic = self.metadata.get("magic")
         line = self.metadata.get("parsed").get("line")
         cell = self.metadata.get("parsed").get("cell")
-        return magic.execute(line, cell, override_vars=override_vars, override_options=override_options)
+
+        return magic.execute(line, cell, 
+            override_vars=override_vars, 
+            override_options=override_options, 
+            override_query_properties=override_query_properties,
+            override_connection=override_connection)
 
 
     def refresh(self):
@@ -661,42 +666,42 @@ class ResultSet(list, ColumnGuesserMixin):
 
         # First column is color-axis, second column is numeric
         if self.visualization == VisualizationValues.PIE_CHART:
-            figure_or_data = self._render_piechart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_piechart_plotly(self.visualization_properties, " ", **options)
             # chart = self._render_pie(self.visualization_properties, " ")
 
         # First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
         # kind = default, unstacked, stacked, stacked100 (Default, same as unstacked; unstacked - Each "area" to its own; stacked - "Areas" are stacked to the right; stacked100 - "Areas" are stacked to the right, and stretched to the same width)
         elif self.visualization == VisualizationValues.BAR_CHART:
-            figure_or_data = self._render_barchart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_barchart_plotly(self.visualization_properties, " ", **options)
             # chart = self._render_barh(self.visualization_properties, " ")
 
         # Like barchart, with vertical strips instead of horizontal strips.
         # kind = default, unstacked, stacked, stacked100
         elif self.visualization == VisualizationValues.COLUMN_CHART:
-            figure_or_data = self._render_barchart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_barchart_plotly(self.visualization_properties, " ", **options)
             # chart = self._render_bar(self.visualization_properties, " ")
 
         # Area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         # kind = default, unstacked, stacked, stacked100
         elif self.visualization == VisualizationValues.AREA_CHART:
-            figure_or_data = self._render_areachart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_areachart_plotly(self.visualization_properties, " ", **options)
             # chart = self._render_areachart(self.visualization_properties, " ")
 
         # Line graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         elif self.visualization == VisualizationValues.LINE_CHART:
-            figure_or_data = self._render_linechart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_linechart_plotly(self.visualization_properties, " ", **options)
 
         # Line graph. First column is x-axis, and should be datetime. Other columns are y-axes.
         elif self.visualization == VisualizationValues.TIME_CHART:
-            figure_or_data = self._render_timechart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_timechart_plotly(self.visualization_properties, " ", **options)
 
         # Similar to timechart, but highlights anomalies using an external machine-learning service.
         elif self.visualization == VisualizationValues.ANOMALY_CHART:
-            figure_or_data = self._render_linechart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_linechart_plotly(self.visualization_properties, " ", **options)
 
         # Stacked area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         elif self.visualization == VisualizationValues.STACKED_AREA_CHART:
-            figure_or_data = self._render_stackedareachart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_stackedareachart_plotly(self.visualization_properties, " ", **options)
 
         # Last two columns are the x-axis, other columns are y-axis.
         elif self.visualization == VisualizationValues.LADDER_CHART:
@@ -715,7 +720,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
         # Points graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes
         elif self.visualization == VisualizationValues.SCATTER_CHART:
-            figure_or_data = self._render_scatterchart_plotly(self.visualization_properties, " ")
+            figure_or_data = self._render_scatterchart_plotly(self.visualization_properties, " ", **options)
 
         if figure_or_data is not None:
             self.metadata["figure_or_data"] = figure_or_data
@@ -1106,8 +1111,8 @@ class ResultSet(list, ColumnGuesserMixin):
         return chart_properties
 
 
-    def _figure_or_figurewidget(self, data, layout):
-        if ipywidgets_installed:
+    def _figure_or_figurewidget(self, data, layout, **options):
+        if ipywidgets_installed and options.get("plot_package") == "plotly_widget":
             # print("----------- FigureWidget --------------")
             fig = go.FigureWidget(data=data, layout=layout)
         else:
@@ -1116,7 +1121,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return fig
 
 
-    def _render_areachart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
+    def _render_areachart_plotly(self, properties: dict, key_word_sep=" ", **options):
         """Generates a pylab plot from the result set.
 
         Area graph. 
@@ -1155,11 +1160,11 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
         return fig
 
 
-    def _render_stackedareachart_plotly(self, properties:dict, key_word_sep=" ", **kwargs):
+    def _render_stackedareachart_plotly(self, properties:dict, key_word_sep=" ", **options):
         """Generates a pylab plot from the result set.
 
         Stacked area graph. 
@@ -1206,11 +1211,11 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
         return fig
 
 
-    def _render_timechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
+    def _render_timechart_plotly(self, properties: dict, key_word_sep=" ", **options):
         """Generates a pylab plot from the result set.
 
         Line graph. 
@@ -1259,11 +1264,11 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
         return fig
 
 
-    def _render_piechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
+    def _render_piechart_plotly(self, properties: dict, key_word_sep=" ", **options):
         """Generates a pylab plot from the result set.
 
         Pie chart. 
@@ -1323,11 +1328,11 @@ class ResultSet(list, ColumnGuesserMixin):
                 for idx, tab in enumerate(self.chart_sub_tables)
             ],
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
         return fig
 
 
-    def _render_barchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
+    def _render_barchart_plotly(self, properties: dict, key_word_sep=" ", **options):
         """Generates a pylab plot from the result set.
 
         Bar chart. 
@@ -1365,11 +1370,11 @@ class ResultSet(list, ColumnGuesserMixin):
                 title=chart_properties["ylabel"],
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
         return fig
 
 
-    def _render_linechart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
+    def _render_linechart_plotly(self, properties: dict, key_word_sep=" ", **options):
         """Generates a pylab plot from the result set.
 
         Line graph. 
@@ -1407,11 +1412,11 @@ class ResultSet(list, ColumnGuesserMixin):
                 # ticksuffix=''
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
         return fig
 
 
-    def _render_scatterchart_plotly(self, properties: dict, key_word_sep=" ", **kwargs):
+    def _render_scatterchart_plotly(self, properties: dict, key_word_sep=" ", **options):
         """Generates a pylab plot from the result set.
 
         Points graph. 
@@ -1449,7 +1454,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout)
+        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
         return fig
 
 

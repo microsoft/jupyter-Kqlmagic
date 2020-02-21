@@ -182,7 +182,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     plot_package = Enum(
-        ["None", "plotly", "plotly_orca"], 
+        ["None", "plotly", "plotly_orca", 'plotly_widget'], 
         "plotly", 
         config=True, 
         help="""Set the plot package (plotlt_orca requires plotly orca to be installed on the server).\n 
@@ -683,7 +683,8 @@ class Kqlmagic(Magics, Configurable):
     @needs_local_scope
     @line_magic(Constants.MAGIC_NAME)
     @cell_magic(Constants.MAGIC_NAME)
-    def execute(self, line, cell="", local_ns={}, override_vars={}, override_options={}):
+    def execute(self, line:str, cell:str="", local_ns:dict={}, 
+        override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
         """Query Kusto or ApplicationInsights using kusto query language (kql). Repository specified by a connect string.
 
         Magic Syntax::
@@ -792,10 +793,17 @@ class Kqlmagic(Magics, Configurable):
                 parsed["line"] = line
                 parsed["cell"] = cell
                 popup_text = None
+
+                if type(override_options) is dict:
+                    parsed["options"] = {**parsed["options"], **override_options}
+                if type(override_query_properties) is dict:
+                    parsed["options"]["query_properties"] = {**parsed["options"]["query_properties"], **override_query_properties}
+                if type(override_connection) is str:
+                    parsed["connection"] = override_connection
                 options = parsed["options"]
                 command = parsed["command"].get("command")
                 if command is None or command == "submit":
-                    result = self.execute_query(parsed, user_ns, override_vars=override_vars, override_options=override_options)
+                    result = self.execute_query(parsed, user_ns, override_vars=override_vars)
                 else:
                     param = parsed["command"].get("param")
                     if command == "version":
@@ -901,7 +909,7 @@ class Kqlmagic(Magics, Configurable):
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
 
 
-    def execute_query(self, parsed, user_ns: dict, result_set=None, override_vars={}, override_options={}):
+    def execute_query(self, parsed, user_ns: dict, result_set=None, override_vars=None):
         if Help_html.showfiles_base_url is None:
             now_time = time.time()   
             seconds = now_time - self.start_time
@@ -914,7 +922,7 @@ class Kqlmagic(Magics, Configurable):
                 self.submit_get_notebook_url()
 
         query = parsed["query"].strip()
-        options = {**parsed["options"], **override_options}
+        options = parsed["options"]
 
         suppress_results = options.get("suppress_results", False) and options.get("enable_suppress_result", self.enable_suppress_result)
         connection_string = parsed["connection"]

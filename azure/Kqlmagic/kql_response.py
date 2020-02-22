@@ -7,6 +7,10 @@
 from datetime import timedelta, datetime
 import re
 import json
+from .log import logger
+import ijson
+
+from .Kql_response_wrapper import CSV_table_reader
 
 
 import adal
@@ -50,7 +54,7 @@ class KqlResponseTable(six.Iterator):
 
     def __init__(self, id, response_table):
         self.id = id
-        self.rows = response_table["Rows"]
+        self.rows = CSV_table_reader(response_table["Rows"]) if isinstance(response_table["Rows"], str) else response_table["Rows"]
         self.columns = response_table["Columns"]
         self.index2column_mapping = []
         self.index2type_mapping = []
@@ -59,7 +63,7 @@ class KqlResponseTable(six.Iterator):
             ctype = c["ColumnType"] if "ColumnType" in c else c["DataType"]
             self.index2type_mapping.append(ctype)
         self.row_index = 0
-        self._rows_count = sum([1 for r in self.rows if isinstance(r,list)]) # len(self.rows)
+        self._rows_count = len(self.rows) #sum([1 for r in self.rows if isinstance(r,list)])
         # Here we keep converter functions for each type that we need to take special care (e.g. convert)
 
         # index MUST be lowercase !!!
@@ -194,12 +198,13 @@ class KqlQueryResponse(object):
             self.dataSetCompletion = [f for f in json_response if f["FrameType"] == "DataSetCompletion"]
         else:
             self.all_tables = self.json_response["Tables"]
-            tables_num = self.json_response["Tables"].__len__()
-            last_table = self.json_response["Tables"][tables_num - 1]
+            tables_num = self.all_tables.__len__()
+            last_table = self.all_tables[tables_num - 1]
             if tables_num < 2:
                 self.tables = []
             else:
-                self.tables = [self.json_response["Tables"][r[0]] for r in last_table["Rows"] if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
+                rows_last_table = CSV_table_reader(last_table["Rows"]) if isinstance(last_table["Rows"], str) else last_table["Rows"]
+                self.tables = [self.all_tables[r[0]] for r in rows_last_table if r[2] == "GenericResult" or r[2] == "PrimaryResult"]
             if len(self.tables) == 0:
                 self.tables = self.all_tables[:1]
             self.primary_results = [KqlResponseTable(idx, t) for idx, t in enumerate(self.tables)]
@@ -240,7 +245,7 @@ class KqlQueryResponse(object):
                                     value = row[value_idx]
                                     self.visualization[row[id_idx]] = self._dynamic_to_object(value)
             else:
-                tables_num = self.json_response["Tables"].__len__()
+                tables_num = self.all_tables.__len__()
                 if tables_num > 1:
                     last_table = self.json_response["Tables"][tables_num - 1]
                     for row in last_table["Rows"]:
@@ -266,9 +271,9 @@ class KqlQueryResponse(object):
                                 value = row[payload_idx]
                                 return self._dynamic_to_object(value)
         else:
-            tables_num = self.json_response["Tables"].__len__()
+            tables_num = self.all_tables.__len__()
             if tables_num > 1:
-                last_table = self.json_response["Tables"][tables_num - 1]
+                last_table = self.all_tables[tables_num - 1]
                 for r in last_table["Rows"]:
                     if r[2] == "QueryStatus":
                         t = self.json_response["Tables"][r[0]]
@@ -294,9 +299,9 @@ class KqlQueryResponse(object):
                                 value = row[payload_idx]
                                 return self._dynamic_to_object(value)
         else:
-            tables_num = self.json_response["Tables"].__len__()
+            tables_num = self.all_tables.__len__()
             if tables_num > 1:
-                last_table = self.json_response["Tables"][tables_num - 1]
+                last_table = self.all_tables[tables_num - 1]
                 for r in last_table["Rows"]:
                     if r[2] == "QueryStatus":
                         t = self.json_response["Tables"][r[0]]

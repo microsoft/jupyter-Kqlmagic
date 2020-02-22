@@ -13,7 +13,7 @@ import requests
 
 
 from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
-from .kql_response import KqlQueryResponse, KqlError
+from .kql_response import KqlQueryResponse, KqlError, KqlQueryResponse_CSV
 from .constants import Constants, ConnStrKeys, Cloud
 from .version import VERSION
 from .log import logger
@@ -205,17 +205,15 @@ class Kusto_Client(object):
 
         logger().debug("Kusto_Client::execute - POST request - url: %s, headers: %s, payload: %s, timeout: %s", endpoint, log_request_headers, request_payload, options.get("timeout"))
 
-        response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
-
-        logger().debug("Kusto_Client::execute - response - status: %s, headers: %s, payload: %s", response.status_code, response.headers, response.text)
-
-        # print("response status code: ", response.status_code)
-        # print("response", response)
-        # print("response text", response.text)
-
+        streaming_data = options.get("data_stream")
+        response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"), stream=streaming_data)
         if response.status_code != requests.codes.ok:  # pylint: disable=E1101
             raise KqlError(response.text, response)
+        if streaming_data=="True":
+            self.request_gui = str(uuid.uuid4())
 
+            kql_response = stream_data_to_csv(self.request_gui, response, endpoint_version)
+        else:
         kql_response = KqlQueryResponse(response.json(), endpoint_version)
 
         if kql_response.has_exceptions() and not accept_partial_results:
@@ -227,3 +225,68 @@ class Kusto_Client(object):
 
         return kql_response
 
+def stream_data_to_csv(request_gui, response, endpoint_version): #writes to a few csv files the data returnd from Kusto. 
+    import ijson
+    from .Kql_response_wrapper import ResponseStream
+    import csv
+    from .display import Display
+    import os
+    stream = ResponseStream(response.iter_content())
+    json_response = ijson.items(stream, '')
+    json_list_response = []
+    json_dic = {}
+    count_rows = 0
+    csv_counter = 0
+    BUFFER_SIZE = Constants.STREAM_BUFFER_SIZE
+
+        for big_item in json_response:
+            if endpoint_version=="v2":
+                for item in big_item:
+                    if item["FrameType"] == "DataTable":
+                        if item["TableKind"]=="PrimaryResult":
+                        folder_path = f"{Display.showfiles_base_path}/{Display.showfiles_folder_name}/{request_gui}"
+                        os.makedirs(folder_path)
+                        for row in item["Rows"]:
+                            if count_rows>=(csv_counter*BUFFER_SIZE):
+                                csv_counter+=1
+                                f1 = open(f"{folder_path}/{csv_counter}.csv", 'w', newline='')
+                                csv_write_primary = csv.writer(f1)
+                                row = convert_row_types(row, item["Columns"])
+                                csv_write_primary.writerow(row)
+                                count_rows+=1
+                            else:
+                                row = convert_row_types(row, item["Columns"])
+                                csv_write_primary.writerow(row)
+                                count_rows+=1
+                        f1.close()
+                        item["Rows"]=request_gui
+                json_list_response.append(item)
+        if endpoint_version=="v1":
+            with open(f"{Display.showfiles_base_path}/{Display.showfiles_folder_name}/{request_gui}.csv", 'w', newline='') as f1:
+                csv_write_primary = csv.writer(f1)
+                for row in big_item["Tables"][-1]["Rows"]:
+                    csv_write_primary.writerow(row)
+                big_item["Rows"]=request_gui
+            json_dic.update(big_item)
+
+    json_list_response  = json_list_response if len(json_list_response)>0 else None
+    json_response = json_list_response or json_dic 
+    return KqlQueryResponse(json_response, endpoint_version)
+
+def convert_row_types(row, columns):
+    import pandas
+    for idx,column in enumerate(columns):
+        col_type = column['ColumnType']
+        if col_type == "timespan":
+                row[idx] = pandas.to_timedelta(row[idx].replace(".", " days ") if row[idx] and "." in row[idx].split(":")[0] else row[idx])
+        elif col_type == "dynamic":
+            row[idx] = _dynamic_to_object(row[idx])
+    return row
+
+def _dynamic_to_object(value):
+    try:
+        return json.loads(value) if value and isinstance(value, str) else value if value else None
+    except Exception:
+        return value
+
+    return KqlQueryResponse_CSV(json_response, endpoint_version )

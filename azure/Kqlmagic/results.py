@@ -543,6 +543,12 @@ class ResultSet(list, ColumnGuesserMixin):
             # self._dataframe = frame
         return self._dataframe
 
+    def to_dask(self):
+
+        self._dask_df = self._queryResult.tables[self.fork_table_id].to_dask()
+        return self._dask_df
+
+
 
     def submit(self, override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
         "execute the query again"

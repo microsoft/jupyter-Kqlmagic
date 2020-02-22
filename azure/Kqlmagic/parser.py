@@ -403,7 +403,7 @@ class Parser(object):
         "checkmagicversion": {"flag": "check_magic_version", "readonly": "True", "config": "config.check_magic_version"},
         "showwhatnew": {"flag": "show_what_new", "readonly": "True", "config": "config.show_what_new"},
         "showinitbanner": {"flag": "show_init_banner", "readonly": "True", "config": "config.show_init_banner"},
-        
+        "datastream": {"flag": "data_stream", "config": "config.data_stream"},
         "testnotebookapp": {"flag": "test_notebook_app", "readonly": "True", "config": "config.test_notebook_app"},
 
         "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},

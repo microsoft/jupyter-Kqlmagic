@@ -6,6 +6,7 @@
 
 import json
 from datetime import timedelta, datetime
+from .log import logger
 
 
 import six
@@ -85,6 +86,8 @@ class Parameterizer(object):
                 else f"real({v})"
                 if isinstance(v, float)
                 else str(v)
+                if False 
+                else self.datatable_dask(v)
             )
         except:
             val = f"'{v}'"
@@ -168,13 +171,15 @@ class Parameterizer(object):
         return "" if s is None else repr(s)
 
         
-    def guess_object_types(self, pairs_type:dict, r:list) -> dict:
+    def guess_object_types(self, pairs_type:dict, r, dask=False) -> dict:
         new_pairs_type = {}
         for idx, col in enumerate(pairs_type):
             pair = pairs_type[col]
             if pair[0] == "object":
                 ty = None
                 for row in r:
+                    if dask:
+                        row = list(row. _asdict().values())[1:]
                     val = row[idx]
                     if val is not None:
                         cty = type(val)
@@ -224,6 +229,19 @@ class Parameterizer(object):
         data = ", ".join([", ".join([self.dataframe_to_kql_value(val, pairs_t[c[idx]]) for idx, val in enumerate(row)]) for row in r])
         return f" view () {{datatable ({schema}) [{data}]}}"      
  
+    def datatable_dask(self, ddf):
+        t = {col: str(t).split(".")[-1].split("[",1)[0] for col, t in dict(ddf.dtypes).items()}
+        logger().debug(f"datatable_dask(self, ddf) {t}")
+        logger().debug(f"datatable_dask(self, ddf.columns) {ddf.columns} {type(ddf.columns)}")
+
+        c = ddf.columns
+        pairs_t = {col: [str(t[col]), self._DATAFRAME_TO_KQL_TYPES.get(str(t[col]))] for col in c}
+        pairs_t = self.guess_object_types(pairs_t, ddf.itertuples(), dask=True)
+
+        schema = ", ".join([f"{col}:{pairs_t[col][1]}" for col in c])
+        data = ", ".join([", ".join([self.dataframe_to_kql_value(val, pairs_t[c[idx]]) for idx, val in enumerate(list(row. _asdict().values())[1:])]) for row in ddf.itertuples()])
+        return f" view () {{datatable ({schema}) [{data}]}}"    
+
 
     def _detect_parameters(self, query_let_statments: list):
         """detect in query let staements, the unresolved parameter that can be resolved by python variables"""

@@ -14,6 +14,7 @@ import re
 import uuid
 import base64
 
+import textwrap
 
 import six
 import prettytable
@@ -224,6 +225,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
         self.display_info = True
         self.suppress_result = False
+        self.figure_object = parametrized_query_dict.get(options.get("result_var"))
 
         self._update(queryResult)
 
@@ -494,6 +496,27 @@ class ResultSet(list, ColumnGuesserMixin):
         "display the table in cell"
         return self.show_table(**{"popup_window": False, **kwargs})
 
+    def update_properties(self,new_properties = None, **kwargs):
+        if new_properties !={}:
+            figure = self.figure_object
+            if figure:
+                for prop in new_properties.keys():
+                    if prop =="legendwrap" or prop=="legendwidth":
+                        if new_properties.get("legendwrap")==True:
+                            legend_width = new_properties.get("legendwidth") or 15
+                            if self.visualization == VisualizationValues.PIE_CHART:
+                                figure.for_each_trace(
+                                    lambda trace: trace.update(labels=['<br>'.join(textwrap.wrap(str(label).replace("<br>",""), width=legend_width)) for label in trace.labels])
+                                )
+                            else:
+                                figure.for_each_trace(
+                                    lambda trace: trace.update(name='<br>'.join(textwrap.wrap(str(trace.name).replace("<br>",""), width=legend_width)))
+                                )
+                    else:
+                        try:
+                            figure.layout[prop] = new_properties.get(prop)
+                        except ValueError:
+                            Display.showWarningMessage("Could not update the figure because of an invalid property. Find a list of possible properties on https://plot.ly/python/reference/")
 
     # Printable pretty presentation of the object
     def __str__(self, *args, **kwargs):
@@ -723,6 +746,7 @@ class ResultSet(list, ColumnGuesserMixin):
             figure_or_data = self._render_scatterchart_plotly(self.visualization_properties, " ", **options)
 
         if figure_or_data is not None:
+            self.figure_object = figure_or_data
             self.metadata["figure_or_data"] = figure_or_data
             if options.get("plot_package") == "plotly_orca":
                 image_bytes = self._plotly_fig_to_image(figure_or_data, None, **options)
@@ -1223,6 +1247,7 @@ class ResultSet(list, ColumnGuesserMixin):
         """
 
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
+        print(f"in render timechart plotly  self.chart_sub_tables {self.chart_sub_tables}")
         if len(self.chart_sub_tables) < 1:
             return None
         chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)

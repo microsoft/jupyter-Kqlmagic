@@ -78,7 +78,7 @@ EXTRAS_REQUIRE      = {
                         ],
                         'azcli': [
                             'azure-core',
-                            'azure-cli-core'
+                            'azure-cli-core>=2.1.0'
                         ]
 }
 

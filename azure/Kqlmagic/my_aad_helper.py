@@ -320,10 +320,7 @@ class _MyAadHelper(object):
         elif self._authentication_method is AuthenticationMethod.aad_azcli_login:
             logger().debug("_MyAadHelper::acquire_token - aad/cli - resource: '%s', subscription: '%s', tenant: '%s'", self._resource, self._azcli_subscription, self._azcli_tenant)
             profile = get_cli_profile()
-            if self._azcli_tenant is not None:
-                raise AuthenticationError("Azure CLI authentication 'tenant' connection string key will be supported in the next Azure CLI release.")
-
-            credential, _, _ = profile.get_raw_token(resource=self._resource, subscription=self._azcli_subscription)
+            credential, _, _ = profile.get_raw_token(resource=self._resource, subscription=self._azcli_subscription, tenant=self._azcli_tenant)
             _, _, token = credential
         else:
             raise AuthenticationError("Unknown authentication method.")

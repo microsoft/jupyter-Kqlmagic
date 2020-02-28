@@ -99,36 +99,49 @@ class Display(object):
 
 
     @staticmethod
-    def show_html(html_str):
-        Display.show_html_obj(HTML(html_str))
+    def show_html(html_str, display_handler_name=None, **options):
+        Display.show_html_obj(HTML(html_str), display_handler_name=display_handler_name, **options)
 
 
     @staticmethod
-    def show_html_obj(html_obj):
-        display(html_obj)
-
+    def show_html_obj(html_obj, display_handler_name=None, **options) -> object:
+        if display_handler_name is None:
+            display(html_obj)
+        else:
+            dh = options["display_handlers"].get(display_handler_name)
+            if dh is not None:
+                dh.update(html_obj)
+            else:
+                options["display_handlers"][display_handler_name] = display(html_obj, display_id=options.get("display_id"))
+        
 
     @staticmethod
-    def show(content, **options):
+    def show(content, display_handler_name=None, **options):
         if isinstance(content, str) and len(content) > 0:
             if options is not None and options.get("popup_window", False):
                 file_name = Display._get_name(**options)
                 file_path = Display._html_to_file_path(content, file_name, **options)
-                Display.show_window(file_name, file_path, **options)
+                Display.show_window(file_name, file_path, display_handler_name=display_handler_name, **options)
             else:
-                Display.show_html(content)
-        else:
+                Display.show_html(content, display_handler_name=display_handler_name, **options)
+        elif display_handler_name is None:
             display(content)
+        else:
+            dh = options["display_handlers"].get(display_handler_name)
+            if dh is not None:
+                dh.update(content)
+            else:
+                options["display_handlers"][display_handler_name] = display(content, display_id=options.get("display_id"))
 
 
     @staticmethod
     def get_show_deeplink_html_obj(window_name, deep_link_url:str, isCloseWindow: bool, **options):
             html_str = Display._get_Launch_page_html(window_name, deep_link_url, isCloseWindow, False, **options)
-            if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]:
+            if options.get("notebook_app") in ["visualstudiocode", "azuredatastudio", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "azuredatastudio", "ipython"]:
                 file_name = Display._get_name()
                 file_path = Display._html_to_file_path(html_str, file_name)
                 url = file_path if file_path.startswith("http") else adjust_path_to_uri(f"file:///{Display.showfiles_base_path}/{file_path}") #base path is already adjusted to uri in KqlMagic init
-                url = urllib.parse.quote(url)
+                # url = urllib.parse.quote(url)
                 webbrowser.open(url, new=1, autoraise=True)
                 Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
                 return None
@@ -138,9 +151,9 @@ class Display(object):
 
     @staticmethod
     def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
-        if options.get("notebook_app") in ["visualstudiocode", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "ipython"]: 
+        if options.get("notebook_app") in ["visualstudiocode", "azuredatastudio", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "azuredatastudio", "ipython"]: 
             url = file_path if file_path.startswith("http") else adjust_path_to_uri(f"file:///{Display.showfiles_base_path}/{file_path}") #base path is already adjusted to uri in KqlMagic init
-            url = urllib.parse.quote(url)
+            # url = urllib.parse.quote(url)
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
             return None
@@ -150,16 +163,16 @@ class Display(object):
 
 
     @staticmethod
-    def show_window(window_name, file_path, button_text=None,onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
+    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, display_handler_name=None, **options):
         html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text,  **options)
         if html_obj is not None:
-            Display.show_html_obj(html_obj)
+            Display.show_html_obj(html_obj,display_handler_name=display_handler_name, **options)
 
 
     @staticmethod
-    def to_styled_class(item, **kwargs):
-        if kwargs.get("json_display") != "raw" and (isinstance(item, dict) or isinstance(item, list)):
-            if kwargs.get("json_display") == "formatted" or kwargs.get("notebook_app") != "jupyterlab":
+    def to_styled_class(item, **options):
+        if options.get("json_display") != "raw" and (isinstance(item, dict) or isinstance(item, list)):
+            if options.get("json_display") == "formatted" or options.get("notebook_app") != "jupyterlab":
                 return _getitem_FormattedJson(item)
             else:
                 return JSON(item)
@@ -423,7 +436,9 @@ class Display(object):
     @staticmethod
     def _getMessageHtml(msg, palette):
         "get query information in as an HTML string"
-        if isinstance(msg, list):
+        if msg is None:
+            msg_str = ''
+        elif isinstance(msg, list):
             msg_str = "<br>".join(msg)
         elif isinstance(msg, str):
             msg_str = msg
@@ -461,27 +476,38 @@ class Display(object):
 
 
     @staticmethod
-    def _showMessage(html_msg, **kwargs):
-        html_str = Display.toHtml(**html_msg)
-        Display.show_html(html_str)
+    def _showMessage(html_msg, display_handler_name=None, **options):
+        html_str = None
+        if html_msg is None or len(html_msg["body"]) == 0:
+            if display_handler_name is not None:
+                if options["display_id"] is not None:
+                    html_str = Display.toHtml(**html_msg)
+                # dh = options["display_handlers"].get(display_handler_name)
+                # if dh is not None:
+                #     html_str = Display.toHtml(**html_msg)
+        else:
+            html_str = Display.toHtml(**html_msg)
+
+        if html_str is not None:
+            Display.show_html(html_str, display_handler_name=display_handler_name, **options)
 
 
     @staticmethod
-    def showSuccessMessage(msg, **options):
-        Display._showMessage(Display.getSuccessMessageHtml(msg))
+    def showSuccessMessage(msg, display_handler_name=None, **options):
+        Display._showMessage(Display.getSuccessMessageHtml(msg), display_handler_name=display_handler_name, **options)
 
 
     @staticmethod
-    def showInfoMessage(msg, **options):
-        Display._showMessage(Display.getInfoMessageHtml(msg))
+    def showInfoMessage(msg, display_handler_name=None, **options):
+        Display._showMessage(Display.getInfoMessageHtml(msg), display_handler_name=display_handler_name, **options)
 
 
     @staticmethod
-    def showWarningMessage(msg, **options):
-        Display._showMessage(Display.getWarningMessageHtml(msg))
+    def showWarningMessage(msg, display_handler_name=None, **options):
+        Display._showMessage(Display.getWarningMessageHtml(msg), display_handler_name=display_handler_name, **options)
 
 
     @staticmethod
-    def showDangerMessage(msg, **options):
+    def showDangerMessage(msg, display_handler_name=None, **options):
         Display._showMessage(Display.getDangerMessageHtml(msg))
 

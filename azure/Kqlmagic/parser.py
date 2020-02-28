@@ -438,6 +438,11 @@ class Parser(object):
 
         "ps": {"abbreviation": "popupschema"},
         "popupschema": {"flag": "popup_schema", "type": "bool", "init": "False"},
+
+        "did": {"abbreviation": "displayid"},
+        "displayid": {"flag": "display_id", "type": "bool", "init": "False"},
+        "displayhandlers": {"flag": "display_handlers","readonly": "True", "type": "dict", "init": "{}"},
+
     }
 
 

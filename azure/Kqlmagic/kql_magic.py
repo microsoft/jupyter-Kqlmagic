@@ -307,14 +307,14 @@ class Kqlmagic(Magics, Configurable):
 
     # valid values: jupyterlab or jupyternotebook
     notebook_app = Enum(
-        ["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], 
+        ["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio"], 
         "auto", 
         config=True, 
         help="""Set notebook application used."""
     ) #TODO: add "papermill", "nteract"
 
     test_notebook_app = Enum(
-        ["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode"], 
+        ["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio"], 
         "none", 
         config=True, 
         help="""Set testing application mode, results should return for the specified notebook application."""
@@ -554,7 +554,10 @@ class Kqlmagic(Magics, Configurable):
         app = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.notebook_app") or "auto"
         if app == "auto":
             if os.getenv("VSCODE_CWD") and os.getenv("MPLBACKEND"):
-                app = "visualstudiocode"
+                if os.getenv("VSCODE_NODE_CACHED_DATA_DIR") and os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('azuredatastudio'):
+                    app = "azuredatastudio"
+                else:
+                    app = "visualstudiocode"
             else:
                 try:
                     ip.magic("matplotlib inline")
@@ -564,7 +567,7 @@ class Kqlmagic(Magics, Configurable):
             ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.notebook_app='{app}'")
             # print("notebook_app: {0}".format(app))
         
-        if app != "jupyterlab":
+        if app not in ["jupyterlab", "azuredatastudio"]:
             logger().debug("Kqlmagic::__init__ - discover notebook url")
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
 
@@ -669,7 +672,8 @@ class Kqlmagic(Magics, Configurable):
                             button_text=button_text, 
                             onclick_visibility="visible", 
                             before_text=f"Click to find out what's new in {Constants.MAGIC_PACKAGE_NAME} ", 
-                            palette=Display.info_style, **options
+                            palette=Display.info_style, 
+                            **options
                         )
                 except:
                     logger().debug("Kqlmagic::__init__ - failed to fetch HISTORY.md")
@@ -684,7 +688,7 @@ class Kqlmagic(Magics, Configurable):
     @line_magic(Constants.MAGIC_NAME)
     @cell_magic(Constants.MAGIC_NAME)
     def execute(self, line:str, cell:str="", local_ns:dict={}, 
-        override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
+        override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None, override_result_set=None):
         """Query Kusto or ApplicationInsights using kusto query language (kql). Repository specified by a connect string.
 
         Magic Syntax::
@@ -803,7 +807,7 @@ class Kqlmagic(Magics, Configurable):
                 options = parsed["options"]
                 command = parsed["command"].get("command")
                 if command is None or command == "submit":
-                    result = self.execute_query(parsed, user_ns, override_vars=override_vars)
+                    result = self.execute_query(parsed, user_ns, result_set=override_result_set, override_vars=override_vars)
                 else:
                     param = parsed["command"].get("param")
                     if command == "version":
@@ -905,12 +909,12 @@ class Kqlmagic(Magics, Configurable):
 
 
     def submit_get_notebook_url(self):
-        if self.notebook_app != "jupyterlab":
+        if self.notebook_app not in ["jupyterlab", "azuredatastudio"]:
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
 
 
     def execute_query(self, parsed, user_ns: dict, result_set=None, override_vars=None):
-        if Help_html.showfiles_base_url is None:
+        if Help_html.showfiles_base_url is None and self.notebook_app not in ["azuredatastudio"]:
             now_time = time.time()   
             seconds = now_time - self.start_time
             if (seconds < 5):
@@ -921,11 +925,11 @@ class Kqlmagic(Magics, Configurable):
             else:
                 self.submit_get_notebook_url()
 
-        query = parsed["query"].strip()
-        options = parsed["options"]
+        query = parsed.get('query', '').strip()
+        options = parsed.get('options', {})
 
         suppress_results = options.get("suppress_results", False) and options.get("enable_suppress_result", self.enable_suppress_result)
-        connection_string = parsed["connection"]
+        connection_string = parsed.get('connection')
 
         if not query and not connection_string:
             return None
@@ -1008,10 +1012,10 @@ class Kqlmagic(Magics, Configurable):
             #
             start_time = time.time()
 
-            _result_set: ResultSet = result_set
-            params_dict = options.get("params_dict") or user_ns
-            parametrized_query_dict = Parameterizer(params_dict, override_vars=override_vars).expand(query) if _result_set is None else _result_set.parametrized_query_dict
-            parametrized_query = parametrized_query_dict.get('parametrized_query')
+            parametrized_query_obj = result_set.parametrized_query_obj if result_set is not None else Parameterizer(query)
+            params_vars = parametrized_query_obj.parameters if result_set is not None else options.get("params_dict") or user_ns
+            parametrized_query_obj.apply(params_vars, override_vars=override_vars)
+            parametrized_query = parametrized_query_obj.query
             try:
                 raw_query_result = conn.execute(parametrized_query, user_ns, **options)
             except KqlError as err:
@@ -1038,32 +1042,33 @@ class Kqlmagic(Magics, Configurable):
             #
             # model query results
             #
-            if _result_set is None:
+            conn_info = self._get_connection_info(**options) if not connection_string and Connection.connections else []
+            metadata = {
+                'magic': self,
+                'parsed': parsed,
+                'conn': conn,
+                'connection': conn.get_conn_name(),
+                'start_time': start_time,
+                'end_time': end_time,
+                'parametrized_query_obj': parametrized_query_obj,
+                'conn_info': conn_info
+            }
+            if result_set is None:
                 fork_table_id = 0
-                saved_result = ResultSet(
-                    raw_query_result, parametrized_query_dict, conn, fork_table_id=0, fork_table_resultSets={}, metadata={}, options=options
-                )
-                saved_result.metadata["magic"] = self
-                saved_result.metadata["parsed"] = parsed
-                saved_result.metadata["connection"] = conn.get_conn_name()
+                saved_result = ResultSet(metadata, raw_query_result)
             else:
-                fork_table_id = _result_set.fork_table_id
-                saved_result = _result_set.fork_result(0)
-                saved_result.feedback_info = []
-                saved_result._update(raw_query_result)
+                fork_table_id = result_set.fork_table_id
+                saved_result = result_set.fork_result(0)
+                saved_result.update_obj(metadata, raw_query_result)
+            saved_result.feedback_info = []
+            saved_result.feedback_warning = []
 
             result = saved_result
 
-            if not connection_string and Connection.connections:
-                saved_result.metadata["conn_info"] = self._get_connection_info(**options)
-            else:
-                saved_result.metadata["conn_info"] = []
 
-            saved_result.metadata["start_time"] = start_time
-            saved_result.metadata["end_time"] = end_time
 
-            if saved_result.is_partial_table and not suppress_results:
-                Display.showWarningMessage(f"partial results, query had errors (see {options.get('last_raw_result_var')}.dataSetCompletion)")
+            if saved_result.is_partial_table:
+                saved_result.feedback_warning.append(f"partial results, query had errors (see {options.get('last_raw_result_var')}.dataSetCompletion)")
 
             if options.get("feedback", self.feedback):
                 if options.get("show_query_time", self.show_query_time):
@@ -1111,7 +1116,8 @@ class Kqlmagic(Magics, Configurable):
                 if suppress_results:
                     saved_result.suppress_result = True
                 elif options.get("auto_dataframe", self.auto_dataframe):
-                    Display.showSuccessMessage(saved_result.feedback_info)
+                    Display.showWarningMessage(saved_result.feedback_warning, **options)
+                    Display.showSuccessMessage(saved_result.feedback_info, **options)
                 else:
                     saved_result.display_info = True
 
@@ -1164,11 +1170,13 @@ def _override_default_configuration(ip, load_mode):
             "jupyterlab": "jupyterlab", 
             "jupyternotebook": "jupyternotebook", 
             "ipython": "ipython", 
-            "visualstudiocode": "visualstudiocode", 
+            "visualstudiocode": "visualstudiocode",
+            "azuredatastudio": "azuredatastudio", 
             "lab": "jupyterlab", 
             "notebook": "jupyternotebook", 
             "ipy": "ipython", 
-            "vsc": "visualstudiocode", 
+            "vsc": "visualstudiocode",
+            "ads": "azuredatastudio",
             # "papermill":"papermill" #TODO: add "papermill", "nteract"
         }.get(lookup_key)
         if app is not None:

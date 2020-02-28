@@ -206,32 +206,33 @@ class ResultSet(list, ColumnGuesserMixin):
     """
 
     # Object constructor
-    def __init__(self, queryResult, parametrized_query_dict, connection, fork_table_id, fork_table_resultSets, metadata, options):
+    def __init__(self, metadata, queryResult, fork_table_id=0, fork_table_resultSets={}):
 
         #         self.current_colors_palette = ['rgb(184, 247, 212)', 'rgb(111, 231, 219)', 'rgb(127, 166, 238)', 'rgb(131, 90, 241)']
 
-        self.parametrized_query_dict = parametrized_query_dict
         self.fork_table_id = fork_table_id
         self._fork_table_resultSets = fork_table_resultSets
-        self.options = options
-        self.conn = connection
         # set by caller
-        self.metadata = metadata
-        self.feedback_info = []
 
-        # table printing style to any of prettytable's defined styles (currently DEFAULT, MSWORD_FRIENDLY, PLAIN_COLUMNS, RANDOM)
-        self.prettytable_style = prettytable.__dict__[self.options.get("prettytable_style", "DEFAULT").upper()]
+        self.feedback_info = []
+        self.feedback_warning = []
+
 
         self.display_info = True
         self.suppress_result = False
+        self.update_obj(metadata, queryResult)
 
-        self._update(queryResult)
+    def _update_metadata(self, metadata: dict):
+        self._metadata = metadata
+        self.parametrized_query_obj = metadata.get('parametrized_query_obj')
+        self.options = metadata['parsed'].get('options') or {}
+        self.conn = metadata.get('conn')
 
 
     def _get_palette(self, n_colors=None, desaturation=None):
         name = self.options.get("palette_name")
         length = max(n_colors or 10, self.options.get("palette_colors") or 10)
-        self.metadata["palette"] = Palette(
+        self._metadata["palette"] = Palette(
             palette_name=name,
             n_colors=length,
             desaturation=desaturation or self.options.get("palette_desaturation"),
@@ -246,31 +247,23 @@ class ResultSet(list, ColumnGuesserMixin):
             return str(palette[idx])
         return None
 
-
     @property 
     def parametrized_query(self):
-        query_management_prefix: str = self.parametrized_query_dict.get('query_management_prefix')
-        if (query_management_prefix and len(query_management_prefix) > 0):
-            query_management_prefix += '\n'
-
-        statements: list = self.parametrized_query_dict.get('statements')
-        parametrized_query_str = query_management_prefix  + ";\n".join(statements)
-        return parametrized_query_str
-
+        return self.parametrized_query_obj.pretty_query
 
     @property
     def query(self):
-        return self.metadata.get("parsed").get("query").strip()
+        return self._metadata.get("parsed").get("query").strip()
 
 
     @property
     def plotly_fig(self):
-        return self.metadata.get("figure_or_data")
+        return self._metadata.get("figure_or_data")
 
 
     @property
     def palette(self):
-        return self.metadata.get("palette")
+        return self._metadata.get("palette")
 
 
     @property
@@ -280,17 +273,17 @@ class ResultSet(list, ColumnGuesserMixin):
 
     @property
     def connection(self):
-        return self.metadata.get("connection")
+        return self._metadata.get("connection")
 
 
     @property
     def start_time(self):
-        return self.metadata.get("start_time")
+        return self._metadata.get("start_time")
 
 
     @property
     def end_time(self):
-        return self.metadata.get("end_time")
+        return self._metadata.get("end_time")
 
 
     @property
@@ -312,7 +305,7 @@ class ResultSet(list, ColumnGuesserMixin):
         if (qld_param and qld_param not in ["Kusto.Explorer", "Kusto.WebExplorer"]):
             raise ValueError('Unknow deep link destination, the only supported are: ["Kusto.Explorer", "Kusto.WebExplorer"]')
         options = {**self.options, "query_link_destination": qld_param } if qld_param else self.options
-        deep_link_url = self.conn.get_deep_link(self.parametrized_query, options)
+        deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, options)
         if deep_link_url is not None: #only use deep links for kusto connection
             qld = options.get("query_link_destination").lower().replace('.', '_')
             isCloseWindow = options.get("query_link_destination") == "Kusto.Explorer"
@@ -323,7 +316,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return None
 
 
-    def _update(self, queryResult):
+    def _update_query_results(self, queryResult):
         self._queryResult = queryResult
         self._completion_query_info = queryResult.completion_query_info
         self._completion_query_resource_consumption = queryResult.completion_query_resource_consumption
@@ -336,7 +329,9 @@ class ResultSet(list, ColumnGuesserMixin):
         self.columns_type = queryResultTable.types()
         self.columns_datafarme_type = queryResultTable.datafarme_types
         self.field_names = _unduplicate_field_names(self.columns_name)
-        self.pretty = PrettyTable(self.field_names, style=self.prettytable_style) if len(self.field_names) > 0 else None
+                # table printing style to any of prettytable's defined styles (currently DEFAULT, MSWORD_FRIENDLY, PLAIN_COLUMNS, RANDOM)
+        prettytable_style = prettytable.__dict__[self.options.get("prettytable_style", "DEFAULT").upper()]
+        self.pretty = PrettyTable(self.field_names, style=prettytable_style) if len(self.field_names) > 0 else None
         self.records_count = queryResultTable.recordscount()
         self.is_partial_table = queryResultTable.ispartial()
         self.visualization_properties = queryResultTable.visualization_properties
@@ -354,10 +349,14 @@ class ResultSet(list, ColumnGuesserMixin):
         self._fork_table_resultSets[str(self.fork_table_id)] = self
     
 
+    def update_obj(self, metadata, queryResult):
+        self._update_metadata(metadata)
+        self._update_query_results(queryResult)
+
     def _create_fork_results(self):
         if self.fork_table_id == 0 and len(self._fork_table_resultSets) == 1:
             for fork_table_id in range(1, len(self._queryResult.tables)):
-                r = ResultSet(self._queryResult, self.parametrized_query_dict, self.conn, fork_table_id, self._fork_table_resultSets, self.metadata, self.options)
+                r = ResultSet(self._metadata, self._queryResult, fork_table_id=fork_table_id, fork_table_resultSets=self._fork_table_resultSets)
                 if r.options.get("feedback"):
                     if r.options.get("show_query_time"):
                         minutes, seconds = divmod(self.elapsed_timespan, 60)
@@ -368,11 +367,11 @@ class ResultSet(list, ColumnGuesserMixin):
         if self.fork_table_id == 0:
             for r in self._fork_table_resultSets.values():
                 if r != self:
-                    r._update(self._queryResult)
-                    r.metadata = self.metadata
+                    r.update_obj(self._metadata, self._queryResult)
+                    r.feedback_info = []
+                    r.feedback_warning = []
                     r.display_info = True
                     r.suppress_result = False
-                    r.feedback_info = []
                     if r.options.get("feedback"):
                         if r.options.get("show_query_time"):
                             minutes, seconds = divmod(self.elapsed_timespan, 60)
@@ -407,21 +406,32 @@ class ResultSet(list, ColumnGuesserMixin):
     # IPython html presentation of the object
     def _repr_html_(self):
         if not self.suppress_result:
-            if self.display_info:
-                Display.showInfoMessage(self.metadata.get("conn_info"))
-                if self.options.get("show_query"):
-                    Display.showInfoMessage(self.parametrized_query)
+            feedback_warning = self.feedback_warning if self.display_info  else None
+            conn_info = self._metadata.get("conn_info") if self.display_info  else None
+            parametrized_query = self.parametrized_query_obj.query if self.display_info and self.options.get("show_query") else None
+            feedback_info = self.feedback_info if self.display_info  else None
+
+            Display.showWarningMessage(feedback_warning, display_handler_name='feedback_warning', **self.options)
+            Display.showInfoMessage(conn_info, display_handler_name='conn_info', **self.options)
+            Display.showInfoMessage(parametrized_query, display_handler_name='parametrized_query', **self.options)
 
             if self.is_chart():
-                self.show_chart(**self.options)
+                self.show_chart(**self.options, display_handler_name='table_or_chart')
             else:
-                self.show_table(**self.options)
-            
-            if self.display_info:
-                Display.showInfoMessage(self.feedback_info)
+                self.show_table(**self.options, display_handler_name='table_or_chart')
+            Display.showInfoMessage(feedback_info, display_handler_name='feedback_info', **self.options)
 
-                if self.options.get("show_query_link"):
-                    self.show_button_to_deep_link()
+            if self.display_info and self.options.get("show_query_link"):
+                self.show_button_to_deep_link(display_handler_name='deep_link')
+            else:
+                Display.showInfoMessage(None, display_handler_name='deep_link', **self.options)
+        else:
+            Display.showWarningMessage(None, display_handler_name='feedback_warning', **self.options)
+            Display.showInfoMessage(None, display_handler_name='conn_info', **self.options)
+            Display.showInfoMessage(None, display_handler_name='parametrized_query', **self.options)
+            Display.showInfoMessage(None, display_handler_name='table_or_chart', **self.options)
+            Display.showInfoMessage(None, display_handler_name='feedback_info', **self.options)
+            Display.showInfoMessage(None, display_handler_name='deep_link', **self.options)
 
         # display info only once
         self.display_info = False
@@ -433,8 +443,8 @@ class ResultSet(list, ColumnGuesserMixin):
 
     # use _.open_url_kusto_explorer(True) for opening the url automatically (no button)
     # use _.open_url_kusto_explorer(web_app="app") for opening the url in Kusto Explorer (app) and not in Kusto Web Explorer
-    def show_button_to_deep_link(self, browser=False):
-        deep_link_url = self.conn.get_deep_link(self.parametrized_query, self.options)
+    def show_button_to_deep_link(self, browser=False, display_handler_name=None):
+        deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, self.options)
         if deep_link_url is not None: #only use deep links for kusto connection 
             qld = self.options.get("query_link_destination").lower().replace('.', '_')
             Display.show_window(
@@ -443,7 +453,8 @@ class ResultSet(list, ColumnGuesserMixin):
                 f"{self.options.get('query_link_destination')}", 
                 onclick_visibility="visible",
                 palette=Display.info_style,
-                before_text=f"Click to execute query in {self.options.get('query_link_destination')} "
+                before_text=f"Click to execute query in {self.options.get('query_link_destination')} ",
+                display_handler_name=display_handler_name
             )
         return None
 
@@ -467,11 +478,11 @@ class ResultSet(list, ColumnGuesserMixin):
             return {}
 
 
-    def show_table(self, **kwargs):
+    def show_table(self, display_handler_name=None, **kwargs):
         "display the table"
         options = {**self.options, **kwargs}
         if len(self) == 1 and len(self[0]) == 1  and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
-            Display.show(Display.to_styled_class(self[0][0]), **options)
+            Display.show(Display.to_styled_class(self[0][0]), display_handler_name=display_handler_name, **options)
             return None
         elif options.get("table_package", "").upper() == "PANDAS":
             t = self.to_dataframe()._repr_html_()
@@ -481,7 +492,7 @@ class ResultSet(list, ColumnGuesserMixin):
             html = Display.toHtml(**t)
         if options.get("popup_window") and not options.get("button_text"):
             options["button_text"] = "popup " + "table" + ((" - " + self.title) if self.title else "") + " "
-        Display.show(html, **options)
+        Display.show(html, display_handler_name=display_handler_name, **options)
         return None
 
 
@@ -546,9 +557,9 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def submit(self, override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
         "execute the query again"
-        magic = self.metadata.get("magic")
-        line = self.metadata.get("parsed").get("line")
-        cell = self.metadata.get("parsed").get("cell")
+        magic = self._metadata.get("magic")
+        line = self._metadata.get("parsed").get("line")
+        cell = self._metadata.get("parsed").get("cell")
 
         return magic.execute(line, cell, 
             override_vars=override_vars, 
@@ -557,14 +568,34 @@ class ResultSet(list, ColumnGuesserMixin):
             override_connection=override_connection)
 
 
-    def refresh(self):
-        "refresh the results of the query"
-        magic = self.metadata.get("magic")
-        user_ns = magic.shell.user_ns.copy()
-        return magic.execute_query(self.metadata.get("parsed"), user_ns, self)
+
+    def refresh(self, override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
+        "refresh the results of the query, on the same object: self"
+
+        _override_options = {**override_options} if type(override_options) == dict else {}
+        if _override_options.get('display_id') is None or _override_options.get('display_id') == self.options.get('display_id'):
+            _override_options['display_handlers'] = self.options.get('display_handlers')
+
+        magic = self._metadata.get("magic")
+        line = self._metadata.get("parsed").get("line")
+        cell = self._metadata.get("parsed").get("cell")
+
+        return magic.execute(line, cell, 
+            override_vars=override_vars, 
+            override_options=_override_options, 
+            override_query_properties=override_query_properties,
+            override_connection=override_connection,
+            override_result_set=self)
 
 
-    def show_chart(self, **kwargs):
+    def popup(self):
+        if self.is_chart():
+            self.popup_Chart(**self.options)
+        else:
+            self.popup_table(**self.options)
+
+            
+    def show_chart(self, display_handler_name=None, **kwargs):
         "display the chart that was specified in the query"
         options = {**self.options, **kwargs}
         window_mode = options is not None and options.get("popup_window")
@@ -574,13 +605,13 @@ class ResultSet(list, ColumnGuesserMixin):
         c = self._getChartHtml(window_mode, **options)
         if c.get("body") or c.get("head"):
             html = Display.toHtml(**c)
-            Display.show(html, **options)
+            Display.show(html, display_handler_name=display_handler_name, **options)
         elif c.get("fig"):
             if Display.notebooks_host or options.get("notebook_app") in ["jupyterlab", "visualstudiocode", "ipython"]: 
                 plotly.offline.init_notebook_mode(connected=True)
                 plotly.offline.iplot(c.get("fig"), filename="plotlychart")
             else:
-                Display.show(c.get("fig"), **options)
+                Display.show(c.get("fig"), display_handler_name=display_handler_name, **options)
         else:
             return self.show_table(**kwargs)
 
@@ -605,20 +636,20 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def popup_Chart(self, **kwargs):
         "display the chart that was specified in the query in a popup window"
-        return self.popup(**kwargs)
+        return self.chart_popup(**kwargs)
 
 
     def display_Chart(self, **kwargs):
         "display the chart that was specified in the query in the cell"
-        return self.display(**kwargs)
+        return self.chart_display(**kwargs)
 
 
-    def popup(self, **kwargs):
+    def chart_popup(self, **kwargs):
         "display the chart that was specified in the query"
         return self.show_chart(**{"popup_window": True, **kwargs})
 
 
-    def display(self, **kwargs):
+    def chart_display(self, **kwargs):
         "display the chart that was specified in the query"
         return self.show_chart(**{"popup_window": False, **kwargs})
 
@@ -723,7 +754,7 @@ class ResultSet(list, ColumnGuesserMixin):
             figure_or_data = self._render_scatterchart_plotly(self.visualization_properties, " ", **options)
 
         if figure_or_data is not None:
-            self.metadata["figure_or_data"] = figure_or_data
+            self._metadata["figure_or_data"] = figure_or_data
             if options.get("plot_package") == "plotly_orca":
                 image_bytes = self._plotly_fig_to_image(figure_or_data, None, **options)
                 image_base64_bytes= base64.b64encode(image_bytes)

@@ -209,7 +209,8 @@ class _MyAadHelper(object):
                 resource = self._resource.replace("://", ":// ") # just to make sure it won't be replace in email by safelinks
                 email_message = f"Device_code: {device_code}\n\nYou are asked to authorize access to resource: {resource}\n\nOpen the page {url} and enter the code {device_code} to authenticate\n\nKqlmagic"
                 email_notification.send_email(subject, email_message)
-                Display.showInfoMessage(f"An email was sent to {email_notification.send_to} with device_code {device_code} to authenticate", **options)
+                info_message =f"An email was sent to {email_notification.send_to} with device_code {device_code} to authenticate"
+                Display.showInfoMessage(info_message, display_handler_name='acquire_token', **options)
 
                
             elif options.get("device_code_login_notification") =="browser":
@@ -265,11 +266,11 @@ class _MyAadHelper(object):
                     </body></html>"""
                 )
 
-                if options.get("notebook_app") in ["visualstudiocode", "ipython"]:
-                    Display.show_window('verification_url', url, **options)
-                    Display.showInfoMessage(f"Copy code: {device_code} to verification url: {url} and authenticate", **options)
+                if options.get("notebook_app") in ["visualstudiocode", "ipython", "azuredatastudio"]:
+                    Display.show_window('verification_url', url, display_handler_name='acquire_token', **options)
+                    Display.showInfoMessage(f"Copy code: {device_code} to verification url: {url} and authenticate", display_handler_name='acquire_token', **options)
                 else:
-                    Display.show_html(html_str)
+                    Display.show_html(html_str, display_handler_name='acquire_token', **options)
 
             try:
                 token = adal_context.acquire_token_with_device_code(self._resource, code, self._client_id)
@@ -295,7 +296,7 @@ class _MyAadHelper(object):
 
                     </script></body></html>"""
 
-                Display.show_html(html_str)
+                Display.show_html(html_str, display_handler_name='acquire_token', **options)
         elif self._authentication_method is AuthenticationMethod.aad_application_certificate:
             logger().debug("_MyAadHelper::acquire_token - aad/client-certificate - resource: '%s', client: '%s', _certificate: '...', thumbprint: '%s'", self._resource, self._client_id, self._thumbprint)
             token = adal_context.acquire_token_with_client_certificate(self._resource, self._client_id, self._certificate, self._thumbprint)

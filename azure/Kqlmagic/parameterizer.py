@@ -27,26 +27,52 @@ class ExtendedJSONEncoder(json.JSONEncoder):
 class Parameterizer(object):
     """parametrize query by prefixing query with kql let statements, that resolve query unresolved let statements"""
 
-    def __init__(self, ns_vars: dict, override_vars: dict = None):
-        self.ns_vars = ns_vars
-        self.override_vars = override_vars if type(override_vars) is dict  else {}
+    def __init__(self, query: str):
+        self._query = query
+        self._query_body = query
+        self._query_management_prefix = ""
+        self._parameters = None
+        self._statements = None
 
-
-    def expand(self, query: str, **kwargs):
-        """expand query to include resolution of python parameters"""
-        query_management_prefix = ""
-        query_body = query
         if query.startswith("."):
             parts = query.split("<|")  
             if len(parts) == 2:
-                query_management_prefix = parts[0] + "<| "
-                query_body = parts[1].strip()
-        q = self._normalize(query_body)
-        query_let_statments = [s.strip()[4:].strip() for s in q.split(";") if s.strip().startswith("let ")]
-        parameters = self._detect_parameters(query_let_statments)
-        statements = self._build_let_statements(parameters)
-        statements.append(query_body)
-        return {'parametrized_query': query_management_prefix + ";".join(statements) ,'query_management_prefix':query_management_prefix, 'statements': statements}
+                self._query_management_prefix = parts[0] + "<| "
+                self._query_body = parts[1].strip()
+        q = self._normalize(self._query_body)
+        self._query_let_statments = [s.strip()[4:].strip() for s in q.split(";") if s.strip().startswith("let ")]
+
+
+    def apply(self, parameter_vars: dict, override_vars: dict = None, **kwargs):
+        """expand query to include resolution of python parameters"""
+        override_vars = override_vars if type(override_vars) is dict  else {}
+
+        parameter_keys = self._detect_parameters(self._query_let_statments, parameter_vars, override_vars)
+        self._parameters = self._set_parameters(parameter_keys, parameter_vars, override_vars)
+        self._statements = self._build_let_statements(self._parameters)
+        self._statements.append(self._query_body)
+        return self
+
+    @property 
+    def parameters(self):
+        return self._parameters
+
+
+    @property 
+    def query(self):
+        return self._query if self._parameters is None else self._query_management_prefix + ";".join(self._statements)
+
+
+
+    @property
+    def pretty_query(self):
+        if self._parameters is None:
+            return self._query
+        else:
+            query_management_prefix = self._query_management_prefix or ''
+            if (query_management_prefix and len(query_management_prefix) > 0):
+                query_management_prefix += '\n'
+            return query_management_prefix  + ";\n".join(self._statements)
 
 
     def _object_to_kql(self, v) -> str:
@@ -70,7 +96,7 @@ class Parameterizer(object):
                 if isinstance(v, tuple)
                 else f"dynamic({json.dumps(list(set(v)), cls=ExtendedJSONEncoder)})"
                 if isinstance(v, set)
-                else self.datatable(v)
+                else self._datatable(v)
                 if isinstance(v, DataFrame)
                 else "datetime(null)"
                 if str(v) == "NaT"
@@ -91,23 +117,32 @@ class Parameterizer(object):
         return str(val)
 
 
-    def _build_let_statements(self, parameters: list):
+    def _build_let_statements(self, parameters: dict)-> list:
         """build let statements that resolve python variable names to python variables values"""
         statements = []
         for k in parameters:
-            if k in self.override_vars:
-                v = self.override_vars[k]
-
-            elif k in self.ns_vars:
-                v = self.ns_vars[k]
-
-            else:
-                continue
-
+            v = parameters.get(k)
             # print('type', type(v))
             val = self._object_to_kql(v)
             statements.append(f"let {k} = {val}")
         return statements
+
+
+    def _set_parameters(self, parameter_keys: list, parameter_vars: dict, override_vars: dict) -> dict:
+        """set values for the parameters"""
+        parameters = {}
+        for k in parameter_keys:
+            if k in override_vars:
+                v = override_vars[k]
+
+            elif k in parameter_vars:
+                v = parameter_vars[k]
+
+            else:
+                continue
+            
+            parameters[k] = v
+        return parameters
     
 
     _DATAFRAME_TO_KQL_TYPES = {
@@ -139,7 +174,7 @@ class Parameterizer(object):
     }
  
 
-    def dataframe_to_kql_value(self, val, pair_type:list) -> str:
+    def _dataframe_to_kql_value(self, val, pair_type:list) -> str:
         pd_type, kql_type = pair_type
         s = str(val)
         if kql_type == "string":
@@ -212,7 +247,7 @@ class Parameterizer(object):
         return new_pairs_type
 
 
-    def datatable(self, df: DataFrame) -> str:
+    def _datatable(self, df: DataFrame) -> str:
         t = {col: str(t).split(".")[-1].split("[",1)[0] for col, t in dict(df.dtypes).items()}
         d = df.to_dict("split")
         # i = d["index"]
@@ -221,11 +256,11 @@ class Parameterizer(object):
         pairs_t = {col: [str(t[col]), self._DATAFRAME_TO_KQL_TYPES.get(str(t[col]))] for col in c}
         pairs_t = self.guess_object_types(pairs_t, r)
         schema = ", ".join([f"{col}:{pairs_t[col][1]}" for col in c])
-        data = ", ".join([", ".join([self.dataframe_to_kql_value(val, pairs_t[c[idx]]) for idx, val in enumerate(row)]) for row in r])
+        data = ", ".join([", ".join([self._dataframe_to_kql_value(val, pairs_t[c[idx]]) for idx, val in enumerate(row)]) for row in r])
         return f" view () {{datatable ({schema}) [{data}]}}"      
  
 
-    def _detect_parameters(self, query_let_statments: list):
+    def _detect_parameters(self, query_let_statments: list, parameter_vars: dict, override_vars: dict)-> list:
         """detect in query let staements, the unresolved parameter that can be resolved by python variables"""
         set_keys = []
         parameters = []
@@ -243,7 +278,7 @@ class Parameterizer(object):
                     and not param_name == "true"
                     and not param_name == "false"
                     and not param_name in set_keys
-                    and (param_name in self.ns_vars or param_name in self.override_vars)
+                    and (param_name in parameter_vars or param_name in override_vars)
                 ):
                     parameters.append(param_name)
             key = kv[0].strip()

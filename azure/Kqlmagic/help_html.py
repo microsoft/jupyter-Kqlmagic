@@ -21,7 +21,7 @@ class Help_html(object):
 
 
     @staticmethod
-    def flush(window_location, **kwargs):
+    def flush(window_location, **options):
         if window_location.startswith("http://localhost") or window_location.startswith("https://localhost"):
             start = window_location[8:].find("/") + 9
             parts = window_location[start:].split("/")
@@ -49,15 +49,15 @@ class Help_html(object):
 
         refresh = False
         for text, url in Help_html._pending_helps.items():
-            Help_html.add_menu_item(text, url, False, **kwargs)
+            Help_html.add_menu_item(text, url, False, **options)
             refresh = True
         Help_html._pending_helps = {}
         if refresh:
-            Help_html._reconnect(**kwargs)
+            Help_html._kernel_reconnect(**options)
 
 
     @staticmethod
-    def add_menu_item(text, file_path: str, reconnect=True, **kwargs):
+    def add_menu_item(text, file_path: str, reconnect=True, **options):
         if not text:
             return
 
@@ -89,14 +89,14 @@ class Help_html(object):
                 help_links.append({"text": text, "url": url})
             # print('help_links: ' + str(help_links))
             if reconnect:
-                Help_html._reconnect(**kwargs)
+                Help_html._kernel_reconnect(**options)
         elif Help_html._pending_helps.get(text) is None:
             Help_html._pending_helps[text] = file_path
 
 
     @staticmethod
-    def _reconnect(**kwargs):
-        if kwargs is None or kwargs.get("notebook_app") != "jupyterlab":
+    def _kernel_reconnect(**options):
+        if options is None or options.get("notebook_app") not in ["jupyterlab", "azuredatastudio"]:
             display(Javascript("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}"""))
             time.sleep(1)
 

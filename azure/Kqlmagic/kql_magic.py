@@ -25,6 +25,14 @@ logger().debug("kql_magic.py - import Configurable from traitlets.config.configu
 from traitlets.config.configurable import Configurable
 logger().debug("kql_magic.py - import Bool, Int, Float, Unicode, Enum, TraitError, validate from traitlets")
 from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate
+try:
+    logger().debug("kql_magic.py - import Flask, send_file from flask")
+    from flask import Flask, send_file
+except Exception:
+    logger().debug("kql_magic.py - flask module not installed")
+    flask_installed = False
+else:
+    flask_installed = True
 
 
 from .sso_storage import get_sso_store
@@ -49,6 +57,7 @@ from .palette import Palettes, Palette
 from .cache_engine import CacheEngine
 from .cache_client import CacheClient
 from .kql_response import KqlError
+from .my_files_server_management import FilesServerManagement
 
 
 _MAGIC_NAME = "kql"
@@ -299,6 +308,21 @@ class Kqlmagic(Magics, Configurable):
         help="""Set the folder name  for exported files"""
     )
 
+    popup_interaction = Enum(
+        ["auto", "button", "reference", "webbrowser_open_at_kernel", "reference_popup"],
+        "auto",
+        config=True, 
+        help="""Set popup interaction.\n
+        Abbreviation: pi"""        
+    )
+
+    temp_files_server = Enum(
+        ["auto", "jupyter", "kqlmagic", "disabled"],
+        "auto" if flask_installed else "disabled" ,
+        config=True, 
+        help="""Temp files server."""        
+    )
+
     cache_folder_name = Unicode(
         f"{Constants.MAGIC_CLASS_NAME}_cache_files", 
         config=True, 
@@ -433,6 +457,32 @@ class Kqlmagic(Magics, Configurable):
             raise TraitError(message)
         return proposal["value"]
 
+        
+    @validate("temp_files_server")
+    def _valid_value_temp_files_server(self, proposal):
+        try:
+            if (proposal["value"]) != self.temp_files_server:
+                if self.temp_files_server == "disabled":
+                    raise ValueError("fetaure is 'disabled', due to missing 'flask' module")
+                elif proposal["value"] == "auto":
+                    raise ValueError("cannot be set to 'auto', after instance is loaded")
+                elif proposal["value"] == "disabled":
+                    raise ValueError("cannot be set to 'disabled', it is auto set at magic initialization")
+                elif proposal["value"] == "auto":
+                    raise ValueError("cannot be set to 'auto', after instance is loaded")
+                elif proposal["value"] == "kqlmagic":
+                    if self.temp_files_server_manager is not None:
+                        self.temp_files_server_manager.startServer()
+                        Display.showfiles_url_base_path = self.temp_files_server_manager.files_url
+                elif proposal["value"] == "jupyter":
+                    if self.temp_files_server_manager is not None:
+                        self.temp_files_server_manager.abortServer()
+                        Display.showfiles_url_base_path = Display.showfiles_file_base_path
+        except (AttributeError , ValueError) as e:
+            message = "The 'temp_files_server' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            raise TraitError(message)
+        return proposal["value"]
+
 
     def execute_cache_command(self, cache_name:str) -> str:
         """ execute the cache command.
@@ -545,7 +595,8 @@ class Kqlmagic(Magics, Configurable):
             os.makedirs(showfiles_folder_Full_name)
         # ipython will removed folder at shutdown or by restart
         ip.tempdirs.append(showfiles_folder_Full_name)
-        Display.showfiles_base_path = adjust_path_to_uri(root_path)
+        Display.showfiles_file_base_path = adjust_path_to_uri(root_path)
+        Display.showfiles_url_base_path = Display.showfiles_file_base_path
         Display.showfiles_folder_name = adjust_path_to_uri(folder_name)
 
         Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
@@ -567,11 +618,12 @@ class Kqlmagic(Magics, Configurable):
             ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.notebook_app='{app}'")
             # print("notebook_app: {0}".format(app))
         
+        self.start_time = time.time() 
+
         if app not in ["jupyterlab", "azuredatastudio"]:
             logger().debug("Kqlmagic::__init__ - discover notebook url")
             display(Javascript("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}"""))
 
-        self.start_time = time.time() 
                
         if app != "ipython":
             logger().debug("Kqlmagic::__init__ - init matplotlib inline")
@@ -585,6 +637,20 @@ class Kqlmagic(Magics, Configurable):
             logger().debug("Kqlmagic::__init__ - init matplotlib qt")
             ip.magic("matplotlib qt")
 
+        #
+        # start server
+        #
+        #
+        package_folder = "/".join(__file__.replace("\\", "/").split("/")[:-1])
+        server_py_code = f"{package_folder}/my_files_server.py"      
+        self.temp_files_server_manager = FilesServerManagement(server_py_code, "http", "127.0.0.1", "5000", adjust_path(f"{root_path}"), folder_name)
+        if self.temp_files_server == "flask" or (self.temp_files_server == "auto" and app in ["azuredatastudio"]):
+            os.environ['FLASK_ENV'] = "development"
+            self.temp_files_server_manager.startServer()
+            Display.showfiles_url_base_path = self.temp_files_server_manager.files_url
+
+        #
+        # get options    
         parsed_queries = Parser.parse("%s\n%s" % ("dummy_query", ""), self, _ENGINES, {})
         options = parsed_queries[0]["options"]
 

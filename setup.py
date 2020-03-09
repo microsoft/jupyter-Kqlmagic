@@ -59,6 +59,7 @@ INSTALL_REQUIRES    = [
                         'lxml>=4.2.5',
                         'pytz>=2019.1',
                         'pyjwt>=1.7.1',
+                        'flask>=1.1.1',
 ]
 
 TEST_REQUIRE        = [

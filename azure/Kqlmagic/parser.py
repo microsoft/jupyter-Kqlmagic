@@ -443,6 +443,9 @@ class Parser(object):
         "displayid": {"flag": "display_id", "type": "bool", "init": "False"},
         "displayhandlers": {"flag": "display_handlers","readonly": "True", "type": "dict", "init": "{}"},
 
+        "pi": {"abbreviation": "popupinteraction"},        
+        "popupinteraction": {"flag": "popup_interaction", "type": "str", "config": "config.popup_interaction"},
+        "tempfilesserver": {"flag": "temp_files_server", "readonly": "True", "type": "str", "config": "config.temp_files_server"},
     }
 
 

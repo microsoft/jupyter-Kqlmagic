@@ -88,7 +88,7 @@ class UnicodeWriter(object):
 
 
 class FileResultDescriptor(bytes):
-    """Provides IPython Notebook-friendly output for the feedback after a ``.csv`` called."""
+    """Provides Notebook-friendly output for the feedback after a ``.csv`` called."""
 
     # requires ocra
     # for eps - also requires poppler
@@ -148,7 +148,7 @@ class FileResultDescriptor(bytes):
             return self._file_location_message()
 
 
-    # IPython html presentation of the object
+    # html presentation of the object
     def _repr_html_(self):
         if self.show and self.format == "html":
             return self._get_data()

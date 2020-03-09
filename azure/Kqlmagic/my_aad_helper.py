@@ -220,6 +220,18 @@ class _MyAadHelper(object):
             elif options.get("device_code_login_notification") =="terminal":
                 print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
 
+            elif options.get("notebook_app") in ["visualstudiocode", "ipython", "azuredatastudio"]:
+                before_text = f"Copy code: {device_code} to verification url: {url} and "
+                # Display.showInfoMessage(f"Copy code: {device_code} to verification url: {url} and authenticate", display_handler_name='acquire_token', **options)
+                Display.show_window(
+                    'verification_url', 
+                    url, 
+                    button_text='authenticate', 
+                    palette=Display.info_style,
+                    before_text=before_text,
+                    display_handler_name='acquire_token', 
+                    **options
+                )
             else:
                 html_str = (
                     """<!DOCTYPE html>
@@ -265,12 +277,7 @@ class _MyAadHelper(object):
 
                     </body></html>"""
                 )
-
-                if options.get("notebook_app") in ["visualstudiocode", "ipython", "azuredatastudio"]:
-                    Display.show_window('verification_url', url, display_handler_name='acquire_token', **options)
-                    Display.showInfoMessage(f"Copy code: {device_code} to verification url: {url} and authenticate", display_handler_name='acquire_token', **options)
-                else:
-                    Display.show_html(html_str, display_handler_name='acquire_token', **options)
+                Display.show_html(html_str, display_handler_name='acquire_token', **options)
 
             try:
                 token = adal_context.acquire_token_with_device_code(self._resource, code, self._client_id)

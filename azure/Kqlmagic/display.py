@@ -166,7 +166,7 @@ class Display(object):
             url = Display._get_file_path_url(file_path)
             # url = urllib.parse.quote(url)
             webbrowser.open(url, new=1, autoraise=True)
-            html_str = Display._getInfoMessageHtmlStr(f"opened popup window: {window_name}, see your browser", **options)
+            html_str = Display._getInfoMessageHtmlStr(f"opened popup window: '{window_name}', see it in your browser", **options)
 
         elif mode == "button":
             html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, **options)
@@ -300,8 +300,13 @@ class Display(object):
             </script>
             <p>This page popups <b>'""" + window_name + """'</b> window. It will close itself in few minutes.
             <br><br><br>If <b>'""" + window_name + """'</b> window doesn't popup, popups are probably blocked on this
-            page.<br>To enable the popup, you should modify your browser settings to allow popups on this page.
+            page.<br>To enable the popup, you should modify your browser settings to allow popups on pages from this host: http://127.0.0.1:5000.
             To open popup manually press <a href='""" + url + """'>here</a>
+            <br><br><br><br><br><br><b>Note:</b> You can disable the popups in your notebook, by setting popup_interaction option 
+            to 'reference' (will open in a tab) or 'webbrowser_open_at_kernel' (will auto open in a tab on the python kernel host)
+            or 'button'. Some modes are not supported by some jupyter based implementations (try and find out).
+            <br> To set the default mode in your notebook, run: %config Kqlmagic.popup_interaction={mode}
+            <br> To set the mode for the current kql magic execution, add the option -pi '{mode}'
             </p>
             </body></html>"""
         )
@@ -589,7 +594,7 @@ class Display(object):
         html_str = None
         if html_msg is None or len(html_msg["body"]) == 0:
             if display_handler_name is not None:
-                if options["display_id"] is not None:
+                if options.get("display_id", False):
                     html_str = Display.toHtml(**html_msg)
                 # dh = options["display_handlers"].get(display_handler_name)
                 # if dh is not None:

@@ -60,6 +60,7 @@ INSTALL_REQUIRES    = [
                         'pytz>=2019.1',
                         'pyjwt>=1.7.1',
                         'flask>=1.1.1',
+                        'pyperclip>=1.7.0',
 ]
 
 TEST_REQUIRE        = [

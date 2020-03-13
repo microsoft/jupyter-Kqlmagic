@@ -199,6 +199,10 @@ class _MyAadHelper(object):
             code: dict = adal_context.acquire_user_code(self._resource, self._client_id)
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
+
+            # copy code to clipboard
+            import pyperclip
+            pyperclip.copy(device_code)
             
             # if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
             #     raise Exception("error: using papermill without an email specified is not supported")

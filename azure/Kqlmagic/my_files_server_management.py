@@ -8,10 +8,12 @@
 import sys
 import os
 import subprocess as sub
-import atexit
 
 
 import requests
+
+
+from .display import Display
 
 
 class FilesServerManagement(object):
@@ -42,7 +44,7 @@ class FilesServerManagement(object):
             command = f"start /min /wait  python {self._server_py_code} -protocol {self._protocol} -host {self._host} -port {self._port} -base_folder {self._base_folder} -folders {self._folders}"
             sub.Popen(command, shell=True)
 
-        atexit.register(FilesServerManagement._abortServer, self._server_url)
+        Display._register_to_ipython_atexit(FilesServerManagement._abortServer, self._server_url)
 
 
     def pingServer(self):

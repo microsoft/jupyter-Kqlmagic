@@ -114,5 +114,5 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
         }
 
         if storage == SsoStorage.IPYTHON_DB:
-            ip = get_ipython()  # pylint: disable=undefined-variable
-            return DictDbStorage(ip.db, storage_options)
+            db = Display._get_ipython_db(**options)
+            return DictDbStorage(db, storage_options)

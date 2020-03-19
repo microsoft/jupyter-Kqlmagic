@@ -4,12 +4,8 @@
 # license information.
 # --------------------------------------------------------------------------
 
-import time
 
-
-from IPython.core.display import display
-from IPython.core.magics.display import Javascript
-
+from .display import Display
 
 class Help_html(object):
     """
@@ -53,7 +49,7 @@ class Help_html(object):
             refresh = True
         Help_html._pending_helps = {}
         if refresh:
-            Help_html._kernel_reconnect(**options)
+            Display.kernelReconnect(**options)
 
 
     @staticmethod
@@ -73,30 +69,6 @@ class Help_html(object):
             url = None
 
         if url:
-            ip = get_ipython()  # pylint: disable=undefined-variable
-            help_links = ip.kernel._trait_values["help_links"]
-            found = False
-            for link in help_links:
-                # if found update url
-                if link.get("text") == text:
-                    if link.get("url") != url:
-                        link["url"] = url
-                    else:
-                        reconnect = False
-                    found = True
-                    break
-            if not found:
-                help_links.append({"text": text, "url": url})
-            # print('help_links: ' + str(help_links))
-            if reconnect:
-                Help_html._kernel_reconnect(**options)
+            Display.add_to_help_links(text, url, reconnect, **options)
         elif Help_html._pending_helps.get(text) is None:
             Help_html._pending_helps[text] = file_path
-
-
-    @staticmethod
-    def _kernel_reconnect(**options):
-        if options is None or options.get("notebook_app") not in ["jupyterlab", "azuredatastudio"]:
-            display(Javascript("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}"""))
-            time.sleep(1)
-

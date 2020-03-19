@@ -6,6 +6,7 @@
 
 from .magic_extension import *
 from .version import VERSION
+from .kql_magic import kql 
 
 
 __version__ = VERSION

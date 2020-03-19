@@ -82,7 +82,7 @@ class Connection(object):
             conn_engine = Connection._new_kusto_database_engine(database_name, cluster_friendly_name, alias, user_ns, **options)
 
         if options.get("use_cache") and engine != CacheEngine:
-            conn_engine = CacheEngine(conn_engine, user_ns, last_current, cache_name=options.get("use_cache"))
+            conn_engine = CacheEngine(conn_engine, user_ns, last_current, **options)
         Connection._set_current(conn_engine)
 
 

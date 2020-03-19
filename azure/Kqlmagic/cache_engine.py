@@ -28,7 +28,7 @@ class CacheEngine(KqlEngine):
 
 
     # Object constructor
-    def __init__(self, conn_str_or_engine, user_ns: dict, current=None, cache_name=None, **kwargs):
+    def __init__(self, conn_str_or_engine, user_ns: dict, current=None, cache_name=None, **options):
         super().__init__()
         self._parsed_conn = {}
         self.kql_engine = None
@@ -42,7 +42,7 @@ class CacheEngine(KqlEngine):
         self._parsed_conn = self._parse_common_connection_str(
             conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
         )
-        self.client = CacheClient()
+        self.client = CacheClient(**options)
 
         folder_path = self.client._get_folder_path(self.get_database_friendly_name(), cache_name)
         validation_file_path = adjust_path(f"{folder_path}/{self._VALIDATION_FILE_NAME}")

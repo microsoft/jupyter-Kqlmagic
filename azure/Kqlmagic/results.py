@@ -17,7 +17,6 @@ import base64
 
 import six
 import prettytable
-from IPython.display import Image
 import plotly
 import plotly.graph_objs as go
 try:
@@ -26,6 +25,9 @@ except Exception:
     ipywidgets_installed = False
 else:
     ipywidgets_installed = True
+
+
+from .log import logger
 
 
 from .constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
@@ -204,6 +206,8 @@ class ResultSet(list, ColumnGuesserMixin):
 
     Can access rows listwise, or by string value of leftmost column.
     """
+
+    is_matplotlib_intialized = False
 
     # Object constructor
     def __init__(self, metadata, queryResult, fork_table_id=0, fork_table_resultSets={}):
@@ -800,6 +804,12 @@ class ResultSet(list, ColumnGuesserMixin):
             plotly_orca_is_missing_bytes_png: bytes = base64.b64decode(plotly_orca_is_missing_base64_png)
             return plotly_orca_is_missing_bytes_png
 
+    @classmethod
+    def _init_matplotlib(cls, **options):
+        if not cls.is_matplotlib_intialized:
+            logger().debug("ResultSet::_init_matplotlib - initialize matplotlib")
+            Display._init_ipython_matplotlib_magic(**options)
+            cls.is_matplotlib_intialized = True
 
     def pie(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab pie chart from the result set.
@@ -823,8 +833,10 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.pie``.
         """
 
-        self.build_columns()
+        self._init_matplotlib(**kwargs)
         import matplotlib.pyplot as plt
+
+        self.build_columns()
 
         pie = plt.pie(self.columns[1], labels=self.columns[0], **kwargs)
         plt.title(properties.get(VisualizationKeys.TITLE) or self.columns[1].name)
@@ -850,6 +862,7 @@ class ResultSet(list, ColumnGuesserMixin):
         Any additional keyword arguments will be passsed
         through to ``matplotlib.pylab.plot``.
         """
+        self._init_matplotlib(**kwargs)
         import matplotlib.pylab as plt
 
         self.guess_plot_columns()
@@ -884,6 +897,7 @@ class ResultSet(list, ColumnGuesserMixin):
         Any additional keyword arguments will be passsed
         through to ``matplotlib.pylab.bar``.
         """
+        self._init_matplotlib(**kwargs)
         import matplotlib.pylab as plt
 
         self.guess_pie_columns(xlabel_sep=key_word_sep)
@@ -941,8 +955,11 @@ class ResultSet(list, ColumnGuesserMixin):
         Any additional keyword arguments will be passsed
         through to ``matplotlib.pylab.pie``.
         """
-        self.build_columns()
+
+        self._init_matplotlib(**kwargs)        
         import matplotlib.pylab as plt
+
+        self.build_columns()
 
         pie = plt.pie(self.columns[1], labels=self.columns[0], **kwargs)
         plt.title(properties.get(VisualizationKeys.TITLE) or self.columns[1].name)
@@ -970,6 +987,8 @@ class ResultSet(list, ColumnGuesserMixin):
         Any additional keyword arguments will be passsed
         through to ``matplotlib.pylab.pie``.
         """
+
+        self._init_matplotlib(**kwargs)        
         import matplotlib.pylab as plt
 
         self.build_columns()
@@ -1017,6 +1036,8 @@ class ResultSet(list, ColumnGuesserMixin):
         Any additional keyword arguments will be passsed
         through to ``matplotlib.pylab.pie``.
         """
+
+        self._init_matplotlib(**kwargs)        
         import matplotlib.pylab as plt
 
         self.build_columns()
@@ -1060,6 +1081,7 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.plot``.
         """
 
+        self._init_matplotlib(**kwargs)
         import matplotlib.pyplot as plt
 
         self.build_columns()
@@ -1143,6 +1165,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
 
     def _figure_or_figurewidget(self, data, layout, **options):
+
         if ipywidgets_installed and options.get("plot_package") == "plotly_widget":
             # print("----------- FigureWidget --------------")
             fig = go.FigureWidget(data=data, layout=layout)

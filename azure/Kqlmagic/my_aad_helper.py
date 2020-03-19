@@ -200,9 +200,6 @@ class _MyAadHelper(object):
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
 
-            # copy code to clipboard
-            import pyperclip
-            pyperclip.copy(device_code)
             
             # if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
             #     raise Exception("error: using papermill without an email specified is not supported")
@@ -219,12 +216,18 @@ class _MyAadHelper(object):
                
             elif options.get("device_code_login_notification") =="browser":
                 print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
+                # copy code to clipboard
+                import pyperclip
+                pyperclip.copy(device_code)
                 webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
 
             elif options.get("device_code_login_notification") =="terminal":
                 print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
 
             elif options.get("notebook_app") in ["visualstudiocode", "ipython", "azuredatastudio"]:
+                # copy code to clipboard
+                import pyperclip
+                pyperclip.copy(device_code)
                 before_text = f"Copy code: {device_code} to verification url: {url} and "
                 # Display.showInfoMessage(f"Copy code: {device_code} to verification url: {url} and authenticate", display_handler_name='acquire_token', **options)
                 Display.show_window(

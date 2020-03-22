@@ -102,7 +102,7 @@ from .constants import Constants
 from .help import MarkdownString
 
 
-VERSION = "0.1.108.post11"
+VERSION = "0.1.109"
 
 
 def execute_version_command() -> MarkdownString:
@@ -328,7 +328,7 @@ def _pad_version(v_list: list, l: int) -> list:
         if  v_list[-1].startswith("dev") or v_list[-1].startswith("post"):
             last = v_list[-1]
             v_list = v_list[:-1]
-        for idx in range(l):
+        for idx in range(l): # pylint: disable=unused-variable
             v_list.append(0)
         if last:
             v_list.append(last)

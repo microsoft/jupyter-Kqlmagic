@@ -52,10 +52,16 @@ The following commands are supported:<br>
     - This is the default command.<br>
 <br>
 
-- **version** - Displays the current version string.<br>
+- **version** - Displays Kqlmagic current version string.<br>
+<br>
+
+- **banner** - Displays Kqlmagic init banner.<br>
 <br>
 
 - **usage** - Displays usage of Kqlmagic.<br>
+<br>
+
+- **config** - get/set Kqlmagic default option<br>
 <br>
 
 - **faq** - Displays Frequently Asked Questions on Kqlmagic.<br>
@@ -97,7 +103,11 @@ The following commands are supported:<br>
 
 ## Examples:
 ```%kql --version```<br><br>
+```%kql --banner```<br><br>
 ```%kql --usage```<br><br>
+```%kql --config "show_query_time"```<br><br>
+```%kql --config "show_query_time = True"```<br><br>
+```%kql --config```<br><br>
 ```%kql --faq```<br><br>
 ```%kql --help "help"```<br><br>
 ```%kql --help "options"```<br><br>
@@ -180,8 +190,10 @@ t
 usage: ```%kql --help "topic"```<br>
 
 ## Topics
-- **usage** - How to use the Kqlmagic.<br>
+- **usage** - How to use Kqlmagic.<br>
 <br>
+
+-**config** - Lists Kqlmagic default options. The same as --config without parameters.<br>
 
 - **faq** - Reference to Kqlmagic FAQ<br>
 <br>
@@ -511,6 +523,7 @@ _HELP = {
     "commands": _HELP_COMMANDS,
     "cache": _HELP_CACHE,
     "faq": _KQLMAGIC_FAQ_URL,
+    "config": "config",
     "sso": _HELP_SSO,
     "proxies": _HELP_PROXIES,
     "clientrequestproperties": _ADX_CLIENT_REQUEST_PROPERTIES,
@@ -614,4 +627,6 @@ def execute_help_command(topic: str):
         return UrlReference(topic, help_topic_string, button_text, topic == "faq")
     elif help_topic_string == '':
         help_topic_string = "Sorry, not implemented yet."
+    elif help_topic_string == 'config':
+        return 'config'
     return MarkdownString(help_topic_string)

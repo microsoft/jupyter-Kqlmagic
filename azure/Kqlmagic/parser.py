@@ -139,12 +139,14 @@ class Parser(object):
 
     _COMMANDS_TABLE = {
         "version" : {"flag": "version", "type": "bool", "init": "False"},
+        "banner" : {"flag": "banner", "type": "bool", "init": "False"},
         "usage" : {"flag": "usage", "type": "bool", "init": "False"},
         "submit" : {"flag": "submit", "type": "bool", "init": "False"}, # default
         "help" : {"flag": "help", "type": "str", "init": "None", "default": "help"},
         "faq": {"flag": "faq", "type": "bool", "init": "False"},
         "palette": {"flag": "palette", "type": "bool", "init": "False"},
         "palettes": {"flag": "palettes", "type": "bool", "init": "False"},
+        "config": {"flag": "config", "type": "str", "init": "None", "default": "None"},
         # should be per connection
         "cache": {"flag": "cache", "type": "str", "init": "None"},
         "usecache": {"flag": "use_cache", "type": "str", "init": "None"},
@@ -173,7 +175,7 @@ class Parser(object):
         if _type == "bool":
             param = True 
         elif len(words) >= 2 and not words[1].startswith("-"):
-            param = cls.parse_value(words[1], words[0], _type, user_ns)
+            param = cls.parse_value("command", obj, words[0], words[1], user_ns)
             trimmed_code = trimmed_code[trimmed_code.find(words[1]) + len(words[1]) :]
         elif obj.get("default") is not None:
             param = obj.get("default")
@@ -441,12 +443,69 @@ class Parser(object):
 
         "did": {"abbreviation": "displayid"},
         "displayid": {"flag": "display_id", "type": "bool", "init": "False"},
-        "displayhandlers": {"flag": "display_handlers","readonly": "True", "type": "dict", "init": "{}"},
+        "displayhandlers": {"flag": "display_handlers", "type": "dict", "init": "{}"},
 
         "pi": {"abbreviation": "popupinteraction"},        
         "popupinteraction": {"flag": "popup_interaction", "type": "str", "config": "config.popup_interaction"},
         "tempfilesserver": {"flag": "temp_files_server", "readonly": "True", "type": "str", "config": "config.temp_files_server"},
     }
+
+
+    @classmethod
+    def validate_override(cls, name, config:dict, **override_options):
+        """validate the provided option are valid"""
+
+        options = {}
+        for key, value in override_options.items():
+            lookup_key = key.lower().replace("-", "").replace("_", "")
+            obj = cls._OPTIONS_TABLE.get(lookup_key)
+            if obj is not None:
+                if obj.get("abbreviation"):
+                    obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
+                if obj.get("readonly"):
+                    raise ValueError(f"option '{key}' in {name} is readony, cannot be set")
+                cls._convert(name, obj, key, value)
+                cls._validate_config_trait(name, obj, key, value, config)
+                options[obj.get("flag") or lookup_key] = value
+            else:
+                raise ValueError(f"unknown option '{key}' in {name}")
+        return options
+
+
+    @classmethod
+    def parse_default_option(cls, name:str, key:str, val:str, config:dict):
+        """validate the provided option are valid
+           return normalized key and value"""
+        lookup_key = key.lower().replace("-", "").replace("_", "")
+        obj = cls._OPTIONS_TABLE.get(lookup_key)
+        if obj is not None:
+            if obj.get("abbreviation"):
+                obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
+            if obj.get("type") == "str" and val == "":
+                value = ""
+            else:
+                try:
+                    eval_value = eval(val)
+                except NameError as e:
+                    if obj.get("type") == "str":
+                        eval_value = val
+                    else:
+                        raise e
+                value = cls._convert(name, obj, key, eval_value)
+            cls._validate_config_trait(name, obj, key, value, config)
+            return obj.get("flag"), value
+
+    @classmethod
+    def parse_default_option_key(cls, name:str, key:str, config:dict):
+        """validate the provided option key is valid
+           return normalized key"""
+        lookup_key = key.lower().replace("-", "").replace("_", "")
+        obj = cls._OPTIONS_TABLE.get(lookup_key)
+        if obj is not None:
+            if obj.get("abbreviation"):
+                obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
+            if obj.get("config") is not None:
+                return obj.get("flag"), getattr(config, obj.get("flag"))
 
 
     @classmethod
@@ -517,30 +576,26 @@ class Parser(object):
 
                     _type = obj.get("type")
                     opt_key = obj.get("flag") or lookup_key
-                    option_config = obj.get("config")
                     if _type == "bool" and value is None:
                         table[opt_key] = bool_value
                     else:
                         if not bool_value:
                             raise ValueError(f"option {key} cannot be negated")
                         if value is not None:
-                            table[opt_key] = cls.parse_value(value, key, _type, user_ns)
+                            table[opt_key] = cls.parse_value("options", obj, key, value, user_ns)
                         else:
                             key_state = False
                 else:
                     raise ValueError("unknown option")
             else:
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
-                table[opt_key] = cls.parse_value(word, key, _type, user_ns)
+                table[opt_key] = cls.parse_value("options", obj, key, word, user_ns)
                 key_state = True
             first_word += 1
 
             # validate using config traits
-            if key_state and option_config is not None:
-                template = "'{0}'" if _type == "str" else "{0}"
-                saved = eval(option_config)
-                exec(option_config + "=" + (template.format(str(options[opt_key]).replace("'", "\\'")) if options[opt_key] is not None else "None"))
-                exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else "None"))
+            if key_state:
+                cls._validate_config_trait("options", obj, key, options[opt_key], config)
             
         if not key_state:
             raise ValueError("last option is missing parameter")
@@ -620,7 +675,7 @@ class Parser(object):
 
             # key exist
             if len(key) > 0:
-                val = cls.parse_value(val, key, "str", user_ns)
+                val = cls.parse_value("key/value", {"type": "str"}, key, val, user_ns)
                 lookup_key = key.lower().replace("-", "").replace("_", "")
                 matched_kv[lookup_key] = val
             # no key but value exist
@@ -634,48 +689,76 @@ class Parser(object):
 
 
     @classmethod
-    def parse_value(cls, value: str, key: str, _type: str, user_ns: dict, enums: list = []):
+    def parse_value(cls, name:str, obj, key:str, value:str, user_ns: dict):
 
-        def _convert(val, _type):
+        _type = obj.get("type")
+
+        if value == "" and _type == "str":
+            return value
+
+        if value.startswith('$'):
+            val = os.getenv(value[1:])
+        else:
+            val = eval(value, None, user_ns)
+
+        # check value is of the right type
+        try:
+            return cls._convert(name, obj, key, val)
+        except:
+            return cls._convert(name, obj, key, eval(val))
+
+
+
+    @classmethod
+    def _convert(cls, name, obj, key, value):
+        try:
+            _type = obj.get("type")
             if _type == "int":
-                if float(val) != int(val):
+                if float(value) != int(value):
                     raise ValueError
-                return int(val)
-            if _type == "uint":
-                if float(val) != int(val) or int(val) < 0:
+                return int(value)
+            elif _type == "uint":
+                if float(value) != int(value) or int(value) < 0:
                     raise ValueError
-                return int(val)                    
+                return int(value)                 
             elif _type == "float":
-                return float(val)
+                return float(value)
             elif _type == "bool":
-                if bool(val) != int(val):
+                if type(value) == str:
+                    if value == 'True':
+                        return True
+                    elif value == 'False':
+                        return False
+                    else:
+                        raise ValueError
+                elif bool(value) != int(value):
                     raise ValueError
-                return bool(val)
+                return bool(value)
             elif _type == "dict":
-                return dict(val)
+                return dict(value)
             elif _type == "enum":
-                if enums.index(val):
-                    return str(val)
+                enum_values = obj.get("values", [])
+                if enum_values.index(value) >= 0:
+                    pass
                 else:
                     raise ValueError
-            return str(val)
-
-        try:
-            if value == "" and _type == "str":
-                return value
-            if _type == "enum" and enums.index(value):
-                return value
-            if value.startswith('$'):
-                val = os.getenv(value[1:])
             else:
-                val = eval(value, None, user_ns)
+                return str(value)
 
-            # check value is of the right type
-            try:
-                return _convert(val, _type)
-            except:
-                return _convert(eval(val), _type)
         except:
-            raise ValueError(f"failed to set {key}, due to invalid {_type} value {value}.")
-        
-        
+            raise ValueError(f"failed to set option '{key}' in {name}, due to invalid '{_type}' of value '{value}'.")
+
+
+    @classmethod
+    def _validate_config_trait(cls, name, obj, key, value, config: dict):           
+        # validate using config traits
+        option_config = obj.get("config")
+        if option_config is not None:
+            _type = obj.get("type")
+            template = "'{0}'" if _type == "str" else "{0}"
+            saved = eval(option_config)
+            try:
+                exec(option_config + "=" + (template.format(str(value).replace("'", "\\'")) if value is not None else "None"))
+            except:
+                raise ValueError(f"failed to set option '{key}' in {name}, due to invalid value '{value}'.")
+            exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else "None"))

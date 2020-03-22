@@ -5,6 +5,7 @@
 # --------------------------------------------------------------------------
 
 import os
+import sys
 import time
 import json
 import logging
@@ -180,10 +181,11 @@ class Kqlmagic_core(object):
         self._start_temp_files_server(**options)
 
         logger().debug("Kqlmagic::__init__ - show banner")
-        self._show_banner(**options)
+        if options.get("show_init_banner"):
+            self._show_banner(**options)
 
         logger().debug("Kqlmagic::__init__ - set default connection")
-        _set_default_connections(**options)
+        self._set_default_connections(**options)
         logger().debug("Kqlmagic::__init__ - end")
 
 
@@ -246,21 +248,20 @@ class Kqlmagic_core(object):
 
     def _show_banner(self, **options):
 
-        if options.get("show_init_banner"):
-            logger().debug("Kqlmagic::_show_banner() - show banner header")
-            self._show_banner_header(**options)
+        logger().debug("Kqlmagic::_show_banner() - show banner header")
+        self._show_banner_header(**options)
 
-            Display.showInfoMessage(
-                """{0} package is updated frequently. Run '!pip install {1} --no-cache-dir --upgrade' to use the latest version.<br>{0} version: {2}, source: {3}""".format(
-                    Constants.MAGIC_PACKAGE_NAME, Constants.MAGIC_PIP_REFERENCE_NAME, VERSION, Constants.MAGIC_SOURCE_REPOSITORY_NAME
-                )
+        Display.showInfoMessage(
+            """{0} package is updated frequently. Run '!pip install {1} --no-cache-dir --upgrade' to use the latest version.<br>{0} version: {2}, source: {3}""".format(
+                Constants.MAGIC_PACKAGE_NAME, Constants.MAGIC_PIP_REFERENCE_NAME, VERSION, Constants.MAGIC_SOURCE_REPOSITORY_NAME
             )
+        )
 
-            logger().debug("Kqlmagic::_show_banner() - show kqlmagic latest version info")
-            self._show_magic_latest_version(**options)
+        logger().debug("Kqlmagic::_show_banner() - show kqlmagic latest version info")
+        self._show_magic_latest_version(**options)
 
-            logger().debug("Kqlmagic::_show_banner() - show what's new")
-            self._show_what_new(**options)
+        logger().debug("Kqlmagic::_show_banner() - show what's new")
+        self._show_what_new(**options)
 
 
     def _show_banner_header(self, **options):
@@ -489,8 +490,10 @@ class Kqlmagic_core(object):
                 popup_text = None
 
                 if type(override_options) is dict:
+                    override_options = Parser.validate_override("override_options", self.default_options, **override_options)
                     parsed["options"] = {**parsed["options"], **override_options}
                 if type(override_query_properties) is dict:
+                    override_query_properties = Parser.validate_override("override_query_properties", self.default_options, **override_query_properties)
                     parsed["options"]["query_properties"] = {**parsed["options"]["query_properties"], **override_query_properties}
                 if type(override_connection) is str:
                     parsed["connection"] = override_connection
@@ -502,12 +505,18 @@ class Kqlmagic_core(object):
                     param = parsed["command"].get("param")
                     if command == "version":
                         result = execute_version_command()
+                    elif command == "banner":
+                        self._show_banner(**options)
                     elif command == "usage":
                         result = execute_usage_command()
                     elif command == "faq":
                         result = execute_faq_command()
+                    elif command == "config":
+                        result = self.execute_config_command(param, **options)
                     elif command == "help":
                         result = execute_help_command(param)
+                        if result == "config":
+                            result = self.execute_config_command("None", **options)
                     elif command == "cache":
                         result = self.execute_cache_command(param)
                     elif command == "use_cache":
@@ -582,6 +591,61 @@ class Kqlmagic_core(object):
                 return None
             raise 
 
+    def execute_config_command(self, params, **options):
+        if params == "None":
+            from io import StringIO
+            c = self.default_options
+            help_all = []
+            for name, trait in c.class_traits().items():
+                if c.trait_metadata(name, "config"):
+                    help_parts = c.class_get_trait_help(trait).split("\n")
+                    value = getattr(self.default_options, name)
+                    if type(value) == str:
+                        value = f"'{value}'"
+                    help_parts[0] = f"{help_parts[0].replace(Constants.MAGIC_CLASS_NAME + '.', '')}: {value}"
+                    "".startswith("    Choices: [")
+                    descIdx = 2
+                    if help_parts[descIdx].startswith("    Choices: ["):
+                        descIdx = 3
+                    help_parts[descIdx] = f"    Description: {help_parts[descIdx][4:]}"
+
+                    help = "\n".join(help_parts)
+                    # help = c.class_get_trait_help(trait)
+                    # help += f"\n    Value: {getattr(self.default_options, name)}"
+                    help_all.append(help)
+            old_stdout = sys.stdout
+            sys.stdout = mystdout = StringIO()
+            print("\n\n".join(help_all))
+            sys.stdout = old_stdout
+            mystdout.getvalue()
+
+            # added 4 blanks in begining of each line, to maked md formatter keep format as is
+            return MarkdownString("    " + mystdout.getvalue().replace("\n","\n    "))
+
+        if params == "":
+            message = f"{Constants.MAGIC_PACKAGE_NAME} doesn't have '' option"
+            Display.showDangerMessage(message)
+            return None
+
+        kv = params.split(sep='=', maxsplit=1)
+        key, value = Parser.parse_default_option_key("default_configuration", kv[0], self.default_options) or (None, None)
+        if key is not None:
+            if len(kv) == 1:
+                return value
+            else:
+                try:
+                    key, value = Parser.parse_default_option("default_configuration", key, kv[1], self.default_options)
+                    setattr(self.default_options, key, value)
+                except Exception as e:
+                    if options.get("short_errors"):
+                        Display.showDangerMessage(e)
+                        return None
+                    else:
+                        raise e
+        else:
+            message = f"{Constants.MAGIC_PACKAGE_NAME} doesn't have '{kv[0]}' option"
+            Display.showDangerMessage(message)
+        
 
     def _get_connection_info(self, **options):
         mode = options.get("show_conn_info")
@@ -708,9 +772,11 @@ class Kqlmagic_core(object):
 
             parametrized_query_obj = result_set.parametrized_query_obj if result_set is not None else Parameterizer(query)
             params_vars = parametrized_query_obj.parameters if result_set is not None else options.get("params_dict") or user_ns
+            print(f">>> params_vars0: {params_vars if options.get('params_dict') else ''}")
             parametrized_query_obj.apply(params_vars, override_vars=override_vars)
             parametrized_query = parametrized_query_obj.query
             try:
+                print(f">>> parametrized_query: {parametrized_query}")
                 raw_query_result = conn.execute(parametrized_query, user_ns, **options)
             except KqlError as err:
                 try:
@@ -855,9 +921,9 @@ class Kqlmagic_core(object):
             pairs = kql_magic_configuration.split(";")
             for pair in pairs:
                 if pair:
-                    kv = pair.split("=")
-                    setattr(self.default_options, kv[0], kv[1])
-                    # self.ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.{pair.strip()}")
+                    kv = pair.split(sep="=", maxsplit=1)
+                    key, value = Parser.parse_default_option("default_configuration", kv[0], kv[1], self.default_options)
+                    setattr(self.default_options, key, value)
 
         app = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_NOTEBOOK_APP")
         if app is not None:
@@ -872,16 +938,14 @@ class Kqlmagic_core(object):
                 "notebook": "jupyternotebook", 
                 "ipy": "ipython", 
                 "vsc": "visualstudiocode",
-                "ads": "azuredatastudio",
+                "ads": "azuredatastudio"
                 # "papermill":"papermill" #TODO: add "papermill", "nteract"
             }.get(lookup_key)
             if app is not None:
-                # self.ip.run_line_magic("config", f'{Constants.MAGIC_CLASS_NAME}.notebook_app = "{app.strip()}"')
                 setattr(self.default_options, 'notebook_app', app.strip())
 
         email_details = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL")
         if email_details:
-            # self.ip.run_line_magic("config", f'{Constants.MAGIC_CLASS_NAME}.device_code_notification_email = "{email_details.strip()}"')
             setattr(self.default_options, 'device_code_notification_email', email_details.strip())
 
         load_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOAD_MODE")
@@ -893,21 +957,21 @@ class Kqlmagic_core(object):
                 setattr(self.default_options, 'show_init_banner', False)
 
 
-def _set_default_connections(**options):
-    connection_str = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_CONNECTION_STR")
-    if connection_str:
-        connection_str = connection_str.strip()
-        if connection_str.startswith("'") or connection_str.startswith('"'):
-            connection_str = connection_str[1:-1]
-        
-        try:
-            Connection(connection_str, {}, **options)
-            # ip = get_ipython()  # pylint: disable=E0602
-            # result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
-            # if conn and _get_kql_magic_load_mode() != "silent":
-            #     print(conn)
-        except Exception as err:
-            print(err)
+    def _set_default_connections(self, **options):
+        connection_str = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_CONNECTION_STR")
+        if connection_str:
+            connection_str = connection_str.strip()
+            if connection_str.startswith("'") or connection_str.startswith('"'):
+                connection_str = connection_str[1:-1]
+            
+            try:
+                Connection(connection_str, {}, **options)
+                # ip = get_ipython()  # pylint: disable=E0602
+                # result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
+                # if conn and _get_kql_magic_load_mode() != "silent":
+                #     print(conn)
+            except Exception as err:
+                print(err)
 
 f"""
 FAQ

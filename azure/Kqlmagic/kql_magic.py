@@ -24,7 +24,6 @@ logger().debug("kql_magic.py - import Magics, magics_class, cell_magic, line_mag
 try:
     from IPython.core.magic import Magics, magics_class, cell_magic, line_magic, needs_local_scope
 except Exception:
-    print('>>> NOT MAGIC !!!')
     class Magics(object):
         def __init__(self, shell):
             pass
@@ -76,7 +75,7 @@ class Kqlmagic(Magics, Configurable):
         config=True, 
         allow_none=True, 
         help="""Automatically limit the size of the returned result sets.\n
-        Abbreviation: al"""
+        Abbreviation: 'al'"""
     )
 
     prettytable_style = Enum(
@@ -84,14 +83,14 @@ class Kqlmagic(Magics, Configurable):
         "DEFAULT",
         config=True,
         help="""Set the table printing style to any of prettytable's defined styles.\n
-        Abbreviation: ptst"""
+        Abbreviation: 'ptst'"""
     )
 
     short_errors = Bool(
         True, 
         config=True, 
         help="""Don't display the full traceback on KQL Programming Error.\n
-        Abbreviation: se"""
+        Abbreviation: 'se'"""
     )
 
     display_limit = Int(
@@ -99,28 +98,28 @@ class Kqlmagic(Magics, Configurable):
         config=True,
         allow_none=True,
         help="""Automatically limit the number of rows displayed (full result set is still stored).\n
-        Abbreviation: dl""",
+        Abbreviation: 'dl'""",
     )
 
     auto_dataframe = Bool(
         False, 
         config=True, 
         help="""Return Pandas dataframe instead of regular result sets.\n
-        Abbreviation: ad"""
+        Abbreviation: 'ad'"""
     )
 
     columns_to_local_vars = Bool(
         False, 
         config=True, 
         help="""Return data into local variables from column names.\n
-        Abbreviation: c2lv"""
+        Abbreviation: 'c2lv'"""
     )
 
     feedback = Bool(
         True, 
         config=True, 
         help="""Show number of records returned, and assigned variables.\n
-        Abbreviation: f"""
+        Abbreviation: 'f'"""
     )
 
     show_conn_info = Enum(
@@ -129,7 +128,7 @@ class Kqlmagic(Magics, Configurable):
         config=True,
         allow_none=True,
         help="""Show connection info, either current, the whole list, or None.\n
-        Abbreviation: sci"""
+        Abbreviation: 'sci'"""
     )
 
     dsn_filename = Unicode(
@@ -138,7 +137,7 @@ class Kqlmagic(Magics, Configurable):
         allow_none=True,
         help="""Sets path to DSN file.\n
         When the first argument of the connection string is of the form [section], a kql connection string is formed from the matching section in the DSN file.\n
-        Abbreviation: dl"""
+        Abbreviation: 'dl'"""
     )
 
     cloud = Enum(
@@ -167,7 +166,7 @@ class Kqlmagic(Magics, Configurable):
         "frontend", 
         config = True, 
         help = """Sets device_code login notification method.\n
-        Abbreviation: dcln"""
+        Abbreviation: 'dcln'"""
     )
 
     device_code_notification_email = Unicode(
@@ -175,7 +174,7 @@ class Kqlmagic(Magics, Configurable):
         config=True, 
         help=f"""Email details. Should be set by {Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL.\n
         the email details string format is: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text'\n
-        Abbreviation: dcne"""
+        Abbreviation: 'dcne'"""
     )
 
     timeout = Int(
@@ -183,7 +182,7 @@ class Kqlmagic(Magics, Configurable):
         config=True, 
         allow_none=True, 
         help="""Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time.\n
-        Abbreviation: to, wait"""
+        Abbreviation: 'to' or 'wait'"""
     )
 
     plot_package = Enum(
@@ -191,7 +190,7 @@ class Kqlmagic(Magics, Configurable):
         "plotly", 
         config=True, 
         help="""Set the plot package (plotlt_orca requires plotly orca to be installed on the server).\n 
-        Abbreviation: pp"""
+        Abbreviation: 'pp'"""
     )
 
     table_package = Enum(
@@ -205,49 +204,49 @@ class Kqlmagic(Magics, Configurable):
         "_kql_raw_result_", 
         config=True, 
         help="""Set the name of the variable that will contain last raw result.\n
-        Abbreviation: var"""
+        Abbreviation: 'var'"""
     )
 
     enable_suppress_result = Bool(
         True, 
         config=True, 
         help="""Suppress result when magic ends with a semicolon ;.\n 
-        Abbreviation: esr"""
+        Abbreviation: 'esr'"""
     )
 
     show_query_time = Bool(
         True, 
         config=True, 
         help="""Print query execution elapsed time.\n 
-        Abbreviation: sqt"""
+        Abbreviation: 'sqt'"""
     )
 
     show_query = Bool(
         False, 
         config=True, 
         help="""Print parametrized query.\n
-        Abbreviation: sq"""
+        Abbreviation: 'sq'"""
     )
 
     show_query_link = Bool(
         False, 
         config=True, 
         help="""Show query deep link as a button, to run query in the deafult tool.\n
-        Abbreviation: sql"""
+        Abbreviation: ''sql'"""
     )
 
     query_link_destination = Enum(
         ["Kusto.Explorer", "Kusto.WebExplorer"], 
         "Kusto.WebExplorer", 
         config=True, help="""Set the deep link destination.\n
-        Abbreviation: qld"""
+        Abbreviation: 'qld'"""
     )
 
     plotly_fs_includejs = Bool(
         False,
         config=True,
         help="""Include plotly javascript code in popup window. If set to False (default), it download the script from https://cdn.plot.ly/plotly-latest.min.js.\n
-        Abbreviation: pfi"""
+        Abbreviation: 'pfi'"""
     )
 
     validate_connection_string = Bool(
@@ -260,7 +259,7 @@ class Kqlmagic(Magics, Configurable):
         True, 
         config=True, 
         help="""Popup schema when connecting to a new database.\n
-        Abbreviation: aps"""
+        Abbreviation: 'aps'"""
     )
 
     json_display = Enum(
@@ -268,28 +267,28 @@ class Kqlmagic(Magics, Configurable):
         "formatted", 
         config=True, 
         help="""Set json/dict display format.\n
-        Abbreviation: jd"""
+        Abbreviation: 'jd'"""
     )
 
     palette_name = Unicode(
         Palettes.DEFAULT_NAME, 
         config=True, 
         help="""Set pallete by name to be used for charts.\n
-        Abbreviation: pn"""
+        Abbreviation: 'pn'"""
     )
 
     palette_colors = Int(
         Palettes.DEFAULT_N_COLORS, 
         config=True, 
         help="""Set pallete number of colors to be used for charts.\n
-        Abbreviation: pc"""
+        Abbreviation: 'pc'"""
     
     )
     palette_desaturation = Float(
         Palettes.DEFAULT_DESATURATION, 
         config=True, 
         help="""Set pallete desaturation to be used for charts.\n
-        Abbreviation: pd"""
+        Abbreviation: 'pd'"""
     )
 
     temp_folder_name = Unicode(
@@ -309,7 +308,7 @@ class Kqlmagic(Magics, Configurable):
         "auto",
         config=True, 
         help="""Set popup interaction.\n
-        Abbreviation: pi"""        
+        Abbreviation: 'pi'"""        
     )
 
     temp_files_server = Enum(
@@ -390,7 +389,7 @@ class Kqlmagic(Magics, Configurable):
         allow_none=True, 
         help=f"""Tags request 'x-ms-client-request-id' header.\n
         Header pattern: {Constants.MAGIC_CLASS_NAME}.execute;{{tag}};{{guid}}\n
-        Abbreviation: idtag"""
+        Abbreviation: 'idtag'"""
     )
 
     request_app_tag = Unicode(
@@ -399,7 +398,7 @@ class Kqlmagic(Magics, Configurable):
         allow_none=True, 
         help=f"""Tags request 'x-ms-app' header.\n
         Header pattern: {Constants.MAGIC_CLASS_NAME};{{tag}}\n
-        Abbreviation: apptag"""
+        Abbreviation: 'apptag'"""
     )
 
     request_user_tag = Unicode(
@@ -408,7 +407,7 @@ class Kqlmagic(Magics, Configurable):
         allow_none=True, 
         help=f"""Tags request 'x-ms-user' header.\n
         Header pattern: {{tag}}\n
-        Abbreviation: usertag"""
+        Abbreviation: 'usertag''"""
     )
 
     logger().debug("Kqlmagic:: - define class code")
@@ -492,6 +491,8 @@ class Kqlmagic(Magics, Configurable):
                 shell.configurables.append(self)
         if is_magic:
             Magics.__init__(self, shell=shell)
+        else:
+            setattr(self, 'show_init_banner', False)
         
         kql_core_obj = kql_core_obj or Kqlmagic_core(global_ns=global_ns, local_ns=local_ns, shell=shell, default_options=self)
 
@@ -499,19 +500,30 @@ class Kqlmagic(Magics, Configurable):
     @needs_local_scope
     @line_magic(Constants.MAGIC_NAME)
     @cell_magic(Constants.MAGIC_NAME)
-    def execute(self, line:str, cell:str="", local_ns:dict={}, 
-        override_vars:dict=None, override_options:dict=None, 
-        override_query_properties:dict=None, override_connection:str=None, override_result_set=None):
-        result = kql_core_obj.execute(line, cell=cell, local_ns=local_ns,
+    def execute(self, 
+        line:str, 
+        cell:str="", 
+        local_ns:dict={}, 
+        override_vars:dict=None, 
+        override_options:dict=None, 
+        override_query_properties:dict=None, 
+        override_connection:str=None, 
+        override_result_set=None):
+
+        result = kql_core_obj.execute(
+            line=line, 
+            cell=cell, 
+            local_ns=local_ns,
             override_vars=override_vars,
             override_options=override_options,
             override_query_properties=override_query_properties,
             override_connection=override_connection,
             override_result_set=override_result_set)
+
         return result
 
 
-def kql(line:str='', global_ns=None, local_ns=None):
+def kql(text:str='', options:dict=None, query_properties:dict=None, vars:dict=None, conn:str=None, global_ns=None, local_ns=None):
     global kql_core_obj
     shell = None
     if kql_core_obj is None:
@@ -522,6 +534,17 @@ def kql(line:str='', global_ns=None, local_ns=None):
             else:
                 global_ns = globals()
                 local_ns = locals()
-        Kqlmagic(shell, global_ns=global_ns, local_ns=local_ns, is_magic=False)
-    return kql_core_obj.execute(line)
+
+        Kqlmagic(
+            shell=shell, 
+            global_ns=global_ns, 
+            local_ns=local_ns, 
+            is_magic=False)
+
+    return kql_core_obj.execute(
+        text, 
+        override_vars=vars,
+        override_options=options, 
+        override_query_properties=query_properties, 
+        override_connection=conn)
 

@@ -1,5 +1,65 @@
 # HISTORY
 
+## Version 0.1.109
+
+  - ### New popup_interaction options
+  
+    - defines mechanism to be used for popup interaction.
+    - The valid options are "auto", "button", "reference", "webbrowser_open_at_kernel", "reference_popup"
+    - When default "auto" is set, Kqlmagic choose based on the Jupyter front end used.
+
+
+  - ### New Jupyter front end supported
+  
+    - Kqlmagic can be now used in **"azure data studio"** and **"visual studio code"**
+    - Kqlmagic autodetect that it is running within Azure Data Studio
+    - Kqlmagic will be pre installed in future Azure Data Studio version
+    - Kqlmagic will be pre loaded in future Azure Data Studio version (no need to %reload_ext)
+
+
+  - ### New plot package supported
+
+    - **"plotly_widget"** was added to **plot_package** option (default **"plotly"**):
+      - Generates the plot as widget image (useful to customize chart after plotted)
+      - *_kql_raw_result_.plotly_fig contains the rendered widget
+      - all aspects of the plotted chart can be modified by modifying the plotly widget properties
+      - plotly plot_package will be used instead of plotly_widget in case ipywidgets module is not found
+      - *$config Kqlmagic.plot_package=plotly_widget* # sets the default plotly_package to plotly_widget
+      - *%kql -pp 'plotly_widget' ...* # sets plotly_package to plotly_widget for thsi query
+
+  - ### New feature - Kqlmagic can be used as a Module
+
+    - Kqlmagic can be now used as a python Module (useful in environments that don't allow custom magics)
+      - *from Kqlmagic import kql*    # import the kql function
+      - *kql({kqlmagic line/cell text}) # execute the text as %kql / %% kql
+      - the kql signature is: kql(text:str='', options:dict=None, query_properties:dict=None, vars:dict=None, conn:str=None, global_ns=None, local_ns=None)
+        - options will override options parsed from text
+        - query_properties will override query_properties parsed from text
+        - conn will override default current connection or connection string parsed from text
+        - vars will override python variables used to parametrized the query
+        - global_ns and local_ns will override user namespace as derived from shell (not recommended, rare use)
+
+
+  - ### New feature - support Jupyter display_id
+  
+      - When display_id is set to True, refresh will override the original chart
+      - *%kql -did ...* # display the rendered chart bundked to a display id
+      - *_kql_raw_result_.refresh() # will override the original chart
+
+  - ### New feature - refresh and submit functions support override_options, override_query_properties, override_vars and override_connection
+
+    - *_kql_raw_result_.refresh(override_options=options_dict)*       # will refresh the original query, using original options overriden by the override options.
+    - ipywidgetsrefresh(override_query_properties=query_properties_dict)*       # will refresh the original query, using original query properties overriden by the override query properties.
+    - *_kql_raw_result_.refresh(override_vars=vars_dict)*       # will refresh the original parametrised query, using python vars overriden by the override vars.
+    - *_kql_raw_result_.refresh(override_connection=conn_str)*       # will refresh the original query, but to database as specified in the override connection string.
+
+
+  - ### Fix
+  
+    - Fix parameterizer to better handle strings and to also handle pandas Series as a list
+    - Use repr in parameterizer to safely quote string
+
+
 ## Version 0.1.108
 
   - ### New help information
@@ -7,6 +67,7 @@
     - help on how to enable logging. try %kql --help "logging"
   
   - ### Fix
+  
     - Fixed KQLMAGIC_CONNECTION_STR missing options bug
     - Fixed missing Orca bug
     - Fixed deep linking bug

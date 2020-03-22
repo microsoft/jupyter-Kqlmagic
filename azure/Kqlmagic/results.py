@@ -131,7 +131,7 @@ class FileResultDescriptor(bytes):
         if self.is_image:
             return self if self.format in FileResultDescriptor.FILE_BINARY_FORMATS else "".join(chr(x) for x in self)
         else:
-            print(self._file_location_message())
+            # print(f">>> {self._file_location_message()}")
             filename = adjust_path(self.file_or_image)
             return open(filename, "rb" if self.format in self.FILE_BINARY_FORMATS else "r").read()
 
@@ -1395,6 +1395,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
         sub_tables = self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(sub_tables) < 1:
+            # this print is not for debug
             print("No valid chart to show")
             return None
         chart_properties = self._get_plotly_chart_properties(properties, sub_tables)

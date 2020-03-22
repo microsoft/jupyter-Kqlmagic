@@ -92,5 +92,6 @@ def bug_report():
     """Pretty-print the bug information as JSON."""
 
     # TODO: provide email address or forum for the bug report
+    # this print is not for debug
     print(json.dumps(bug_info(), sort_keys=True, indent=4))
 

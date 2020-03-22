@@ -102,6 +102,7 @@ class ColumnGuesserMixin(object):
                     x_col_idx = idx
                     break
         if x_col_idx is None:
+            # this print is not for debug
             print("No valid xcolumn")
             return []
 
@@ -147,6 +148,7 @@ class ColumnGuesserMixin(object):
         else:
             quantity_columns = [c for idx, c in enumerate(self.columns) if idx != x_col_idx and c.is_quantity and c.name not in [s.name for s in series_columns]] 
         if len(quantity_columns) < 1:
+            # this print is not for debug
             print("No valid ycolumns")
             return []
 

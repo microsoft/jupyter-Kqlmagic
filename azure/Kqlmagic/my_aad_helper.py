@@ -215,6 +215,7 @@ class _MyAadHelper(object):
 
                
             elif options.get("device_code_login_notification") =="browser":
+                # this print is not for debug
                 print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
                 # copy code to clipboard
                 import pyperclip
@@ -222,6 +223,7 @@ class _MyAadHelper(object):
                 webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
 
             elif options.get("device_code_login_notification") =="terminal":
+                # this print is not for debug
                 print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
 
             elif options.get("notebook_app") in ["visualstudiocode", "ipython", "azuredatastudio"]:

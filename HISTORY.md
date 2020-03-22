@@ -1,5 +1,11 @@
 # HISTORY
 
+## Version 0.1.110
+
+  - ### Fix
+  
+    - Remove debug print messages
+
 ## Version 0.1.109
 
   - ### New popup_interaction options

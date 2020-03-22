@@ -146,14 +146,14 @@ class AdalTokenCache(object):
                 "random_string": self._random_string(), # makes length and content different each time
                 "cache_values": list(self._cache.values()),
             }
-            # print("--##-- serialize cache --##--")
+            # print(f">>> --##-- serialize cache --##--")
             return json.dumps(state_obj)
 
 
     def deserialize(self, state: str):
         '''deserialize cache'''
         with self._lock:
-            # print("--##-- deserialize state --##--")
+            # print(f">>> --##-- deserialize state --##--")
             if state:
                 self._cache.clear()
                 state_obj = json.loads(state)
@@ -171,7 +171,7 @@ class AdalTokenCache(object):
     def read_items(self):
         '''output list of tuples in (key, authentication-result)'''
         with self._lock:
-            # print("--##-- read_items --##--")
+            # print(f">>> --##-- read_items --##--")
             state = self._store.restore()
             self.deserialize(state)
             return self._cache.items()
@@ -179,7 +179,7 @@ class AdalTokenCache(object):
 
     def _query_cache(self, is_mrrt, user_id, client_id):
         '''query cache for matches'''
-        # print("--##-- query --##--")
+        # print(f">>> --##-- query --##--")
         matches = []
         for k in self._cache:
             v = self._cache[k]

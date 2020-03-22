@@ -428,7 +428,7 @@ class Display(object):
 
             </body></html>"""
         )
-        # print(html_str)
+        # print(f">>> html_str: {html_str}")
         return html_str
 
     @staticmethod
@@ -538,7 +538,7 @@ class Display(object):
             </script>
             </body></html>"""
         )
-        # print(html_str)
+        # print(f">>> html_str: {html_str}")
         return html_str
 
     @staticmethod
@@ -670,7 +670,7 @@ class Display(object):
                 break
         if not found:
             help_links.append({"text": text, "url": url})
-        # print('help_links: ' + str(help_links))
+        # print(f">>> help_links: {help_links)}")
         if reconnect:
             Display.kernelReconnect(**options)
 

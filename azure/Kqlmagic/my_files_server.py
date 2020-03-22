@@ -39,7 +39,7 @@ def files(foldername, filename):
         if err_resp is not None:
             return err_resp
         file_path = f"{base_folder}/{foldername}/{filename}"
-        print(f"files file_path: {file_path}")
+        # print(f">>> files file_path: {file_path}")
         return send_file(file_path)
 
 
@@ -52,7 +52,7 @@ def folders(foldername):
         if err_resp is not None:
             return err_resp
         file_path = f"{base_folder}/{foldername}/{filename}"
-        print(f"folders file_path: {file_path}")
+        # print(f">>> folders file_path: {file_path}")
         return send_file(file_path)
 
 

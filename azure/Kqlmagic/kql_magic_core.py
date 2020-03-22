@@ -229,8 +229,7 @@ class Kqlmagic_core(object):
                 app = "jupyternotebook"
 
             setattr(self.default_options, "notebook_app", app)
-            # self.ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.notebook_app='{app}'")
-            # print("notebook_app: {0}".format(app))
+            # print(f">>> notebook_app: {app}")
         parsed_queries = Parser.parse(f"dummy_query\n", self.default_options, _ENGINES, {})
         # parsed_queries = Parser.parse("%s\n%s" % ("dummy_query", ""), self.default_options, _ENGINES, {})
         options = parsed_queries[0]["options"]
@@ -615,6 +614,7 @@ class Kqlmagic_core(object):
                     help_all.append(help)
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
+            # this print is not for debug
             print("\n\n".join(help_all))
             sys.stdout = old_stdout
             mystdout.getvalue()
@@ -772,11 +772,10 @@ class Kqlmagic_core(object):
 
             parametrized_query_obj = result_set.parametrized_query_obj if result_set is not None else Parameterizer(query)
             params_vars = parametrized_query_obj.parameters if result_set is not None else options.get("params_dict") or user_ns
-            print(f">>> params_vars0: {params_vars if options.get('params_dict') else ''}")
             parametrized_query_obj.apply(params_vars, override_vars=override_vars)
             parametrized_query = parametrized_query_obj.query
             try:
-                print(f">>> parametrized_query: {parametrized_query}")
+                # print(f">>> parametrized_query: {parametrized_query}")
                 raw_query_result = conn.execute(parametrized_query, user_ns, **options)
             except KqlError as err:
                 try:
@@ -969,8 +968,9 @@ class Kqlmagic_core(object):
                 # ip = get_ipython()  # pylint: disable=E0602
                 # result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
                 # if conn and _get_kql_magic_load_mode() != "silent":
-                #     print(conn)
+                    # print(conn)
             except Exception as err:
+                # this print is not for debug
                 print(err)
 
 f"""

@@ -103,7 +103,10 @@ from .help import MarkdownString
 
 version_info = (0, 1, 111)
 
-VERSION = '.'.join(map(str, version_info))
+VERSION = '0.1.111'
+
+# cannot be used till code in setup is fixed
+# '.'.join(map(str, version_info))
 
 
 def execute_version_command() -> MarkdownString:

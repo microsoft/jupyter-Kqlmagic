@@ -41,7 +41,8 @@ class Parser(object):
         
         # print(parts)
         if not parts:
-            parsed_queries.append({"connection": "", "query": "", "options": {}, "command": {}})
+            kql, options = cls._parse_kql_options("", config, user_ns)
+            parsed_queries.append({"connection": "", "query": kql, "options": options, "command": {}})
             return parsed_queries
 
         #
@@ -448,6 +449,10 @@ class Parser(object):
         "pi": {"abbreviation": "popupinteraction"},        
         "popupinteraction": {"flag": "popup_interaction", "type": "str", "config": "config.popup_interaction"},
         "tempfilesserver": {"flag": "temp_files_server", "readonly": "True", "type": "str", "config": "config.temp_files_server"},
+        "tempfilesserveraddress": {"flag": "temp_files_server_address", "readonly": "True", "type": "str", "config": "config.temp_files_server_address"},
+        
+        "kernellocation": {"flag": "kernel_location", "readonly": "True", "type": "str", "config": "config.kernel_location"},
+        "kernelid": {"flag": "kernel_id", "readonly": "True", "type": "str", "config": "config.kernel_id"},
     }
 
 

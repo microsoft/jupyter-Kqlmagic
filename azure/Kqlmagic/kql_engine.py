@@ -407,8 +407,8 @@ class KqlEngine(object):
             self._create_and_set_bind_url(parsed_conn_kv, keys_set, uri_schema_name)
 
             return parsed_conn_kv
-        except Exception as exceptipn:
-            raise KqlEngineError(f"invalid connection string: {conn_str}, {exceptipn}")
+        except Exception as exception:
+            raise KqlEngineError(f"invalid connection string: {conn_str}, {exception}")
 
 
 class KqlEngineError(Exception):

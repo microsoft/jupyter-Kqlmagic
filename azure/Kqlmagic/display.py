@@ -42,21 +42,32 @@ class DateTimeEncoder(json.JSONEncoder):
 
 class FormattedJsonDict(dict):
 
-    def __init__(self, j, *args, **kwargs):
-        super(FormattedJsonDict, self).__init__(*args, **kwargs)
-        self.update(j)
+    def __init__(self, item, *args, **kwargs):
+        super(FormattedJsonDict, self).__init__()
+        self.row = None
+        if type(item).__name__ == 'KqlRow':
+            self.row = item
+            item = item.row
+        self.update(item)
 
-        formatted_json = json.dumps(self, indent=4, sort_keys=True, cls=DateTimeEncoder)
+        _dict = self
+        if len(item) == 1 and isinstance(self.get(" "), list):
+            _dict = self.get(" ")
+        formatted_json = json.dumps(_dict, indent=4, sort_keys=True, cls=DateTimeEncoder)
         self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
 
 
     def get(self, key, default=None):
-        item = super(FormattedJsonDict, self).get(key, default)
-        return _getitem_FormattedJson(item)
+        value = super(FormattedJsonDict, self).get(key, default)
+        return _getitem_FormattedJson(value)
 
 
     def __getitem__(self, key):
-        return self.get(key)
+        if self.row is not None:
+            value = self.row.__getitem__(key)
+        else:
+            value = self.get(key)
+        return _getitem_FormattedJson(value)
 
 
     def __repr__(self):
@@ -65,27 +76,101 @@ class FormattedJsonDict(dict):
 
 class FormattedJsonList(list):
 
-    def __init__(self, j, *args, **kwargs):
-        super(FormattedJsonList, self).__init__(*args, **kwargs)
-        self.extend(j)
-        formatted_json = json.dumps(self, indent=4, sort_keys=True, cls=DateTimeEncoder)
-        self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
+    def __init__(self, item, key, *args, **kwargs):
+        super(FormattedJsonList, self).__init__()
+        self.extend(item)
+        self.item = item
+        self.key = key or " "
+        # formatted_json = json.dumps(self.item, indent=4, sort_keys=True, cls=DateTimeEncoder)
+        # self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
 
 
     def __getitem__(self, key):
-        item = super(FormattedJsonList, self).__getitem__(key)
-        return _getitem_FormattedJson(item)
+        value = super(FormattedJsonList, self).__getitem__(key)
+        return _getitem_FormattedJson(value)
 
 
     def __repr__(self):
-        return self.colorful_json
+        if len(self.item) > 0 and type(self.item[0]).__name__ == 'KqlRow':
+            _list = [l.row for l in self.item]
+        else:
+            _list = self.item
+        return FormattedJsonDict({self.key: _list}).__repr__()
+        # return self.colorful_json
 
 
-def _getitem_FormattedJson(item):
+def _getitem_FormattedJson(item, key=None):
     if isinstance(item, list):
-        return FormattedJsonList(item)
-    elif isinstance(item, dict):
+        return FormattedJsonList(item, key)
+    elif isinstance(item, dict) or type(item).__name__ == "KqlRow":
         return FormattedJsonDict(item)
+    else:
+        return item
+
+
+class JSONDict(dict):
+
+    def __init__(self, item, *args, **kwargs):
+        super(JSONDict, self).__init__()
+        self.item = item
+        self.row = None
+        if type(item).__name__ == "KqlRow":
+            self.row = item
+            item = item.row
+        self.update(item)
+
+
+    def get(self, key, default=None):
+        value = super(JSONDict, self).get(key, default)
+        return _getitem_JSON(value, key or default)
+
+
+    def __getitem__(self, key):
+        if self.row is not None:
+            value = self.row.__getitem__(key)
+        else:
+            value = self.get(key)
+        return _getitem_JSON(value, key)
+
+    def _repr_json_(self):
+        return self
+
+
+    def __repr__(self):
+        return FormattedJsonDict(self.item).__repr__()
+
+
+class JSONList(list):
+
+    def __init__(self, item, key, *args, **kwargs):
+        super(JSONList, self).__init__()
+        self.item = item
+        self.extend(item)
+        self.key = key or " "
+        # print(f">>> JSONList, len self: {len(self)} self: {self}")
+
+
+    def __getitem__(self, key):
+        value = super(JSONList, self).__getitem__(key)
+        return _getitem_JSON(value, key)
+
+
+    def _repr_json_(self):
+        if len(self) > 0 and type(self.item[0]).__name__ == "KqlRow":
+            _list = [l.row for l in self.item]
+        else:
+            _list = self.item
+        return JSONDict({self.key: _list})._repr_json_()
+
+    def __repr__(self):
+        return FormattedJsonList(self.item, self.key).__repr__()
+
+
+def _getitem_JSON(item, key=None):
+    if isinstance(item, list):
+        return JSONList(item, key)
+    elif isinstance(item, dict) or type(item).__name__ == "KqlRow":
+        return JSONDict(item)
     else:
         return item
 
@@ -98,6 +183,15 @@ class Display(object):
     danger_style = {"color": "#b94a48", "background-color": "#f2dede", "border-color": "#eed3d7"}
     info_style = {"color": "#3a87ad", "background-color": "#d9edf7", "border-color": "#bce9f1"}
     warning_style = {"color": "#8a6d3b", "background-color": "#fcf8e3", "border-color": "#faebcc"}
+    ref_style = {
+        "padding": "2px 6px 2px 6px",
+        "color": "#333333",
+        "background-color": "#EEEEEE",
+        "border-top": "1px solid #CCCCCC", 
+        "border-right": "1px solid #333333", 
+        "border-bottom": "1px solid #333333", 
+        "border-left": "1px solid #CCCCCC"
+    }
 
     showfiles_url_base_path = None
     showfiles_file_base_path = None
@@ -143,17 +237,17 @@ class Display(object):
 
     @staticmethod
     def get_show_deeplink_html_obj(window_name, deep_link_url:str, isCloseWindow: bool, **options):
-            html_str = Display._get_Launch_page_html(window_name, deep_link_url, isCloseWindow, False, **options)
-            if options.get("notebook_app") in ["visualstudiocode", "azuredatastudio", "ipython"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "azuredatastudio", "ipython"]:
-                file_name = Display._get_name()
-                file_path = Display._html_to_file_path(html_str, file_name, **options)
-                url = Display._get_file_path_url(file_path)
-                # url = urllib.parse.quote(url)
-                webbrowser.open(url, new=1, autoraise=True)
-                Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
-                return None
-            else:
-                return HTML(html_str)
+        html_str = Display._get_Launch_page_html(window_name, deep_link_url, isCloseWindow, False, **options)
+        if options.get("notebook_app") in ["visualstudiocode", "azuredatastudio", "ipython", "nteract"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "azuredatastudio", "ipython", "nteract"]:
+            file_name = Display._get_name()
+            file_path = Display._html_to_file_path(html_str, file_name, **options)
+            url = Display._get_file_path_url(file_path)
+            # url = urllib.parse.quote(url)
+            webbrowser.open(url, new=1, autoraise=True)
+            Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
+            return None
+        else:
+            return HTML(html_str)
 
 
     @staticmethod
@@ -183,6 +277,9 @@ class Display(object):
         return HTML(html_str) if html_str is not None else None
 
 
+    ############################################################################
+    #
+    ############################################################################
     @staticmethod
     def _get_file_path_url(file_path):
         url = None
@@ -200,11 +297,11 @@ class Display(object):
 
 
     @staticmethod
-    def _get_window_ref_html(isPopupMode, window_name, file_path, ref_text=None, isText=None, palette=None, before_text=None, after_text=None, **options):
+    def _get_window_ref_html(isPopupMode, window_name, file_path, ref_text=None, isText=None, palette=None, ref_palette=None, before_text=None, after_text=None, **options):
         url = Display._get_file_path_url(file_path)
         popup_window_name = window_name
 
-        if (isPopupMode):
+        if isPopupMode or options["temp_files_server_address"] is not None:
             close_window_timeout_in_secs = 3 * 60 # five minutes
             popup_window_name = "popup_" + window_name
             popup_html = Display._get_popup_window_html(url, window_name, close_window_timeout_in_secs, **options)
@@ -212,17 +309,23 @@ class Display(object):
             popup_file_path = Display._html_to_file_path(popup_html, popup_file_name, **options)
             url = Display._get_file_path_url(popup_file_path)
 
-
+        if options["temp_files_server_address"] is not None:
+            import urllib.parse
+            indirect_url = f"{options.get('temp_files_server_address')}/webbrowser?url={urllib.parse.quote(url)}"
+            url = indirect_url
         ref_text = ref_text or "popup window"
         
-        style = f"padding: 10px; color: {palette['color']}; background-color: {palette['background-color']}; border-color: {palette['border-color']}" if palette else ""
-        before_text = f"{before_text}&nbsp;" if before_text is not None else ''
-        after_text = f"&nbsp;{after_text}" if after_text is not None else ''
+        style_div = f"padding: 10px; color: {palette['color']}; background-color: {palette['background-color']}; border-color: {palette['border-color']}" if palette else ""
+        ref_palette = ref_palette or Display.ref_style
+        style_ref = f"padding: 2px 6px 2px 6px; color: {ref_palette['color']}; background-color: {ref_palette['background-color']}; border-top: {ref_palette['border-top']}; border-right: {ref_palette['border-right']}; border-bottom: {ref_palette['border-bottom']}; border-left: {ref_palette['border-left']}"
+
+        before_text = f"{before_text.replace(' ', '&nbsp;')}&nbsp;" if before_text is not None else ''
+        after_text = f"&nbsp;{after_text.replace(' ', '&nbsp;')}" if after_text is not None else ''
         html_str = (
             """<!DOCTYPE html>
             <html><body>
-            <div style='""" + style + """'>
-            """ + before_text +  """<a href='""" + url + """' target='""" + popup_window_name + """'>""" + ref_text + """</a>""" + after_text + """
+            <div style='""" + style_div + """'>
+            """ + before_text +  """<a href='""" + url + """' style='""" + style_ref + """' target='""" + popup_window_name + """'>""" + ref_text + """</a>""" + after_text + """
             </div>
             </body></html>"""
         )
@@ -238,11 +341,11 @@ class Display(object):
 
     @staticmethod
     def to_styled_class(item, **options):
-        if options.get("json_display") != "raw" and (isinstance(item, dict) or isinstance(item, list)):
-            if options.get("json_display") == "formatted" or options.get("notebook_app") != "jupyterlab":
+        if options.get("json_display") != "raw" and (isinstance(item, list) or isinstance(item, dict) or type(item).__name__ == "KqlRow"):
+            if options.get("json_display") == "formatted": # or options.get("notebook_app") not in ["jupyterlab", "nteract"]:
                 return _getitem_FormattedJson(item)
             else:
-                return JSON(item)
+                return _getitem_JSON(item)
         else:
             return item
 
@@ -283,9 +386,7 @@ class Display(object):
                 var w = screen.width / 2;
                 var h = screen.height / 2;
                 var params = 'width=' + w + ',height=' + h;
-                console.log('new window will open: kql_Magic_""" + window_name + """')
                 kql_Magic_""" + window_name + """ = window.open(url, window_name, window_params + params);
-                console.log('new window opened : kql_Magic_""" + window_name + """')
                 var new_window = kql_Magic_""" + window_name + """;
                 if (new_window != null) {
                     close_window_timeout_in_secs = 1;
@@ -302,6 +403,7 @@ class Display(object):
             + """',"""
             + str(close_window_timeout_in_secs)
             + """);
+            window.focus();
             </script>
             <p>This page popups <b>'""" + window_name + """'</b> window. It will close itself in few minutes.
             <br><br><br>If <b>'""" + window_name + """'</b> window doesn't popup, popups are probably blocked on this
@@ -318,7 +420,7 @@ class Display(object):
         return html_str
 
     @staticmethod
-    def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, **kwargs):
+    def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, isCloseWindow=None, **kwargs):
         # if isText is True, file_path is the text
         notebooks_host = 'text' if isText else (Display.notebooks_host or "")
         onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
@@ -331,6 +433,8 @@ class Display(object):
         style = f"padding: 10px; color: {palette['color']}; background-color: {palette['background-color']}; border-color: {palette['border-color']}" if palette else ""
         before_text = before_text or ''
         after_text = after_text or ''
+
+        close_window_sleep = '5000' if isCloseWindow else '0'
 
         if not isText and Display.showfiles_url_base_path.startswith("http"):
             file_path = Display._get_file_path_url(file_path)
@@ -351,13 +455,28 @@ class Display(object):
             + window_name
             + """','"""
             + notebooks_host
-            + """')">"""
+            + """');kql_MagicCloseWindow(kql_Magic_""" 
+            + window_name 
+            + """,""" 
+            + close_window_sleep 
+            + """);">"""
             + button_text
             + """</button>
             """ + after_text + """
             </div>
 
             <script>
+
+            function kql_MagicSleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            async function kql_MagicCloseWindow(window_obj, ms) {
+                if (ms > 0) {
+                    await kql_MagicSleep(ms);
+                    window_obj.close();
+                }
+            }
 
             function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {
                 var url;
@@ -650,7 +769,7 @@ class Display(object):
 
     @staticmethod
     def kernelReconnect(**options):
-        if options is None or options.get("notebook_app") not in ["jupyterlab", "azuredatastudio"]:
+        if options is None or options.get("notebook_app") not in ["jupyterlab", "azuredatastudio", "nteract"]:
             Display.kernelExecute("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}""")
             time.sleep(1)
 

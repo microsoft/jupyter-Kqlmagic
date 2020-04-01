@@ -448,7 +448,14 @@ class ResultSet(list, ColumnGuesserMixin):
     # use _.open_url_kusto_explorer(True) for opening the url automatically (no button)
     # use _.open_url_kusto_explorer(web_app="app") for opening the url in Kusto Explorer (app) and not in Kusto Web Explorer
     def show_button_to_deep_link(self, browser=False, display_handler_name=None):
+        isCloseWindow = None
         deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, self.options)
+        import urllib.parse
+        if self.options.get("notebook_app") in ["nteract"]:
+            deep_link_url = f"{self.options.get('temp_files_server_address')}/webbrowser?url={urllib.parse.quote(deep_link_url)}"
+            isCloseWindow = True
+
+
         if deep_link_url is not None: #only use deep links for kusto connection 
             qld = self.options.get("query_link_destination").lower().replace('.', '_')
             Display.show_window(
@@ -458,7 +465,9 @@ class ResultSet(list, ColumnGuesserMixin):
                 onclick_visibility="visible",
                 palette=Display.info_style,
                 before_text=f"Click to execute query in {self.options.get('query_link_destination')} ",
-                display_handler_name=display_handler_name
+                display_handler_name=display_handler_name,
+                isCloseWindow=isCloseWindow,
+                **self.options
             )
         return None
 
@@ -523,14 +532,22 @@ class ResultSet(list, ColumnGuesserMixin):
         or by string (value of leftmost column)
         """
         try:
-            return list.__getitem__(self, key)
+            item = list.__getitem__(self, key)
         except TypeError:
             result = [row for row in self if row[0] == key]
             if not result or len(result) == 0:
                 raise KeyError(key)
             if len(result) > 1:
                 raise KeyError('%d results for "%s"' % (len(result), key))
-            return result[0]
+            item = result[0]
+
+        if isinstance(key, slice):
+            if key.start == None and key.stop == None and key.step == None:
+                return item
+            elif len(item) == 0:
+                return item
+
+        return Display.to_styled_class(item, **self.options)
 
 
     def to_dict(self):

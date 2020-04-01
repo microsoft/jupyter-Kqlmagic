@@ -23,7 +23,7 @@ class KqlResult(dict):
     """ Simple wrapper around dictionary, to enable both index and key access to rows in result """
 
     def __init__(self, index2column_mapping, *args, **kwargs):
-        super(KqlResult, self).__init__(*args, **kwargs)
+        super(KqlResult, self).__init__(*args)
         # TODO: this is not optimal, if client will not access all fields.
         # In that case, we are having unnecessary perf hit to convert Timestamp, even if client don't use it.
         # In this case, it would be better for KqlResult to extend list class. In this case,

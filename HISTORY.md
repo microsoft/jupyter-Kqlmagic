@@ -1,5 +1,29 @@
 # HISTORY
 
+## Version 0.1.111
+
+  - ### New Jupyter front end supported
+
+    - Kqlmagic can be now used within desktop **"nteract"**
+
+  - ### New Feature --banner command
+
+    - **--banner** command
+      - displays the Kqlmagic banner. Useful when Kqlmagic is loaded in silent mode, or is preloaded or when Kqlmagic is used just as a module.
+      - *%kql -did ...* # display the rendered chart bundked to a display id
+
+  - ### Improvements
+
+    - Hide temporary files server if used
+    - Pospone lauch of temporary files server till first kql command (support kqlmagic pre load)
+
+  - ### Fix
+
+    - Enables multiple notebook in parallel share temp files (now use kernel_id)
+    - accurate detection of the jupypter application
+    - fixed deep linking to Kusto explorer
+  
+
 ## Version 0.1.110
 
   - ### Fix

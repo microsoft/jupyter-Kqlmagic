@@ -11,9 +11,6 @@ import uuid
 import traceback
 
 
-from ipykernel import (get_connection_info)
-
-
 from .constants import Constants
 
 
@@ -32,7 +29,12 @@ def initialize():
     log_file_prefix = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_FILE_PREFIX")
     log_file_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_FILE_MODE")
     if log_level or log_file or log_file_mode or log_file_prefix:
-        connection_info = get_connection_info(unpack=True)
+        try:
+            import ipykernel as kernel
+        except:
+            from IPython.lib import kernel
+
+        connection_info = kernel.get_connection_info(unpack=True)
         # key is unique per ipkernel instance
         key = connection_info.get("key").decode(encoding="utf-8")
         log_level = log_level or logging.DEBUG

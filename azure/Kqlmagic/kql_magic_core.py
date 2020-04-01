@@ -6,6 +6,7 @@
 
 import os
 import sys
+import re
 import time
 import json
 import logging
@@ -27,8 +28,6 @@ except Exception:
     flask_installed = False
 else:
     flask_installed = True
-
-
 
 
 from .sso_storage import get_sso_store
@@ -155,14 +154,18 @@ class Kqlmagic_core(object):
         self.global_ns = global_ns
         self.local_ns = local_ns
         self.shell_user_ns = self.shell.user_ns if self.shell is not None else self.global_ns
+        self.last_raw_result = None
+        self.temp_files_server_manager = None
         if not dont_start:
             self._start()
 
 
     def _start(self):
 
-        self.last_raw_result = None
+
         logger().debug("Kqlmagic::__init__ - start")
+
+        Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
 
         logger().debug("Kqlmagic::__init__ - init options")
         options = self._init_options()
@@ -170,15 +173,10 @@ class Kqlmagic_core(object):
         logger().debug("Kqlmagic::__init__ - set temp folder")
         self._set_temp_files_folder(**options)
 
-        Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
-
         logger().debug("Kqlmagic::__init__ - add kql page reference to jupyter help")
         self._add_kql_ref_to_help(**options)
         logger().debug("Kqlmagic::__init__ - add help items to jupyter help")
         self._add_help_to_jupyter_help_menu(None, start_time=time.time(), **options)
-
-        logger().debug("Kqlmagic::__init__ - start temp files server")
-        self._start_temp_files_server(**options)
 
         logger().debug("Kqlmagic::__init__ - show banner")
         if options.get("show_init_banner"):
@@ -197,6 +195,10 @@ class Kqlmagic_core(object):
             # nteract
             # root_path = "C:\\Users\\michabin\\Desktop\\nteract-notebooks"
             #
+            # add subfolder per kernel_id
+            kernel_id = self.get_notebook_kernel_id() or "kernel_id"
+            folder_name = f"{folder_name}/{kernel_id}"
+
             showfiles_folder_Full_name = adjust_path(f"{root_path}/{folder_name}") #dont remove spaces from root directory
             if not os.path.exists(showfiles_folder_Full_name):
                 os.makedirs(showfiles_folder_Full_name)
@@ -211,29 +213,140 @@ class Kqlmagic_core(object):
 
     def _init_options(self):
 
-        logger().debug("Kqlmagic::__init__ - override defualt configuraion")
+        notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
         self._override_default_configuration()
 
-        logger().debug("Kqlmagic::__init__ - discover hosting notebook app")
         app = getattr(self.default_options, "notebook_app") or "auto"
-        # app = self.ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.notebook_app") or "auto"
-        if app == "auto":
-            if os.getenv("VSCODE_CWD") and os.getenv("MPLBACKEND"):
-                if os.getenv("VSCODE_NODE_CACHED_DATA_DIR") and os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('azuredatastudio'):
+        kernel_location = getattr(self.default_options, "kernel_location") or "auto"
+
+        if app == "auto": # ELECTRON_RUN_AS_NODE, MPLBACKEND
+            if notebooks_host is not None:
+                app = "jupyternotebook"
+            elif os.getenv("VSCODE_CWD") and os.getenv("VSCODE_NODE_CACHED_DATA_DIR"):
+                if os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('azuredatastudio'):
                     app = "azuredatastudio"
-                else:
+                elif os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('Code'):
                     app = "visualstudiocode"
-            elif not Display._has_ipython_kernel():
-                app = "ipython"
-            else:
+            elif not os.getenv("JPY_PARENT_PID"):
+                app = "nteract"
+
+            if app == "auto":
+                if not Display._has_ipython_kernel():
+                    app = "ipython"
+                else:
+                    app_info = self.get_app_from_parent()
+                    if app_info is not None:
+                        app = app_info.get("app", app)
+                        if kernel_location == "auto":
+                            kernel_location = app_info.get("app", app)
+
+            if app == "auto":
+                notebooks_host = notebooks_host or self.get_notebook_host_from_running_processes()
                 app = "jupyternotebook"
 
             setattr(self.default_options, "notebook_app", app)
             # print(f">>> notebook_app: {app}")
+        
+        if kernel_location == "auto":
+            if notebooks_host is not None:
+                kernel_location = "remote"
+            elif app in ["visualstudiocode", "ipython", "azuredatastudio", "nteract"]:
+                kernel_location = "local"
+            
+            # it can stay "auto", maybe based on NOTEBOOK_URL it will be discovered
+
+            setattr(self.default_options, "kernel_location", kernel_location)
+            # print(f">>> kernel_location: {kernel_location}")
+
         parsed_queries = Parser.parse(f"dummy_query\n", self.default_options, _ENGINES, {})
         # parsed_queries = Parser.parse("%s\n%s" % ("dummy_query", ""), self.default_options, _ENGINES, {})
         options = parsed_queries[0]["options"]
         return options
+
+
+    def get_app_from_parent(self):
+
+        try:
+            import psutil
+
+            parent_id = os.getppid()
+            parent_proc = None
+            for proc in psutil.process_iter():
+                if proc.pid == parent_id:
+                    parent_proc = proc
+                    break
+
+            if parent_proc is not None:
+                name = parent_proc.name().lower()
+                if name.startswith("nteract"):
+                    return {"app": "nteract", "kernel_location": "local"}
+                cmdline = parent_proc.cmdline()
+                if cmdline is not None and len(cmdline) > 0:
+                    for item in cmdline:
+                        item = item.lower()
+                        if item.endswith(".exe"):
+                            if item.endswith("jupyter-notebook.exe"):
+                                return {"app": "jupyternotebook"}
+                            elif item.endswith("jupyter-lab.exe"):
+                                return {"app": "jupyterlab"}
+        except:
+            pass
+
+        return None
+
+
+    def get_notebook_host_from_running_processes(self):
+
+        try:
+            import psutil
+
+            for proc in psutil.process_iter():
+                try:
+                    cmdline = proc.cmdline()
+                    for item in cmdline:
+                        item = item.lower()
+                        if item.endswith("notebooks.azure.com"):
+                            return item
+                except:
+                    pass
+        except:
+            pass
+
+        return None
+
+
+    def get_notebook_kernel_id(self):
+
+        kernel_id = None
+        try:
+            try:
+                import ipykernel as kernel
+            except:
+                from IPython.lib import kernel
+
+            connection_file = kernel.get_connection_file()
+            kernel_id = re.search('kernel-(.*).json', connection_file).group(1)
+
+        except:
+            pass
+
+        return kernel_id
+
+
+    def get_notebook_connection_info(self):
+
+        conn_info = None
+        try:
+            try:
+                import ipykernel as kernel
+            except:
+                from IPython.lib import kernel
+            conn_info = kernel.get_connection_info(unpack=False)
+
+        except:
+            pass
+
+        return conn_info
 
 
     def _add_kql_ref_to_help(self, **options):
@@ -339,6 +452,7 @@ class Kqlmagic_core(object):
                 html_str  = data_as_markdown._repr_html_()
 
                 if html_str is not None:
+                    self._set_temp_files_server(**options)
                     button_text = "What's New? "
                     file_name = "what_new_history"
                     file_path = Display._html_to_file_path(html_str, file_name, **options)
@@ -357,19 +471,48 @@ class Kqlmagic_core(object):
                 pass
 
 
-    def _start_temp_files_server(self, **options):
+    def _set_temp_files_server(self, **options):
+        if (options.get("temp_files_server") == "kqlmagic"
+            or (options.get('notebook_app') in ["azuredatastudio", "nteract"]
+                and options.get("kernel_location") == "local" 
+                and options.get("temp_files_server") == "auto")):
+            if self.temp_files_server_manager is None and options.get("temp_folder_name") is not None:
+                self._start_temp_files_server(**options)
 
-        self.temp_files_server_manager = None
-        folder_name = options.get("temp_folder_name")
-        if folder_name is not None:
-            root_path = Display._get_ipython_root_path()
+        elif self.temp_files_server_manager is not None:
+            self._abort_temp_files_server(**options)
+
+
+    def _start_temp_files_server(self, **options):
+        if self.temp_files_server_manager is None and options.get("temp_folder_name") is not None:
+            # folder_name = options.get("temp_folder_name")
+            # root_path = Display._get_ipython_root_path()
             package_folder = "/".join(__file__.replace("\\", "/").split("/")[:-1])
-            server_py_code = f"{package_folder}/my_files_server.py"      
-            self.temp_files_server_manager = FilesServerManagement(server_py_code, "http", "127.0.0.1", "5000", adjust_path(f"{root_path}"), folder_name)
-            if options.get("temp_files_server") == "flask" or (options.get("temp_files_server") == "auto" and options.get('notebook_app') in ["azuredatastudio"]):
-                os.environ['FLASK_ENV'] = "development"
-                self.temp_files_server_manager.startServer()
-                Display.showfiles_url_base_path = self.temp_files_server_manager.files_url
+            server_py_code = f"{package_folder}/my_files_server.py"
+            SERVER_URL = None
+            base_path = Display.showfiles_file_base_path
+            folder_name = Display.showfiles_folder_name
+            self.temp_files_server_manager = FilesServerManagement(server_py_code, SERVER_URL, adjust_path(f"{base_path}"), folder_name, **options)
+            self.temp_files_server_manager.startServer()
+            server_url = self.temp_files_server_manager.server_url
+            setattr(self.default_options, "temp_files_server_address", server_url)
+            options["temp_files_server_address"] = server_url
+            Display.showfiles_url_base_path = self.temp_files_server_manager.files_url
+            count = 0
+            while not self.temp_files_server_manager.pingServer():
+                time.sleep(1)
+                count += 1
+                if count > 10:
+                    break
+
+
+    def _abort_temp_files_server(self, **options):
+        if self.temp_files_server_manager is not None:
+            self.temp_files_server_manager.abortServer()
+            self.temp_files_server_manager = None
+            setattr(self.default_options, "temp_files_server_address", None)
+            options["temp_files_server_address"] = None
+            Display.showfiles_url_base_path = Display.showfiles_file_base_path
 
 
     def execute(self, line:str, cell:str="", local_ns:dict={},
@@ -498,6 +641,10 @@ class Kqlmagic_core(object):
                     parsed["connection"] = override_connection
                 options = parsed["options"]
                 command = parsed["command"].get("command")
+
+                self._add_help_to_jupyter_help_menu(user_ns, **options)
+                self._set_temp_files_server(**options)
+
                 if command is None or command == "submit":
                     result = self.execute_query(parsed, user_ns, result_set=override_result_set, override_vars=override_vars)
                 else:
@@ -663,7 +810,7 @@ class Kqlmagic_core(object):
 
 
     def _add_help_to_jupyter_help_menu(self, user_ns, start_time=None, **options):
-        if Help_html.showfiles_base_url is None and self.default_options.notebook_app not in ["azuredatastudio", "ipython", "visualstudiocode"]:
+        if Help_html.showfiles_base_url is None and self.default_options.notebook_app not in ["azuredatastudio", "ipython", "visualstudiocode", "nteract"]:
             if start_time is not None:
                 self._discover_notebook_url_start_time = start_time
             else:
@@ -673,6 +820,13 @@ class Kqlmagic_core(object):
                     time.sleep(5 - seconds)
                 window_location = user_ns.get("NOTEBOOK_URL")
                 if window_location is not None:
+                    if getattr(self.default_options, "kernel_location") == "auto":
+                        if window_location.find("//localhost:") or "window_location".find("//127.0.0."):
+                            kernel_location = "local"
+                        else:
+                            kernel_location = "remote"
+                        setattr(self.default_options, "kernel_location", kernel_location)
+                        options["kernel_location"] = getattr(self.default_options, "kernel_location")
                     Help_html.flush(window_location, notebook_app=self.default_options.notebook_app)
 
             if Help_html.showfiles_base_url is None:
@@ -686,8 +840,6 @@ class Kqlmagic_core(object):
 
         suppress_results = options.get("suppress_results", False) and options.get("enable_suppress_result")
         connection_string = parsed.get('connection')
-
-        self._add_help_to_jupyter_help_menu(user_ns, **options)
 
         if not query and not connection_string:
             return None
@@ -932,7 +1084,8 @@ class Kqlmagic_core(object):
                 "jupyternotebook": "jupyternotebook", 
                 "ipython": "ipython", 
                 "visualstudiocode": "visualstudiocode",
-                "azuredatastudio": "azuredatastudio", 
+                "azuredatastudio": "azuredatastudio",
+                "nteract": "nteract",
                 "lab": "jupyterlab", 
                 "notebook": "jupyternotebook", 
                 "ipy": "ipython", 

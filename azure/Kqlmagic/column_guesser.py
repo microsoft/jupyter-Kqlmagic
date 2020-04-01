@@ -35,7 +35,7 @@ class Column(list):
             self.is_datetime = is_datetime
             self.idx = idx
             self.name = name
-        super(Column, self).__init__(**kwargs)
+        super(Column, self).__init__()
 
 
 class ChartSubTable(dict):
@@ -44,7 +44,7 @@ class ChartSubTable(dict):
         self.col_x = col_x
         self.col_y = col_y
         self.name = name
-        super(ChartSubTable, self).__init__(**kwargs)
+        super(ChartSubTable, self).__init__()
         if mapping:
             self.update(mapping)
 

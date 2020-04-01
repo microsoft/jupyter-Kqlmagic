@@ -200,10 +200,32 @@ class _MyAadHelper(object):
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
 
+            device_code_login_notification = options.get("device_code_login_notification")
+            if device_code_login_notification == "auto":
+                if options.get("notebook_app") in ["visualstudiocode", "ipython", "azuredatastudio"]:
+                    device_code_login_notification = "popup_interaction"
+                elif options.get("notebook_app") in ["nteract"]:
+                    if options["temp_files_server_address"] is not None:
+                        import urllib.parse
+                        indirect_url = f"{options.get('temp_files_server_address')}/webbrowser?url={urllib.parse.quote(url)}"
+                        url = indirect_url
+                        device_code_login_notification = "popup_interaction"
+                    else:
+                        device_code_login_notification = "browser"
+                else:
+                    device_code_login_notification = "button"
+
+            if (options.get("kernel_location") == "local" or 
+                device_code_login_notification in ["browser"] or 
+                (device_code_login_notification == "popup_interaction" and options.get("popup_interaction") == "webbrowser_open_at_kernel")):
+                # copy code to local clipboard
+                import pyperclip
+                pyperclip.copy(device_code)
+
             
             # if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
             #     raise Exception("error: using papermill without an email specified is not supported")
-            if options.get("device_code_login_notification") =="email":
+            if device_code_login_notification == "email":
                 params = Parser.parse_and_get_kv_string(options.get('device_code_notification_email'), {})
                 email_notification = EmailNotification(**params)
                 subject = f"Kqlmagic device_code {device_code} authentication (context: {email_notification.context})"
@@ -214,34 +236,31 @@ class _MyAadHelper(object):
                 Display.showInfoMessage(info_message, display_handler_name='acquire_token', **options)
 
                
-            elif options.get("device_code_login_notification") =="browser":
+            elif device_code_login_notification == "browser":
                 # this print is not for debug
                 print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
-                # copy code to clipboard
-                import pyperclip
-                pyperclip.copy(device_code)
                 webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
 
-            elif options.get("device_code_login_notification") =="terminal":
+            elif device_code_login_notification == "terminal":
                 # this print is not for debug
                 print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
 
-            elif options.get("notebook_app") in ["visualstudiocode", "ipython", "azuredatastudio"]:
-                # copy code to clipboard
-                import pyperclip
-                pyperclip.copy(device_code)
-                before_text = f"Copy code: {device_code} to verification url: {url} and "
+            elif device_code_login_notification == "popup_interaction":
+                before_text = f"<b>{device_code}</b>"
+                button_text = "Copy code to clipboard and authenticate"
+                # before_text = f"Copy code: {device_code} to verification url: {url} and "
+                # button_text='authenticate'
                 # Display.showInfoMessage(f"Copy code: {device_code} to verification url: {url} and authenticate", display_handler_name='acquire_token', **options)
                 Display.show_window(
-                    'verification_url', 
-                    url, 
-                    button_text='authenticate', 
-                    palette=Display.info_style,
+                    'verification_url',
+                    url,
+                    button_text=button_text,
+                    # palette=Display.info_style,
                     before_text=before_text,
-                    display_handler_name='acquire_token', 
+                    display_handler_name='acquire_token',
                     **options
                 )
-            else:
+            else: # device_code_login_notification == "button":
                 html_str = (
                     """<!DOCTYPE html>
                     <html><body>

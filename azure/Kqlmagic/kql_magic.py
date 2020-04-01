@@ -52,7 +52,7 @@ except Exception:
     
 
 
-from .kql_magic_core import Kqlmagic_core
+from .kql_magic_core import Kqlmagic_core 
 from .constants import Constants, Cloud
 from .palette import Palettes, Palette
 try:
@@ -162,8 +162,8 @@ class Kqlmagic(Magics, Configurable):
     )
 
     device_code_login_notification = Enum(
-        ["frontend", "browser", "terminal", "email"],
-        "frontend", 
+        ["auto", "button", "popup_interaction", "browser", "terminal", "email"],
+        "auto", 
         config = True, 
         help = """Sets device_code login notification method.\n
         Abbreviation: 'dcln'"""
@@ -263,7 +263,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     json_display = Enum(
-        ["raw", "native", "formatted"], 
+        ["auto", "raw", "formatted"], 
         "formatted", 
         config=True, 
         help="""Set json/dict display format.\n
@@ -313,9 +313,23 @@ class Kqlmagic(Magics, Configurable):
 
     temp_files_server = Enum(
         ["auto", "jupyter", "kqlmagic", "disabled"],
-        "auto" if flask_installed else "disabled" ,
+        "auto" if flask_installed else "disabled",
         config=True, 
         help="""Temp files server."""        
+    )
+
+    temp_files_server_address = Unicode(
+        None, 
+        config=True, 
+        allow_none=True, 
+        help="""Temp files server address."""        
+    )
+
+    kernel_location = Enum(
+        ["auto", "local", "remote"],
+        "auto",
+        config=True, 
+        help="""Kernel location"""    
     )
 
     cache_folder_name = Unicode(
@@ -326,18 +340,25 @@ class Kqlmagic(Magics, Configurable):
 
     # valid values: jupyterlab or jupyternotebook
     notebook_app = Enum(
-        ["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio"], 
+        ["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
         "auto", 
         config=True, 
         help="""Set notebook application used."""
-    ) #TODO: add "papermill", "nteract"
+    ) #TODO: add "papermill"
 
     test_notebook_app = Enum(
-        ["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio"], 
+        ["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
         "none", 
         config=True, 
         help="""Set testing application mode, results should return for the specified notebook application."""
-    ) #TODO: add "papermill", "nteract"
+    ) #TODO: add "papermill"
+
+    kernel_id = Unicode(
+        None, 
+        config=True,
+        allow_none=True, 
+        help="Current notebook kernel_id"
+    )
 
     add_kql_ref_to_help = Bool(
         True, 
@@ -459,27 +480,27 @@ class Kqlmagic(Magics, Configurable):
         try:
             if (proposal["value"]) != self.temp_files_server:
                 if self.temp_files_server == "disabled":
-                    raise ValueError("fetaure is 'disabled', due to missing 'flask' module")
+                    raise ValueError("feature is 'disabled', due to missing 'flask' module")
                 elif proposal["value"] == "auto":
                     raise ValueError("cannot be set to 'auto', after instance is loaded")
                 elif proposal["value"] == "disabled":
                     raise ValueError("cannot be set to 'disabled', it is auto set at magic initialization")
                 elif proposal["value"] == "auto":
                     raise ValueError("cannot be set to 'auto', after instance is loaded")
-                elif proposal["value"] == "kqlmagic":
-                    if self.temp_files_server_manager is not None:
-                        self.temp_files_server_manager.startServer()
-                        Display.showfiles_url_base_path = self.temp_files_server_manager.files_url
-                elif proposal["value"] == "jupyter":
-                    if self.temp_files_server_manager is not None:
-                        self.temp_files_server_manager.abortServer()
-                        Display.showfiles_url_base_path = Display.showfiles_file_base_path
         except (AttributeError , ValueError) as e:
             message = "The 'temp_files_server' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
             raise TraitError(message)
         return proposal["value"]
 
-
+    @validate("kernel_id")
+    def _valid_value_kernel_id_app(self, proposal):
+        try:
+            if self.kernel_id is not None:
+                raise ValueError("cannot be set, it is readonly, set internally")
+        except (AttributeError , ValueError) as e:
+            message = "The 'kernel_id' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            raise TraitError(message)
+        return proposal["value"]
 
     def __init__(self, shell, global_ns=None, local_ns=None, is_magic=True):
 

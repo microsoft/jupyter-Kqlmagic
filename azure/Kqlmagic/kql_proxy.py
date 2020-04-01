@@ -16,8 +16,8 @@ from .display import Display
 
 class KqlRow(six.Iterator):
 
-    def __init__(self, row, col_num, **kwargs):
-        self.kwargs = kwargs
+    def __init__(self, row, col_num, **options):
+        self.options = options
         self.row = row
         self.column_index = 0
         self.columns_count = col_num
@@ -39,9 +39,9 @@ class KqlRow(six.Iterator):
     def __getitem__(self, key):
         if isinstance(key, slice):
             s = self.row[key]
-            return KqlRow(s, len(s), **self.kwargs)
+            return KqlRow(s, len(s), **self.options)
         else:
-            return Display.to_styled_class(self.row[key], **self.kwargs)
+            return self.row[key]
 
 
     def __len__(self):
@@ -70,8 +70,8 @@ class KqlRow(six.Iterator):
 class KqlRowsIter(six.Iterator):
     """ Iterator over returned rows, limited by size """
 
-    def __init__(self, table, row_num, col_num, **kwargs):
-        self.kwargs = kwargs
+    def __init__(self, table, row_num, col_num, **options):
+        self.options = options
         self.table = table
         self.row_index = 0
         self.rows_count = row_num
@@ -88,7 +88,7 @@ class KqlRowsIter(six.Iterator):
         if self.row_index >= self.rows_count:
             raise StopIteration
         self.row_index = self.row_index + 1
-        return KqlRow(self.iter_all_iter.__next__(), self.col_num, **self.kwargs)
+        return KqlRow(self.iter_all_iter.__next__(), self.col_num, **self.options)
 
 
     def __len__(self):
@@ -98,30 +98,30 @@ class KqlRowsIter(six.Iterator):
 class KqlResponse(object):
 
     # Object constructor
-    def __init__(self, response, **kwargs):
+    def __init__(self, response, **options):
         self.json_response = response.json_response
-        self.kwargs = kwargs
+        self.options = options
         self.completion_query_info = response.completion_query_info_results
         self.completion_query_resource_consumption = response.completion_query_resource_consumption_results
         self.dataSetCompletion = response.dataSetCompletion_results
-        self.tables = [KqlTableResponse(t, response.visualization_results.get(t.id, {})) for t in response.primary_results]
+        self.tables = [KqlTableResponse(t, response.visualization_results.get(t.id, {}), **options) for t in response.primary_results]
 
 
 class KqlTableResponse(object):
 
-    def __init__(self, data_table, visualization_results: dict, **kwargs):
-        self.kwargs = kwargs
+    def __init__(self, data_table, visualization_results: dict, **options):
+        self.options = options
         self.visualization_results = visualization_results
         self.data_table = data_table
         self.columns_count = self.data_table.columns_count
 
 
     def fetchall(self):
-        return KqlRowsIter(self.data_table, self.data_table.rows_count, self.data_table.columns_count, **self.kwargs)
+        return KqlRowsIter(self.data_table, self.data_table.rows_count, self.data_table.columns_count, **self.options)
 
 
     def fetchmany(self, size):
-        return KqlRowsIter(self.data_table, min(size, self.data_table.rows_count), self.data_table.columns_count, **self.kwargs)
+        return KqlRowsIter(self.data_table, min(size, self.data_table.rows_count), self.data_table.columns_count, **self.options)
 
 
     def rowcount(self):
@@ -185,6 +185,9 @@ class KqlTableResponse(object):
                 frame[col_name] = pandas.to_timedelta(
                     frame[col_name].apply(lambda t: t.replace(".", " days ") if t and "." in t.split(":")[0] else t)
                 )
+            elif col_type == "string":
+                # frame[col_name] = frame[col_name].apply(lambda x: json.dumps(x) if type(x) == str else x)
+                pass
             elif col_type == "dynamic":
                 frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_object(x))
             elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:

@@ -101,8 +101,9 @@ import requests
 from .constants import Constants
 from .help import MarkdownString
 
+version_info = (0, 1, 111)
 
-VERSION = "0.1.110"
+VERSION = '.'.join(map(str, version_info))
 
 
 def execute_version_command() -> MarkdownString:

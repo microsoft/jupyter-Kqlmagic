@@ -51,7 +51,7 @@ class Palette(list):
                 rgb_palette = list(reversed(rgb_palette))
             if to_reverse:
                 rgb_palette = list(reversed(rgb_palette))
-        super(Palette, self).__init__(**kwargs)
+        super(Palette, self).__init__()
         self.extend(rgb_palette)
 
 
@@ -252,7 +252,7 @@ class Palettes(list):
         self.desaturation = desaturation or self.DEFAULT_DESATURATION
         self.to_reverse = to_reverse
         self.kwargs = kwargs
-        super(Palettes, self).__init__(**kwargs)
+        super(Palettes, self).__init__()
         self.extend(palette_list or self.BASE_PALETTE_NAMES)
 
 

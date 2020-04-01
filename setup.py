@@ -45,7 +45,7 @@ INSTALL_REQUIRES    = [
                         'prettytable>=0.7.2',
                         'matplotlib>=3.0.0',
                         'pandas>=0.23.4',
-                        'adal>=1.2.1',
+                        'adal>=1.2.2',
                         'Pygments>=2.2.0',
                         'seaborn>=0.9.0',
                         'requests>=2.21.0',
@@ -103,6 +103,34 @@ PACKAGE_PATH = 'azure-Kqlmagic'.replace('-', path.sep)
 with open(path.join(PACKAGE_PATH, 'version.py'), 'r') as fd:
     VERSION = re.search(r'^VERSION\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
+
+#==============================================================================
+# Minimal Python version sanity check
+# Taken from the notebook setup.py -- Modified BSD License
+#==============================================================================
+v = sys.version_info
+if v[:2] < (3, 6):
+    pip_message = 'This may be due to an out of date pip. Make sure you have pip >= 9.0.1.'
+    try:
+        import pip
+        pip_version = tuple([int(x) for x in pip.__version__.split('.')[:3]])
+        if pip_version < (9, 0, 1) :
+            pip_message = 'Your pip version is out of date, please install pip >= 9.0.1. '\
+            'pip {} detected.'.format(pip.__version__)
+        else:
+            # pip is new enough - it must be something else
+            pip_message = ''
+    except Exception:
+        pass
+
+    error = """ERROR: Kqlmagic {ver} requires Python version 3.6 or above.
+
+    Python {py} detected.
+    {pip}
+    """.format(ver=VERSION, py=sys.version_info, pip=pip_message)
+    print(error, file=sys.stderr)
+    sys.exit(1)
+
 
 CURRENT_PATH = path.abspath(path.dirname(__file__))
 with codecs.open(path.join(CURRENT_PATH, 'README.rst'), encoding='utf-8') as f:
@@ -163,6 +191,7 @@ setup(
         'Framework :: Jupyter',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
     keywords=KEYWORDS,
     author=AUTHOR,

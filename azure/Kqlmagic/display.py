@@ -302,7 +302,7 @@ class Display(object):
         popup_window_name = window_name
 
         if isPopupMode or options["temp_files_server_address"] is not None:
-            close_window_timeout_in_secs = 3 * 60 # five minutes
+            close_window_timeout_in_secs = 1 * 60 # five minutes
             popup_window_name = "popup_" + window_name
             popup_html = Display._get_popup_window_html(url, window_name, close_window_timeout_in_secs, **options)
             popup_file_name = "popup_" + file_path.split('/')[-1].split('.')[0]
@@ -389,9 +389,10 @@ class Display(object):
                 kql_Magic_""" + window_name + """ = window.open(url, window_name, window_params + params);
                 var new_window = kql_Magic_""" + window_name + """;
                 if (new_window != null) {
+                    window.close();
                     close_window_timeout_in_secs = 1;
                 }
-                setTimeout(function(){ window.close(); }, close_window_timeout_in_secs*1000);
+                setTimeout(function(){ window.close(); }, close_window_timeout_in_secs*1000);               
             }
 
             kql_MagicPopupWindowFunction('"""

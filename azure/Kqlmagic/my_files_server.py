@@ -155,7 +155,13 @@ def webbrowser():
         webbrowser.open(url, new=1, autoraise=True)
     except:
         pass
-    return ''
+    return """<!DOCTYPE html>
+            <html><body>
+            <script>
+            window.close();
+            //setTimeout(function(){ window.close(); }, 1*1000);
+            </script>
+            </body></html>"""
 
 
 @app.route('/abort')

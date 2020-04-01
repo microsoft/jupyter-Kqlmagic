@@ -13,6 +13,7 @@ import subprocess as sub
 import requests
 
 
+from .constants import Constants
 from .display import Display
 
 
@@ -23,7 +24,7 @@ DEFAULT_PORT = "5000"
 
 class FilesServerManagement(object):
 
-    def __init__(self, server_py_code, server_url, base_folder, folders, **options):
+    def __init__(self, server_py_code, server_url, base_folder, folders, options):
         protocol, host, port = self.pasre_server_url(server_url)
         self._server_py_code = server_py_code
         self._protocol = protocol or DEFAULT_PROTOCOL
@@ -85,8 +86,9 @@ class FilesServerManagement(object):
         if not self._is_started or not self.pingServer():
             python_exe = sys.executable or 'python'
             os.environ['FLASK_ENV'] = "development"
-            hide_window = True # set to False for debug
-            if hide_window:
+            window_visibility = os.getenv(f'{Constants.MAGIC_CLASS_NAME_UPPER}_FILES_SERVER_WINDOW_VISIBILITY')
+            show_window = window_visibility is not None and window_visibility.lower() == 'show'
+            if not show_window:
                 # must use double quotes for base folder and folders, to allow spaces (note single quoted does not work)
                 command = f'{python_exe} {self._server_py_code} -protocol={self._protocol} -host={self._host} -port={self._port} -base_folder="{self._base_folder}" -folders="{self._folders}" -parent_id="{os.getpid()}" -clean="folders"'
                 sub.Popen(command, shell=True)

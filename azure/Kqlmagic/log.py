@@ -15,7 +15,7 @@ from .constants import Constants
 
 
 def _get_kql_magic_log_level():
-    log_level = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_LEVEL")
+    log_level = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL")
     if log_level:
         log_level = log_level.strip().upper().replace("_", "").replace("-", "")
         if log_level.startswith("'") or log_level.startswith('"'):
@@ -25,9 +25,9 @@ def _get_kql_magic_log_level():
 
 def initialize():
     log_level = _get_kql_magic_log_level()
-    log_file = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_FILE")
-    log_file_prefix = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_FILE_PREFIX")
-    log_file_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOG_FILE_MODE")
+    log_file = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE")
+    log_file_prefix = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX")
+    log_file_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE")
     if log_level or log_file or log_file_mode or log_file_prefix:
         try:
             import ipykernel as kernel

@@ -301,7 +301,7 @@ class Display(object):
         url = Display._get_file_path_url(file_path)
         popup_window_name = window_name
 
-        if isPopupMode or options["temp_files_server_address"] is not None:
+        if isPopupMode or options.get("temp_files_server_address") is not None:
             close_window_timeout_in_secs = 1 * 60 # five minutes
             popup_window_name = "popup_" + window_name
             popup_html = Display._get_popup_window_html(url, window_name, close_window_timeout_in_secs, **options)
@@ -309,13 +309,13 @@ class Display(object):
             popup_file_path = Display._html_to_file_path(popup_html, popup_file_name, **options)
             url = Display._get_file_path_url(popup_file_path)
 
-        if options["temp_files_server_address"] is not None:
+        if options.get("temp_files_server_address") is not None:
             import urllib.parse
             indirect_url = f"{options.get('temp_files_server_address')}/webbrowser?url={urllib.parse.quote(url)}"
             url = indirect_url
         ref_text = ref_text or "popup window"
         
-        style_div = f"padding: 10px; color: {palette['color']}; background-color: {palette['background-color']}; border-color: {palette['border-color']}" if palette else ""
+        style_div = f"padding: 10px; color: {palette.get('color')}; background-color: {palette.get('background-color')}; border-color: {palette.get('border-color')}" if palette else ""
         ref_palette = ref_palette or Display.ref_style
         style_ref = f"padding: 2px 6px 2px 6px; color: {ref_palette['color']}; background-color: {ref_palette['background-color']}; border-top: {ref_palette['border-top']}; border-right: {ref_palette['border-right']}; border-bottom: {ref_palette['border-bottom']}; border-left: {ref_palette['border-left']}"
 

@@ -355,21 +355,21 @@ The log file is created in the same folder as the current notebook.<br>
 <br>
 
 ## Logging varaibles
-- **{Constants.MAGIC_PACKAGE_NAME.upper()}_LOG_LEVEL**<br>
+- **{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL**<br>
 Log level. The following levels are supported: 'FATAL', 'ERROR', 'WARNING', 'INFO', and 'DEBUG'<br>
 The default level is: 'DEBUG'<br>
 <br>
 
-- **{Constants.MAGIC_PACKAGE_NAME.upper()}_LOG_FILE**<br>
+- **{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE**<br>
 Filename for the log messages.<br>
 <br>
 
-- **{Constants.MAGIC_PACKAGE_NAME.upper()}_LOG_FILE_PREFIX**<br>
+- **{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX**<br>
 If filename is not specified, the filename will be build from the prefix as follows: '{{prefix}}-{{ipykernel-unique-key}}.log'<br>
 The default preix is: '{Constants.MAGIC_PACKAGE_NAME}'<br>
 <br>
 
-- **{Constants.MAGIC_PACKAGE_NAME.upper()}_LOG_FILE_MODE**<br>
+- **{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE**<br>
 The mode at which the filename is oppened. The following modes are supported: 'append' and 'write'<br>
 The default mode is: 'write'<br>
 <br>
@@ -381,7 +381,7 @@ _HELP_SSO = f"""## Overview
 he would be able to query that data resource.
 - It is possible to activate Single Sign On, which will allow a user to go through the authentication process once and remain autheticated for a certain amount of time. 
 - To activate Single Sign On:
-    1. Set the environmental parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS with the following parameters:
+    1. Set the environmental parameter {Constants.MAGIC_CLASS_NAME_UPPER}_SSO_ENCRYPTION_KEYS with the following parameters:
         - cachename = an identifying name for your SSO cache.
         - secretkey = a password for encryption, for the Single Sign On. Should be at least 8 characters, at least one uppercase Letter, at least 2 digits and at least one non-letter character. Please choose a strong password.
         - secret_salt_uuid = a valid UUID (version 4).

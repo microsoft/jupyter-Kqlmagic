@@ -152,7 +152,7 @@ class Kqlmagic(Magics, Configurable):
         False, 
         config = True, 
         help=f"""Enables or disables SSO.\n
-        If enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS is set properly."""
+        If enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME_UPPER}_SSO_ENCRYPTION_KEYS is set properly."""
     )
 
     sso_db_gc_interval = Int(
@@ -172,7 +172,7 @@ class Kqlmagic(Magics, Configurable):
     device_code_notification_email = Unicode(
         "", 
         config=True, 
-        help=f"""Email details. Should be set by {Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL.\n
+        help=f"""Email details. Should be set by {Constants.MAGIC_CLASS_NAME_UPPER}_DEVICE_CODE_NOTIFICATION_EMAIL.\n
         the email details string format is: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text'\n
         Abbreviation: 'dcne'"""
     )

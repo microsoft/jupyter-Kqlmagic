@@ -176,11 +176,11 @@ class Kqlmagic_core(object):
         logger().debug("Kqlmagic::__init__ - add kql page reference to jupyter help")
         self._add_kql_ref_to_help(**options)
         logger().debug("Kqlmagic::__init__ - add help items to jupyter help")
-        self._add_help_to_jupyter_help_menu(None, start_time=time.time(), **options)
+        self._add_help_to_jupyter_help_menu(None, options, start_time=time.time())
 
         logger().debug("Kqlmagic::__init__ - show banner")
         if options.get("show_init_banner"):
-            self._show_banner(**options)
+            self._show_banner(options)
 
         logger().debug("Kqlmagic::__init__ - set default connection")
         self._set_default_connections(**options)
@@ -358,7 +358,7 @@ class Kqlmagic_core(object):
                 Help_html.add_menu_item("kql Reference", "http://aka.ms/kdocs", **options)
 
 
-    def _show_banner(self, **options):
+    def _show_banner(self, options):
 
         logger().debug("Kqlmagic::_show_banner() - show banner header")
         self._show_banner_header(**options)
@@ -373,7 +373,7 @@ class Kqlmagic_core(object):
         self._show_magic_latest_version(**options)
 
         logger().debug("Kqlmagic::_show_banner() - show what's new")
-        self._show_what_new(**options)
+        self._show_what_new(options)
 
 
     def _show_banner_header(self, **options):
@@ -440,7 +440,7 @@ class Kqlmagic_core(object):
                 pass
 
 
-    def _show_what_new(self, **options):
+    def _show_what_new(self, options):
         if options.get("show_what_new"):
             try:
                 logger().debug("Kqlmagic::_show_what_new - fetch HISTORY.md")
@@ -452,7 +452,7 @@ class Kqlmagic_core(object):
                 html_str  = data_as_markdown._repr_html_()
 
                 if html_str is not None:
-                    self._set_temp_files_server(**options)
+                    self._set_temp_files_server(options)
                     button_text = "What's New? "
                     file_name = "what_new_history"
                     file_path = Display._html_to_file_path(html_str, file_name, **options)
@@ -471,19 +471,19 @@ class Kqlmagic_core(object):
                 pass
 
 
-    def _set_temp_files_server(self, **options):
+    def _set_temp_files_server(self, options):
         if (options.get("temp_files_server") == "kqlmagic"
             or (options.get('notebook_app') in ["azuredatastudio", "nteract"]
                 and options.get("kernel_location") == "local" 
                 and options.get("temp_files_server") == "auto")):
             if self.temp_files_server_manager is None and options.get("temp_folder_name") is not None:
-                self._start_temp_files_server(**options)
+                self._start_temp_files_server(options)
 
         elif self.temp_files_server_manager is not None:
-            self._abort_temp_files_server(**options)
+            self._abort_temp_files_server(options)
 
 
-    def _start_temp_files_server(self, **options):
+    def _start_temp_files_server(self, options):
         if self.temp_files_server_manager is None and options.get("temp_folder_name") is not None:
             # folder_name = options.get("temp_folder_name")
             # root_path = Display._get_ipython_root_path()
@@ -492,7 +492,7 @@ class Kqlmagic_core(object):
             SERVER_URL = None
             base_path = Display.showfiles_file_base_path
             folder_name = Display.showfiles_folder_name
-            self.temp_files_server_manager = FilesServerManagement(server_py_code, SERVER_URL, adjust_path(f"{base_path}"), folder_name, **options)
+            self.temp_files_server_manager = FilesServerManagement(server_py_code, SERVER_URL, adjust_path(f"{base_path}"), folder_name, options)
             self.temp_files_server_manager.startServer()
             server_url = self.temp_files_server_manager.server_url
             setattr(self.default_options, "temp_files_server_address", server_url)
@@ -506,7 +506,7 @@ class Kqlmagic_core(object):
                     break
 
 
-    def _abort_temp_files_server(self, **options):
+    def _abort_temp_files_server(self, options):
         if self.temp_files_server_manager is not None:
             self.temp_files_server_manager.abortServer()
             self.temp_files_server_manager = None
@@ -642,8 +642,8 @@ class Kqlmagic_core(object):
                 options = parsed["options"]
                 command = parsed["command"].get("command")
 
-                self._add_help_to_jupyter_help_menu(user_ns, **options)
-                self._set_temp_files_server(**options)
+                self._add_help_to_jupyter_help_menu(user_ns, options)
+                self._set_temp_files_server(options)
 
                 if command is None or command == "submit":
                     result = self.execute_query(parsed, user_ns, result_set=override_result_set, override_vars=override_vars)
@@ -652,17 +652,17 @@ class Kqlmagic_core(object):
                     if command == "version":
                         result = execute_version_command()
                     elif command == "banner":
-                        self._show_banner(**options)
+                        self._show_banner(options)
                     elif command == "usage":
                         result = execute_usage_command()
                     elif command == "faq":
                         result = execute_faq_command()
                     elif command == "config":
-                        result = self.execute_config_command(param, **options)
+                        result = self.execute_config_command(param, options)
                     elif command == "help":
                         result = execute_help_command(param)
                         if result == "config":
-                            result = self.execute_config_command("None", **options)
+                            result = self.execute_config_command("None", options)
                     elif command == "cache":
                         result = self.execute_cache_command(param)
                     elif command == "use_cache":
@@ -737,7 +737,7 @@ class Kqlmagic_core(object):
                 return None
             raise 
 
-    def execute_config_command(self, params, **options):
+    def execute_config_command(self, params, options):
         if params == "None":
             from io import StringIO
             c = self.default_options
@@ -783,6 +783,7 @@ class Kqlmagic_core(object):
                 try:
                     key, value = Parser.parse_default_option("default_configuration", key, kv[1], self.default_options)
                     setattr(self.default_options, key, value)
+                    options[key] = value
                 except Exception as e:
                     if options.get("short_errors"):
                         Display.showDangerMessage(e)
@@ -809,7 +810,7 @@ class Kqlmagic_core(object):
             Display.showInfoMessage(msg)
 
 
-    def _add_help_to_jupyter_help_menu(self, user_ns, start_time=None, **options):
+    def _add_help_to_jupyter_help_menu(self, user_ns, options, start_time=None):
         if Help_html.showfiles_base_url is None and self.default_options.notebook_app not in ["azuredatastudio", "ipython", "visualstudiocode", "nteract"]:
             if start_time is not None:
                 self._discover_notebook_url_start_time = start_time
@@ -1061,9 +1062,9 @@ class Kqlmagic_core(object):
         f"""override default {Constants.MAGIC_CLASS_NAME} configuration from environment variable {1}_CONFIGURATION.
         the settings should be separated by a semicolon delimiter.
         for example:
-        {Constants.MAGIC_CLASS_NAME.upper()}_CONFIGURATION = 'auto_limit = 1000; auto_dataframe = True' """
+        {Constants.MAGIC_CLASS_NAME_UPPER}_CONFIGURATION = 'auto_limit = 1000; auto_dataframe = True' """
 
-        kql_magic_configuration = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_CONFIGURATION")
+        kql_magic_configuration = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_CONFIGURATION")
         if kql_magic_configuration:
             kql_magic_configuration = kql_magic_configuration.strip()
             if kql_magic_configuration.startswith("'") or kql_magic_configuration.startswith('"'):
@@ -1076,7 +1077,7 @@ class Kqlmagic_core(object):
                     key, value = Parser.parse_default_option("default_configuration", kv[0], kv[1], self.default_options)
                     setattr(self.default_options, key, value)
 
-        app = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_NOTEBOOK_APP")
+        app = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_NOTEBOOK_APP")
         if app is not None:
             lookup_key = app.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
             app = {
@@ -1096,11 +1097,11 @@ class Kqlmagic_core(object):
             if app is not None:
                 setattr(self.default_options, 'notebook_app', app.strip())
 
-        email_details = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_DEVICE_CODE_NOTIFICATION_EMAIL")
+        email_details = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_DEVICE_CODE_NOTIFICATION_EMAIL")
         if email_details:
             setattr(self.default_options, 'device_code_notification_email', email_details.strip())
 
-        load_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_LOAD_MODE")
+        load_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOAD_MODE")
         if load_mode:
             load_mode = load_mode.strip().lower().replace("_", "").replace("-", "")
             if load_mode.startswith("'") or load_mode.startswith('"'):
@@ -1110,7 +1111,7 @@ class Kqlmagic_core(object):
 
 
     def _set_default_connections(self, **options):
-        connection_str = os.getenv(f"{Constants.MAGIC_CLASS_NAME.upper()}_CONNECTION_STR")
+        connection_str = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_CONNECTION_STR")
         if connection_str:
             connection_str = connection_str.strip()
             if connection_str.startswith("'") or connection_str.startswith('"'):

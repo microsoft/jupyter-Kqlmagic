@@ -12,8 +12,9 @@ class Constants(object):
     MAGIC_PIP_REFERENCE_NAME = "Kqlmagic"  # 'git+git://github.com/Microsoft/jupyter-Kqlmagic.git'
     MAGIC_PACKAGE_NAME = "Kqlmagic"
     
-    # class must be uppercase, because %config can't find it if it is lowercase?
+    # class must start with an uppercase, because %config can't find it if it is lowercase?
     MAGIC_CLASS_NAME = "Kqlmagic"
+    MAGIC_CLASS_NAME_UPPER = MAGIC_CLASS_NAME.upper()
     MAGIC_NAME = "kql"
     MAGIC_ALIASES = []
     LOGGER_NAME = f"{MAGIC_CLASS_NAME}-py"
@@ -28,7 +29,7 @@ class Constants(object):
 
     # SSO
     SSO_GC_INTERVAL_IN_SECS = 1 * HOUR_SECS
-    SSO_ENV_VAR_NAME  = f"{MAGIC_CLASS_NAME.upper()}_SSO_ENCRYPTION_KEYS"
+    SSO_ENV_VAR_NAME  = f"{MAGIC_CLASS_NAME_UPPER}_SSO_ENCRYPTION_KEYS"
     SSO_DB_KEY_PREFIX =        f"{MAGIC_CLASS_NAME.lower()}store/tokens/"
 
 class Schema(object):
@@ -235,6 +236,3 @@ class SsoCrypto(object):
 class DpapiParam(object):
     DESCRIPTION = "description"
     SALT        =        "salt"
-
-
-

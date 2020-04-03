@@ -222,10 +222,12 @@ class Kqlmagic_core(object):
         if app == "auto": # ELECTRON_RUN_AS_NODE, MPLBACKEND
             if notebooks_host is not None:
                 app = "jupyternotebook"
-            elif os.getenv("VSCODE_CWD") and os.getenv("VSCODE_NODE_CACHED_DATA_DIR"):
-                if os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('azuredatastudio'):
+            elif os.getenv("ADS_LOGS") is not None and os.getenv("ADS_LOGS").find('azuredatastudio') >= 0:
+                app = "azuredatastudio"
+            elif os.getenv("VSCODE_NODE_CACHED_DATA_DIR") is not None:
+                if os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('azuredatastudio') >= 0:
                     app = "azuredatastudio"
-                elif os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('Code'):
+                elif os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('Code') >= 0:
                     app = "visualstudiocode"
             elif not os.getenv("JPY_PARENT_PID"):
                 app = "nteract"
@@ -487,8 +489,11 @@ class Kqlmagic_core(object):
         if self.temp_files_server_manager is None and options.get("temp_folder_name") is not None:
             # folder_name = options.get("temp_folder_name")
             # root_path = Display._get_ipython_root_path()
-            package_folder = "/".join(__file__.replace("\\", "/").split("/")[:-1])
-            server_py_code = f"{package_folder}/my_files_server.py"
+            server_py_path = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_TEMP_FILES_SERVER_PY_FOLDER")
+            if server_py_path is None:
+                import Kqlmagic as kqlmagic
+                server_py_path = os.path.dirname(kqlmagic.__file__)
+            server_py_code = os.path.join(server_py_path, "my_files_server.py")
             SERVER_URL = None
             base_path = Display.showfiles_file_base_path
             folder_name = Display.showfiles_folder_name
@@ -822,7 +827,7 @@ class Kqlmagic_core(object):
                 window_location = user_ns.get("NOTEBOOK_URL")
                 if window_location is not None:
                     if getattr(self.default_options, "kernel_location") == "auto":
-                        if window_location.find("//localhost:") or "window_location".find("//127.0.0."):
+                        if window_location.find("//localhost:") >= 0 or "window_location".find("//127.0.0.") >= 0:
                             kernel_location = "local"
                         else:
                             kernel_location = "remote"
@@ -879,7 +884,7 @@ class Kqlmagic_core(object):
                     conn.set_validation_result(True)
                 except Exception as e:
                     msg = str(e)
-                    if msg.find("AADSTS50079") > 0 and msg.find("multi-factor authentication") > 0 and isinstance(conn, KustoEngine):
+                    if msg.find("AADSTS50079") >= 0 and msg.find("multi-factor authentication") >= 0 and isinstance(conn, KustoEngine):
                         Display.showDangerMessage(str(e))
                         retry_with_code = True
                     else:

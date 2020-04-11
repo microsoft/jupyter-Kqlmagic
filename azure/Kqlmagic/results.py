@@ -1181,6 +1181,8 @@ class ResultSet(list, ColumnGuesserMixin):
         chart_properties["showlegend"] = properties.get(VisualizationKeys.LEGEND) != VisualizationLegends.HIDDEN
         chart_properties["title"] = properties.get(VisualizationKeys.TITLE) or properties.get(VisualizationKeys.VISUALIZATION)
         chart_properties["n_colors"] = len(tabs)
+        if tabs[0].col_y_min is not None and tabs[0].col_y_max is not None:
+            chart_properties["range"] = [tabs[0].col_y_min, tabs[0].col_y_max]
         return chart_properties
 
 
@@ -1207,29 +1209,30 @@ class ResultSet(list, ColumnGuesserMixin):
             return None
         chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables, options=options)
 
+
         data = [
             go.Scatter(
                 x=list(tab.keys()),
                 y=list(tab.values()),
                 name=tab.name,
                 mode="lines",
-                line=dict(width=0.5, color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
+                line=dict(width=0.5, color=self.get_color_from_palette(idx, n_colors=chart_properties.get("n_colors"))),
                 fill="tozeroy",
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=chart_properties["title"],
-            showlegend=chart_properties["showlegend"],
+            title=chart_properties.get("title"),
+            showlegend=chart_properties.get("showlegend"),
             xaxis=dict(
-                title=chart_properties["xlabel"], 
-                type=chart_properties["xscale"],
-                autorange=chart_properties["autorange"],
+                title=chart_properties.get("xlabel"), 
+                type=chart_properties.get("xscale"),
+                autorange=chart_properties.get("autorange"),
             ),
             yaxis=dict(
-                title=chart_properties["ylabel"],
-                type=chart_properties["yscale"],
-                # range=[0, 3],
+                title=chart_properties.get("ylabel"),
+                type=chart_properties.get("yscale"),
+                range=chart_properties.get("range"),
                 # dtick=20,
                 ticksuffix="",
             ),
@@ -1264,23 +1267,23 @@ class ResultSet(list, ColumnGuesserMixin):
                 y=ys_stcks[idx],
                 name=tab.name,
                 mode="lines",
-                line=dict(width=0.5, color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
+                line=dict(width=0.5, color=self.get_color_from_palette(idx, n_colors=chart_properties.get("n_colors"))),
                 fill="tonexty",
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=chart_properties["title"],
-            showlegend=chart_properties["showlegend"],
+            title=chart_properties.get("title"),
+            showlegend=chart_properties.get("showlegend"),
             xaxis=dict(
-                title=chart_properties["xlabel"], 
-                type=chart_properties["xscale"],
-                autorange=chart_properties["autorange"],
+                title=chart_properties.get("xlabel"), 
+                type=chart_properties.get("xscale"),
+                autorange=chart_properties.get("autorange"),
             ),
             yaxis=dict(
-                title=chart_properties["ylabel"],
-                type=chart_properties["yscale"],
-                # range=[0, 3],
+                title=chart_properties.get("ylabel"),
+                type=chart_properties.get("yscale"),
+                range=chart_properties.get("range"),
                 # dtick=20,
                 ticksuffix="",
             ),
@@ -1306,15 +1309,15 @@ class ResultSet(list, ColumnGuesserMixin):
                 x=list(tab.keys()),
                 y=list(tab.values()),
                 name=tab.name,
-                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
+                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=chart_properties.get("n_colors"))),
                 opacity=0.8,
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
 
         layout = go.Layout(
-            title=chart_properties["title"],
-            showlegend=chart_properties["showlegend"],
+            title=chart_properties.get("title"),
+            showlegend=chart_properties.get("showlegend"),
             xaxis=dict(
                 rangeselector=dict(
                     buttons=list(
@@ -1326,14 +1329,14 @@ class ResultSet(list, ColumnGuesserMixin):
                     )
                 ),
                 rangeslider=dict(),
-                title=chart_properties["xlabel"],
-                type=chart_properties["xscale"],
-                autorange=chart_properties["autorange"],
+                title=chart_properties.get("xlabel"),
+                type=chart_properties.get("xscale"),
+                autorange=chart_properties.get("autorange"),
             ),
             yaxis=dict(
-                title=chart_properties["ylabel"],
-                type=chart_properties["yscale"],
-                # range=[0, 3],
+                title=chart_properties.get("ylabel"),
+                type=chart_properties.get("yscale"),
+                range=chart_properties.get("range"),
                 # dtick=20,
                 ticksuffix="",
             ),
@@ -1422,27 +1425,28 @@ class ResultSet(list, ColumnGuesserMixin):
 
         data = [
             go.Bar(
-                x=list(tab.values()) if chart_properties["orientation"] == "h" else list(tab.keys()),
-                y=list(tab.keys()) if chart_properties["orientation"] == "h" else list(tab.values()),
-                marker=dict(color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
+                x=list(tab.values()) if chart_properties.get("orientation") == "h" else list(tab.keys()),
+                y=list(tab.keys()) if chart_properties.get("orientation") == "h" else list(tab.values()),
+                marker=dict(color=self.get_color_from_palette(idx, n_colors=chart_properties.get("n_colors"))),
                 name=tab.name,
-                orientation=chart_properties["orientation"],
+                orientation=chart_properties.get("orientation"),
             )
             for idx, tab in enumerate(sub_tables)
         ]
         layout = go.Layout(
-            title=chart_properties["title"],
-            showlegend=chart_properties["showlegend"],
+            title=chart_properties.get("title"),
+            showlegend=chart_properties.get("showlegend"),
             xaxis=dict(
-                title=chart_properties["xlabel"],
-                type=chart_properties["xscale"],
-                # range=[0, 3],
+                title=chart_properties.get("xlabel"),
+                type=chart_properties.get("xscale"),
+                range=chart_properties.get("range") if chart_properties.get("orientation") == "h" else None,
                 # dtick=20,
                 ticksuffix="",
             ),
             yaxis=dict(
-                type=chart_properties["yscale"],
-                title=chart_properties["ylabel"],
+                type=chart_properties.get("yscale"),
+                title=chart_properties.get("ylabel"),
+                range=chart_properties.get("range") if chart_properties.get("orientation") != "h" else None,
             ),
         )
         fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
@@ -1466,23 +1470,23 @@ class ResultSet(list, ColumnGuesserMixin):
                 x=list(tab.keys()),
                 y=list(tab.values()),
                 name=tab.name,
-                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
+                line=dict(width=1, color=self.get_color_from_palette(idx, n_colors=chart_properties.get("n_colors"))),
                 opacity=0.8,
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=chart_properties["title"],
-            showlegend=chart_properties["showlegend"],
+            title=chart_properties.get("title"),
+            showlegend=chart_properties.get("showlegend"),
             xaxis=dict(
-                title=chart_properties["xlabel"],
-                type=chart_properties["xscale"],
-                autorange=chart_properties["autorange"],
+                title=chart_properties.get("xlabel"),
+                type=chart_properties.get("xscale"),
+                autorange=chart_properties.get("autorange"),
             ),
             yaxis=dict(
-                title=chart_properties["ylabel"],
-                type=chart_properties["yscale"],
-                # range=[0, 3],
+                title=chart_properties.get("ylabel"),
+                type=chart_properties.get("yscale"),
+                range=chart_properties.get("range"),
                 # dtick=20,
                 # ticksuffix=''
             ),
@@ -1509,22 +1513,22 @@ class ResultSet(list, ColumnGuesserMixin):
                 y=list(tab.values()),
                 name=tab.name,
                 mode="markers",
-                marker=dict(line=dict(width=1), color=self.get_color_from_palette(idx, n_colors=chart_properties["n_colors"])),
+                marker=dict(line=dict(width=1), color=self.get_color_from_palette(idx, n_colors=chart_properties.get("n_colors"))),
             )
             for idx, tab in enumerate(self.chart_sub_tables)
         ]
         layout = go.Layout(
-            title=chart_properties["title"],
-            showlegend=chart_properties["showlegend"],
+            title=chart_properties.get("title"),
+            showlegend=chart_properties.get("showlegend"),
             xaxis=dict(
-                title=chart_properties["xlabel"], 
-                type=chart_properties["xscale"],
-                autorange=chart_properties["autorange"],
+                title=chart_properties.get("xlabel"),
+                type=chart_properties.get("xscale"),
+                autorange=chart_properties.get("autorange"),
             ),
             yaxis=dict(
-                title=chart_properties["ylabel"],
-                type=chart_properties["yscale"],
-                # range=[0, 3],
+                title=chart_properties.get("ylabel"),
+                type=chart_properties.get("yscale"),
+                range=chart_properties.get("range"),
                 # dtick=20,
                 ticksuffix="",
             ),

@@ -107,10 +107,10 @@ class VisualizationKeys(object):
     SERIES = "Series"
     "Comma-delimited list of columns whose combined per-record values define the series that record belongs to."
 
-    Y_MIN = "ymin"
+    Y_MIN = "Ymin"
     "The minimum value to be displayed on Y-axis."
 
-    Y_MAX = "ymax"
+    Y_MAX = "Ymax"
     "The maximum value to be displayed on Y-axis"
 
     Y_COLUMNS = "YColumns"

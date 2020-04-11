@@ -39,10 +39,12 @@ class Column(list):
 
 
 class ChartSubTable(dict):
-    def __init__(self, col_x=None, col_y=None, name=None, mapping=None, is_descending_sorted=None,  **kwargs):
+    def __init__(self, col_x=None, col_y=None, name=None, mapping=None, is_descending_sorted=None, col_y_min=None, col_y_max=None,  **kwargs):
         self.is_descending_sorted = is_descending_sorted
         self.col_x = col_x
         self.col_y = col_y
+        self.col_y_min = col_y_min
+        self.col_y_max = col_y_max
         self.name = name
         super(ChartSubTable, self).__init__()
         if mapping:
@@ -174,6 +176,31 @@ class ColumnGuesserMixin(object):
                     )
                 chart_sub_table[row[x_col_idx]] = datetime_to_linear_ticks(row[qcol.idx]) if qcol.is_datetime else row[qcol.idx]
         self.chart_sub_tables = list(chart_sub_tables_dict.values())
+
+        col_y_min = properties.get(VisualizationKeys.Y_MIN)
+        col_y_min = col_y_min if is_quantity(col_y_min) else None
+
+        col_y_max = properties.get(VisualizationKeys.Y_MAX)
+        col_y_max = col_y_max if is_quantity(col_y_max) else None
+
+        for tab in self.chart_sub_tables:
+            tab.col_y_min = col_y_min
+            tab.col_y_max = col_y_max
+            if tab.col_y_min is None and tab.col_y_max is None:
+                pass
+            elif tab.col_y_min is not None and tab.col_y_max is not None:
+                pass
+            elif tab.col_y_min is None:
+                try:
+                    tab.col_y_min = min(min(filter(lambda x: x is not None, tab.values())), 0) * 1.1
+                except:
+                    tab.col_y_min = None
+            elif tab.col_y_max is None:
+                try:
+                    tab.col_y_max = max(filter(lambda x: x is not None, tab.values())) * 1.1
+                except:
+                    tab.col_y_max = None
+
         return self.chart_sub_tables
 
 

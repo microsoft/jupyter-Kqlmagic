@@ -160,7 +160,7 @@ class ColumnGuesserMixin(object):
         for row in rows:
             for qcol in quantity_columns:
                 if len(series_columns) > 0:
-                    sub_table_name = ":".join([str(row[col.idx]) for col in series_columns]) + ":" + qcol.name
+                    sub_table_name = f'{":".join([str(row[col.idx]) for col in series_columns])}:{qcol.name}'
                 else:
                     sub_table_name = qcol.name
                 chart_sub_table = chart_sub_tables_dict.get(sub_table_name)

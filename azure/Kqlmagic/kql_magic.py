@@ -52,7 +52,7 @@ except Exception:
     
 
 
-from .kql_magic_core import Kqlmagic_core 
+from .kql_magic_core import Kqlmagic_core
 from .constants import Constants, Cloud
 from .palette import Palettes, Palette
 try:
@@ -164,7 +164,7 @@ class Kqlmagic(Magics, Configurable):
     device_code_login_notification = Enum(
         ["auto", "button", "popup_interaction", "browser", "terminal", "email"],
         "auto", 
-        config = True, 
+        config = True,
         help = """Sets device_code login notification method.\n
         Abbreviation: 'dcln'"""
     )
@@ -428,9 +428,9 @@ class Kqlmagic(Magics, Configurable):
         allow_none=True, 
         help=f"""Tags request 'x-ms-user' header.\n
         Header pattern: {{tag}}\n
-        Abbreviation: 'usertag''"""
+        Abbreviation: 'usertag'"""
     )
-
+  
     logger().debug("Kqlmagic:: - define class code")
 
 
@@ -439,7 +439,7 @@ class Kqlmagic(Magics, Configurable):
         try:
             Palette.validate_palette_name(proposal["value"])
         except (AttributeError, ValueError) as e:
-            message = "The 'palette_name' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            message = f"The 'palette_name' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
@@ -449,7 +449,7 @@ class Kqlmagic(Magics, Configurable):
         try:
             Palette.validate_palette_desaturation(proposal["value"])
         except (AttributeError, ValueError) as e:
-            message = "The 'palette_desaturation' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            message = f"The 'palette_desaturation' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
@@ -459,7 +459,7 @@ class Kqlmagic(Magics, Configurable):
         try:
             Palette.validate_palette_colors(proposal["value"])
         except (AttributeError, ValueError) as e:
-            message = "The 'palette_color' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            message = f"The 'palette_color' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
@@ -470,7 +470,7 @@ class Kqlmagic(Magics, Configurable):
             if proposal["value"] == "auto":
                 raise ValueError("cannot be set to auto, after instance is loaded")
         except (AttributeError , ValueError) as e:
-            message = "The 'notebook_app' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            message = f"The 'notebook_app' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
@@ -481,14 +481,9 @@ class Kqlmagic(Magics, Configurable):
             if (proposal["value"]) != self.temp_files_server:
                 if self.temp_files_server == "disabled":
                     raise ValueError("feature is 'disabled', due to missing 'flask' module")
-                elif proposal["value"] == "auto":
-                    raise ValueError("cannot be set to 'auto', after instance is loaded")
-                elif proposal["value"] == "disabled":
-                    raise ValueError("cannot be set to 'disabled', it is auto set at magic initialization")
-                elif proposal["value"] == "auto":
-                    raise ValueError("cannot be set to 'auto', after instance is loaded")
+
         except (AttributeError , ValueError) as e:
-            message = "The 'temp_files_server' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            message = f"The 'temp_files_server' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
@@ -498,7 +493,7 @@ class Kqlmagic(Magics, Configurable):
             if self.kernel_id is not None:
                 raise ValueError("cannot be set, it is readonly, set internally")
         except (AttributeError , ValueError) as e:
-            message = "The 'kernel_id' trait of a {0} instance {1}".format(Constants.MAGIC_CLASS_NAME, str(e))
+            message = f"The 'kernel_id' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
@@ -555,7 +550,7 @@ def kql(text:str='', options:dict=None, query_properties:dict=None, vars:dict=No
             else:
                 global_ns = globals()
                 local_ns = locals()
-
+        
         Kqlmagic(
             shell=shell, 
             global_ns=global_ns, 

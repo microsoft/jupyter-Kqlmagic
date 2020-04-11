@@ -24,8 +24,8 @@ DEFAULT_PORT = "5000"
 
 class FilesServerManagement(object):
 
-    def __init__(self, server_py_code, server_url, base_folder, folders, options):
-        protocol, host, port = self.pasre_server_url(server_url)
+    def __init__(self, server_py_code, server_url, base_folder, folders, options={}):
+        protocol, host, port = self.parse_server_url(server_url)
         self._server_py_code = server_py_code
         self._protocol = protocol or DEFAULT_PROTOCOL
         self._host = host or DEFAULT_HOST
@@ -35,6 +35,7 @@ class FilesServerManagement(object):
         self._server_url = f"{self._protocol}://{self._host}:{self._port}"
         self._is_registered = False
         self._is_started = False
+        self._kernel_id = options.get("kernel_id")
 
 
     def get_notused_port(self, host=""):
@@ -49,7 +50,8 @@ class FilesServerManagement(object):
         except:
             pass
 
-    def pasre_server_url(self, url: str):
+
+    def parse_server_url(self, url: str):
         protocol = host = port = None
         if url is not None:
             url = url.lower()
@@ -68,6 +70,7 @@ class FilesServerManagement(object):
                     host = parts[0]
         return protocol, host, port
 
+
     @property
     def files_url(self) -> str:
         return f"{self._server_url}/files"
@@ -76,6 +79,7 @@ class FilesServerManagement(object):
     @property
     def folders_url(self) -> str:
         return f"{self._server_url}/folders"
+
 
     @property
     def server_url(self) -> str:
@@ -100,13 +104,13 @@ class FilesServerManagement(object):
             self._is_started = True
 
         if not self._is_registered:
-            Display._register_to_ipython_atexit(FilesServerManagement._abortServer, self._server_url)
+            Display._register_to_ipython_atexit(FilesServerManagement._abortServer, self._server_url, self._kernel_id)
             self._is_registered = True
 
 
     def pingServer(self):
         try:
-            ping_url = f"{self._server_url}/ping"
+            ping_url = f'{self._server_url}/ping?kernelid={self._kernel_id}'
             requests.get(ping_url)
             return True
         except:
@@ -114,13 +118,13 @@ class FilesServerManagement(object):
 
 
     def abortServer(self):
-        FilesServerManagement._abortServer(self._server_url)
+        FilesServerManagement._abortServer(self._server_url, self._kernel_id)
 
 
     @staticmethod
-    def _abortServer(server_url):
+    def _abortServer(server_url, kernel_id):
         try:
-            abort_url = f"{server_url}/abort"
+            abort_url = f'{server_url}/abort?kernelid={kernel_id}'
             requests.get(abort_url)
         except:
             None

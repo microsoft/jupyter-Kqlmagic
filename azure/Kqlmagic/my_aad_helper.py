@@ -178,40 +178,47 @@ class _MyAadHelper(object):
             self._username = self._username or self._get_username_from_token(token)
             expiration_date = dateutil.parser.parse(token[TokenResponseFields.EXPIRES_ON])
             if expiration_date > datetime.now() + timedelta(minutes=1):
-                logger().debug("_MyAadHelper::acquire_token - from Cache - resource: '%s', username: '%s', client: '%s'", self._resource, self._username, self._client_id)
+                logger().debug(f"_MyAadHelper::acquire_token - from Cache - resource: '{self._resource}', username: '{self._username}', client: '{self._client_id}'")
                 return self._get_header(token)
             if TokenResponseFields.REFRESH_TOKEN in token:
                 token = adal_context.acquire_token_with_refresh_token(token[TokenResponseFields.REFRESH_TOKEN], self._client_id, self._resource)
                 if token is not None:
-                    logger().debug("_MyAadHelper::acquire_token - aad refresh - resource: '%s', username: '%s', client: '%s'", self._resource, self._username, self._client_id)
+                    logger().debug(f"_MyAadHelper::acquire_token - aad refresh - resource: '{self._resource}', username: '{self._username}', client: '{self._client_id}'")
                     return self._get_header(token)
 
         if self._authentication_method is AuthenticationMethod.aad_username_password:
-            logger().debug("_MyAadHelper::acquire_token - aad/user-password - resource: '%s', username: '%s', password: '...', client: '%s'", self._resource, self._username, self._client_id)
+            logger().debug(f"_MyAadHelper::acquire_token - aad/user-password - resource: '{self._resource}', username: '{self._username}', password: '...', client: '{self._client_id}'")
             token = adal_context.acquire_token_with_username_password(self._resource, self._username, self._password, self._client_id)
 
         elif self._authentication_method is AuthenticationMethod.aad_application_key:
-            logger().debug("_MyAadHelper::acquire_token - aad/client-secret - resource: '%s', client: '%s', secret: '...'", self._resource, self._client_id)
+            logger().debug(f"_MyAadHelper::acquire_token - aad/client-secret - resource: '{self._resource}', client: '{self._client_id}', secret: '...'")
             token = adal_context.acquire_token_with_client_credentials(self._resource, self._client_id, self._client_secret)
 
         elif self._authentication_method is AuthenticationMethod.aad_device_login:
-            logger().debug("_MyAadHelper::acquire_token - aad/code - resource: '%s', client: '%s'", self._resource, self._client_id)
+            logger().debug(f"_MyAadHelper::acquire_token - aad/code - resource: '{self._resource}', client: '{self._client_id}'")
             code: dict = adal_context.acquire_user_code(self._resource, self._client_id)
             url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
             device_code = code[OAuth2DeviceCodeResponseParameters.USER_CODE].strip()
 
             device_code_login_notification = options.get("device_code_login_notification")
             if device_code_login_notification == "auto":
-                if options.get("notebook_app") in ["visualstudiocode", "ipython", "azuredatastudio"]:
+                if options.get("notebook_app") in ["ipython"]:
+                    device_code_login_notification = "popup_interaction"
+                elif options.get("notebook_app") in ["visualstudiocode", "azuredatastudio"]:
                     device_code_login_notification = "popup_interaction"
                 elif options.get("notebook_app") in ["nteract"]:
-                    if options["temp_files_server_address"] is not None:
-                        import urllib.parse
-                        indirect_url = f"{options.get('temp_files_server_address')}/webbrowser?url={urllib.parse.quote(url)}"
-                        url = indirect_url
-                        device_code_login_notification = "popup_interaction"
+
+                    if options.get("kernel_location") == "local":
+                        # ntreact cannot execute authentication script, workaround using temp_file_server webbrowser
+                        if options.get("temp_files_server_address") is not None:
+                            import urllib.parse
+                            indirect_url = f'{options.get("temp_files_server_address")}/webbrowser?url={urllib.parse.quote(url)}&kernelid={options.get("kernel_id")}'
+                            url = indirect_url
+                            device_code_login_notification = "popup_interaction"
+                        else:
+                            device_code_login_notification = "browser"
                     else:
-                        device_code_login_notification = "browser"
+                        device_code_login_notification = "terminal"
                 else:
                     device_code_login_notification = "button"
 
@@ -222,7 +229,6 @@ class _MyAadHelper(object):
                 import pyperclip
                 pyperclip.copy(device_code)
 
-            
             # if  options.get("notebook_app")=="papermill" and options.get("login_code_destination") =="browser":
             #     raise Exception("error: using papermill without an email specified is not supported")
             if device_code_login_notification == "email":
@@ -262,24 +268,18 @@ class _MyAadHelper(object):
                 )
             else: # device_code_login_notification == "button":
                 html_str = (
-                    """<!DOCTYPE html>
+                    f"""<!DOCTYPE html>
                     <html><body>
 
-                    <!-- h1 id="user_code_p"><b>"""
-                    + device_code
-                    + """</b><br></h1-->
+                    <!-- h1 id="user_code_p"><b>{device_code}</b><br></h1-->
 
-                    <input  id="kql_MagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size = '"""
-                    + str(len(device_code))
-                    + """' value='"""
-                    + device_code
-                    + """'>
+                    <input  id="kql_MagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size = '{str(len(device_code))}' value='{device_code}'>
 
                     <button id='kql_MagicCodeAuth_button', onclick="this.style.visibility='hidden';kql_MagicCodeAuthFunction()">Copy code to clipboard and authenticate</button>
 
                     <script>
-                    var kql_MagicUserCodeAuthWindow = null
-                    function kql_MagicCodeAuthFunction() {
+                    var kql_MagicUserCodeAuthWindow = null;
+                    function kql_MagicCodeAuthFunction() {{
                         /* Get the text field */
                         var copyText = document.getElementById("kql_MagicCodeAuthInput");
 
@@ -295,12 +295,10 @@ class _MyAadHelper(object):
                         var w = screen.width / 2;
                         var h = screen.height / 2;
                         params = 'width='+w+',height='+h
-                        kql_MagicUserCodeAuthWindow = window.open('"""
-                    + url
-                    + """', 'kql_MagicUserCodeAuthWindow', params);
+                        kql_MagicUserCodeAuthWindow = window.open('{url}', 'kql_MagicUserCodeAuthWindow', params);
 
                         // TODO: save selected cell index, so that the clear will be done on the lince cell
-                    }
+                    }}
                     </script>
 
                     </body></html>"""

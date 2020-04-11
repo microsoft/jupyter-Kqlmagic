@@ -79,10 +79,10 @@ class Kqlmagic_core(object):
         """
         if cache_name is not None and cache_name != "None" and len(cache_name) > 0:
             setattr(self.default_options, "cache", cache_name)
-            return MarkdownString("{0} caching to folder **{1}** was enabled.".format(Constants.MAGIC_PACKAGE_NAME, self.default_options.cache))
+            return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} caching to folder **{self.default_options.cache}** was enabled.", title="cache enabled")
         else:
             setattr(self.default_options, "cache", None)
-            return MarkdownString("{0} caching was disabled.".format(Constants.MAGIC_PACKAGE_NAME))
+            return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} caching was disabled.", title="cache disabled")
 
 
     def execute_use_cache_command(self, cache_name:str) -> str:
@@ -96,16 +96,16 @@ class Kqlmagic_core(object):
         """
         if cache_name is not None and cache_name != "None" and len(cache_name) > 0:
             setattr(self.default_options, "use_cache", cache_name)
-            return MarkdownString("{0} cache in folder **{1}** was enabled.".format(Constants.MAGIC_PACKAGE_NAME, self.default_options.use_cache))
+            return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} cache in folder **{self.default_options.use_cache}** was enabled.", title="use_cache enabled")
         else:
             setattr(self.default_options, "use_cache", None)
-            return MarkdownString("{0} cache was disabled.".format(Constants.MAGIC_PACKAGE_NAME))
+            return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} cache was disabled.", title="use_cache disabled")
 
 
     def execute_clear_sso_db_command(self):
         sso_storage = get_sso_store()
         sso_storage.clear_db()
-        return MarkdownString("sso db was cleared.")
+        return MarkdownString("sso db was cleared.", title="sso cleared")
 
 
     def execute_schema_command(self, connection_string: str, user_ns: dict, **options) -> dict:
@@ -156,6 +156,7 @@ class Kqlmagic_core(object):
         self.shell_user_ns = self.shell.user_ns if self.shell is not None else self.global_ns
         self.last_raw_result = None
         self.temp_files_server_manager = None
+        self.is_temp_files_server_on = None
         if not dont_start:
             self._start()
 
@@ -163,28 +164,26 @@ class Kqlmagic_core(object):
     def _start(self):
 
 
-        logger().debug("Kqlmagic::__init__ - start")
+        logger().debug("Kqlmagic::_start - start")
 
-        Display.notebooks_host = Help_html.notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
-
-        logger().debug("Kqlmagic::__init__ - init options")
+        logger().debug("Kqlmagic::_start - init options")
         options = self._init_options()
 
-        logger().debug("Kqlmagic::__init__ - set temp folder")
+        logger().debug("Kqlmagic::_start - set temp folder")
         self._set_temp_files_folder(**options)
 
-        logger().debug("Kqlmagic::__init__ - add kql page reference to jupyter help")
+        logger().debug("Kqlmagic::_start - add kql page reference to jupyter help")
         self._add_kql_ref_to_help(**options)
-        logger().debug("Kqlmagic::__init__ - add help items to jupyter help")
+        logger().debug("Kqlmagic::_start - add help items to jupyter help")
         self._add_help_to_jupyter_help_menu(None, options, start_time=time.time())
 
-        logger().debug("Kqlmagic::__init__ - show banner")
+        logger().debug("Kqlmagic::_start - show banner")
         if options.get("show_init_banner"):
             self._show_banner(options)
 
-        logger().debug("Kqlmagic::__init__ - set default connection")
+        logger().debug("Kqlmagic::_start - set default connection")
         self._set_default_connections(**options)
-        logger().debug("Kqlmagic::__init__ - end")
+        logger().debug("Kqlmagic::_start - end")
 
 
     def _set_temp_files_folder(self, **options):
@@ -196,7 +195,7 @@ class Kqlmagic_core(object):
             # root_path = "C:\\Users\\michabin\\Desktop\\nteract-notebooks"
             #
             # add subfolder per kernel_id
-            kernel_id = self.get_notebook_kernel_id() or "kernel_id"
+            kernel_id = options.get("kernel_id")
             folder_name = f"{folder_name}/{kernel_id}"
 
             showfiles_folder_Full_name = adjust_path(f"{root_path}/{folder_name}") #dont remove spaces from root directory
@@ -214,33 +213,47 @@ class Kqlmagic_core(object):
     def _init_options(self):
 
         notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
+        Display.notebooks_host = Help_html.notebooks_host = notebooks_host
+
+        kernel_id = self.get_notebook_kernel_id() or "kernel_id"
+        setattr(self.default_options, "kernel_id", kernel_id)
+
+        temp_files_server = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_TEMP_FILES_SERVER")
+        if temp_files_server is not None:
+            setattr(self.default_options, "temp_files_server", temp_files_server)
+        temp_files_server = getattr(self.default_options, "temp_files_server")
+
         self._override_default_configuration()
 
-        app = getattr(self.default_options, "notebook_app") or "auto"
-        kernel_location = getattr(self.default_options, "kernel_location") or "auto"
+        app = getattr(self.default_options, "notebook_app", "auto")
 
+        _kernel_location = None
         if app == "auto": # ELECTRON_RUN_AS_NODE, MPLBACKEND
             if notebooks_host is not None:
                 app = "jupyternotebook"
+                _kernel_location = "remote"
             elif os.getenv("ADS_LOGS") is not None and os.getenv("ADS_LOGS").find('azuredatastudio') >= 0:
                 app = "azuredatastudio"
+                _kernel_location = "local"
             elif os.getenv("VSCODE_NODE_CACHED_DATA_DIR") is not None:
+                _kernel_location = "local"
                 if os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('azuredatastudio') >= 0:
                     app = "azuredatastudio"
                 elif os.getenv("VSCODE_NODE_CACHED_DATA_DIR").find('Code') >= 0:
                     app = "visualstudiocode"
             elif not os.getenv("JPY_PARENT_PID"):
-                app = "nteract"
+                # _kernel_location = "local"
+                # app = "nteract"
+                pass
 
             if app == "auto":
-                if not Display._has_ipython_kernel():
-                    app = "ipython"
-                else:
-                    app_info = self.get_app_from_parent()
-                    if app_info is not None:
-                        app = app_info.get("app", app)
-                        if kernel_location == "auto":
-                            kernel_location = app_info.get("app", app)
+                app_info = self.get_app_from_parent()
+                app = app_info.get("app", app)
+                _kernel_location = _kernel_location or app_info.get("kernel_location")
+
+            if app == "auto" and not Display._has_ipython_kernel():
+                _kernel_location = "local"
+                app = "ipython"
 
             if app == "auto":
                 notebooks_host = notebooks_host or self.get_notebook_host_from_running_processes()
@@ -248,14 +261,22 @@ class Kqlmagic_core(object):
 
             setattr(self.default_options, "notebook_app", app)
             # print(f">>> notebook_app: {app}")
-        
+
+        kernel_location = getattr(self.default_options, "kernel_location", "auto")    
         if kernel_location == "auto":
-            if notebooks_host is not None:
-                kernel_location = "remote"
-            elif app in ["visualstudiocode", "ipython", "azuredatastudio", "nteract"]:
-                kernel_location = "local"
-            
-            # it can stay "auto", maybe based on NOTEBOOK_URL it will be discovered
+            kernel_location = _kernel_location or "auto"
+            if kernel_location == "auto":
+                app_info = self.get_app_from_parent()
+                kernel_location = app_info.get("kernel_location", kernel_location)
+            if kernel_location == "auto":           
+                if notebooks_host is not None:
+                    kernel_location = "remote"
+                elif app in ["ipython"]:
+                    kernel_location = "local"
+                elif app in ["visualstudiocode", "azuredatastudio", "nteract"]:
+                    kernel_location = "auto" if temp_files_server in ["auto", "kqlmagic"] else "remote"
+
+                # it can stay "auto", maybe based on NOTEBOOK_URL it will be discovered
 
             setattr(self.default_options, "kernel_location", kernel_location)
             # print(f">>> kernel_location: {kernel_location}")
@@ -267,7 +288,6 @@ class Kqlmagic_core(object):
 
 
     def get_app_from_parent(self):
-
         try:
             import psutil
 
@@ -282,6 +302,8 @@ class Kqlmagic_core(object):
                 name = parent_proc.name().lower()
                 if name.startswith("nteract"):
                     return {"app": "nteract", "kernel_location": "local"}
+                elif name.startswith("azuredatastudio"):
+                    return {"app": "azuredatastudio", "kernel_location": "local"}
                 cmdline = parent_proc.cmdline()
                 if cmdline is not None and len(cmdline) > 0:
                     for item in cmdline:
@@ -291,14 +313,17 @@ class Kqlmagic_core(object):
                                 return {"app": "jupyternotebook"}
                             elif item.endswith("jupyter-lab.exe"):
                                 return {"app": "jupyterlab"}
+                            elif item.endswith("azuredatastudio.exe"):
+                                return {"app": "azuredatastudio", "kernel_location": "local"}
+                            elif item.endswith("nteract.exe"):
+                                return {"app": "nteract", "kernel_location": "local"}
         except:
             pass
 
-        return None
+        return {}
 
 
     def get_notebook_host_from_running_processes(self):
-
         try:
             import psutil
 
@@ -318,7 +343,6 @@ class Kqlmagic_core(object):
 
 
     def get_notebook_kernel_id(self):
-
         kernel_id = None
         try:
             try:
@@ -336,7 +360,6 @@ class Kqlmagic_core(object):
 
 
     def get_notebook_connection_info(self):
-
         conn_info = None
         try:
             try:
@@ -361,14 +384,11 @@ class Kqlmagic_core(object):
 
 
     def _show_banner(self, options):
-
         logger().debug("Kqlmagic::_show_banner() - show banner header")
         self._show_banner_header(**options)
 
         Display.showInfoMessage(
-            """{0} package is updated frequently. Run '!pip install {1} --no-cache-dir --upgrade' to use the latest version.<br>{0} version: {2}, source: {3}""".format(
-                Constants.MAGIC_PACKAGE_NAME, Constants.MAGIC_PIP_REFERENCE_NAME, VERSION, Constants.MAGIC_SOURCE_REPOSITORY_NAME
-            )
+            f"""{Constants.MAGIC_PACKAGE_NAME} package is updated frequently. Run '!pip install {Constants.MAGIC_PIP_REFERENCE_NAME} --no-cache-dir --upgrade' to use the latest version.<br>{Constants.MAGIC_PACKAGE_NAME} version: {VERSION}, source: {Constants.MAGIC_SOURCE_REPOSITORY_NAME}"""
         )
 
         logger().debug("Kqlmagic::_show_banner() - show kqlmagic latest version info")
@@ -386,36 +406,36 @@ class Kqlmagic_core(object):
         logo = "data:image/png;base64,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"
 
         html_str = (
-            """<html>
+            f"""<html>
             <head>
+            <title>{Constants.MAGIC_CLASS_NAME} - banner</title>
             <style>
-            .kql-magic-banner {
+            .kql-magic-banner {{
                 display: flex; 
                 background-color: #d9edf7;
-            }
-            .kql-magic-banner > div {
+            }}
+            .kql-magic-banner > div {{
                 margin: 10px; 
                 padding: 20px; 
                 color: #3a87ad; 
                 font-size: 13px;
-            }
+            }}
             </style>
             </head>
             <body>
                 <div class='kql-magic-banner'>
-                    <div><img src='"""+logo+"""'></div>
+                    <div><img src='{logo}'></div>
                     <div>
                         <p>Kql Query Language, aka kql, is the query language for advanced analytics on Azure Monitor resources. The current supported data sources are 
                         Azure Data Explorer (Kusto), Log Analytics and Application Insights. To get more information execute '%kql --help "kql"'</p>
-                        <p>   &bull; kql reference: Click on 'Help' tab > and Select 'kql reference' or execute '%kql --help "kql"'<br>
-                          &bull; """
-                + Constants.MAGIC_CLASS_NAME
-                + """ configuration: execute '%config """
-                + Constants.MAGIC_CLASS_NAME
-                + """'<br>
-                          &bull; """
-                + Constants.MAGIC_CLASS_NAME
-                + """ usage: execute '%kql --usage'<br>
+                        <p>   
+                          &bull; 
+                kql reference: Click on 'Help' tab > and Select 'kql reference' or execute '%kql --help "kql"'<br>
+                          &bull; 
+                {Constants.MAGIC_CLASS_NAME} configuration: execute '%config {Constants.MAGIC_CLASS_NAME}'<br>
+                          &bull; 
+                {Constants.MAGIC_CLASS_NAME} usage: execute '%kql --usage'<br>
+                        </p> 
                     </div>
                 </div>
             </body>
@@ -433,9 +453,7 @@ class Kqlmagic_core(object):
                 ignore_current_version_post = True
                 if pypi_version and compare_version(pypi_version, VERSION, ignore_current_version_post) > 0:
                     Display.showWarningMessage(
-                        """You are using {0} version {1}, however version {2} is available. You should consider upgrading, execute '!pip install {0} --no-cache-dir --upgrade'. To see what's new click on the button below.""".format(
-                            Constants.MAGIC_PACKAGE_NAME, VERSION, pypi_version
-                        )
+                        f"""You are using {Constants.MAGIC_PACKAGE_NAME} version {VERSION}, however version {pypi_version} is available. You should consider upgrading, execute '!pip install {Constants.MAGIC_PACKAGE_NAME} --no-cache-dir --upgrade'. To see what's new click on the button below."""
                     )
             except:
                 logger().debug("Kqlmagic::_show_magic_latest_version - failed to fetch PyPi Kqlmagic latest version")
@@ -450,11 +468,11 @@ class Kqlmagic_core(object):
                 url = "https://raw.githubusercontent.com/microsoft/jupyter-Kqlmagic/master/HISTORY.md"
                 data = urllib.request.urlopen(url)
                 data_decoded = data.read().decode('utf-8')
-                data_as_markdown = MarkdownString(data_decoded)
+                data_as_markdown = MarkdownString(data_decoded, title=f"what's new")
                 html_str  = data_as_markdown._repr_html_()
 
                 if html_str is not None:
-                    self._set_temp_files_server(options)
+                    self._set_temp_files_server(options=options)
                     button_text = "What's New? "
                     file_name = "what_new_history"
                     file_path = Display._html_to_file_path(html_str, file_name, **options)
@@ -473,19 +491,19 @@ class Kqlmagic_core(object):
                 pass
 
 
-    def _set_temp_files_server(self, options):
+    def _set_temp_files_server(self, options={}):
         if (options.get("temp_files_server") == "kqlmagic"
-            or (options.get('notebook_app') in ["azuredatastudio", "nteract"]
-                and options.get("kernel_location") == "local" 
+            or (options.get('notebook_app') in ["visualstudiocode", "azuredatastudio", "nteract"]
+                and options.get("kernel_location") == "local"
                 and options.get("temp_files_server") == "auto")):
-            if self.temp_files_server_manager is None and options.get("temp_folder_name") is not None:
-                self._start_temp_files_server(options)
-
-        elif self.temp_files_server_manager is not None:
+            if self.is_temp_files_server_on is None:
+                self._start_temp_files_server(options=options)
+        elif self.is_temp_files_server_on == True:
             self._abort_temp_files_server(options)
 
 
-    def _start_temp_files_server(self, options):
+    def _start_temp_files_server(self, options={}):
+        self.is_temp_files_server_on = False
         if self.temp_files_server_manager is None and options.get("temp_folder_name") is not None:
             # folder_name = options.get("temp_folder_name")
             # root_path = Display._get_ipython_root_path()
@@ -497,21 +515,24 @@ class Kqlmagic_core(object):
             SERVER_URL = None
             base_path = Display.showfiles_file_base_path
             folder_name = Display.showfiles_folder_name
-            self.temp_files_server_manager = FilesServerManagement(server_py_code, SERVER_URL, adjust_path(f"{base_path}"), folder_name, options)
+            self.temp_files_server_manager = FilesServerManagement(server_py_code, SERVER_URL, adjust_path(f"{base_path}"), folder_name, options=options)
             self.temp_files_server_manager.startServer()
-            server_url = self.temp_files_server_manager.server_url
-            setattr(self.default_options, "temp_files_server_address", server_url)
-            options["temp_files_server_address"] = server_url
-            Display.showfiles_url_base_path = self.temp_files_server_manager.files_url
             count = 0
             while not self.temp_files_server_manager.pingServer():
                 time.sleep(1)
                 count += 1
                 if count > 10:
                     break
+            if count < 10:
+                self.is_temp_files_server_on = True
+                Display.showfiles_url_base_path = self.temp_files_server_manager.files_url
+                server_url = self.temp_files_server_manager.server_url
+                setattr(self.default_options, "temp_files_server_address", server_url)
+                options["temp_files_server_address"] = server_url
 
 
     def _abort_temp_files_server(self, options):
+        self.is_temp_files_server_on = None
         if self.temp_files_server_manager is not None:
             self.temp_files_server_manager.abortServer()
             self.temp_files_server_manager = None
@@ -616,7 +637,7 @@ class Kqlmagic_core(object):
             # Note set current (default) cluster to kusto.
         """
 
-        logger().debug("Kqlmagic::To Parsed: \n\rline: {}\n\rcell:\n\r{}".format(line, cell))
+        logger().debug(f"Kqlmagic::To Parsed: \n\rline: {line}\n\rcell:\n\r{cell}")
         try:
 
             if self.shell is not None:
@@ -629,7 +650,7 @@ class Kqlmagic_core(object):
 
             parsed = None
             parsed_queries = Parser.parse("%s\n%s" % (line, cell), self.default_options, _ENGINES, user_ns)
-            logger().debug("Kqlmagic::Parsed: {}".format(parsed_queries))
+            logger().debug(f"Kqlmagic::Parsed: {parsed_queries}")
             result = None
             for parsed in parsed_queries:
                 parsed["line"] = line
@@ -648,10 +669,10 @@ class Kqlmagic_core(object):
                 command = parsed["command"].get("command")
 
                 self._add_help_to_jupyter_help_menu(user_ns, options)
-                self._set_temp_files_server(options)
+                self._set_temp_files_server(options=options)
 
                 if command is None or command == "submit":
-                    result = self.execute_query(parsed, user_ns, result_set=override_result_set, override_vars=override_vars)
+                    result = self._execute_query(parsed, user_ns, result_set=override_result_set, override_vars=override_vars)
                 else:
                     param = parsed["command"].get("param")
                     if command == "version":
@@ -706,7 +727,7 @@ class Kqlmagic_core(object):
                         param = hashlib.sha1(bytes("#".join(properties), "utf-8")).hexdigest()
                         popup_text = ' '
                     else:
-                        raise ValueError("command {0} not implemented".format(command))
+                        raise ValueError(f"command {command} not implemented")
                     if isinstance(result, UrlReference):
                         file_path = result.url
                         if result.is_raw:
@@ -721,13 +742,13 @@ class Kqlmagic_core(object):
                         if _repr_html_ is not None and callable(_repr_html_):
                             html_str = result._repr_html_()
                             if html_str is not None:
-                                button_text = "popup {0} ".format(command)
-                                file_name = "{0}_command".format(command)
+                                button_text = f"popup {command} "
+                                file_name = f"{command}_command"
                                 if param is not None and isinstance(param, str) and len(param) > 0:
-                                    file_name += "_{0}".format(str(param))
+                                    file_name += f"_{str(param)}"
                                     popup_text = popup_text or str(param)
                                 if popup_text:
-                                    button_text += " {0}".format(popup_text)
+                                    button_text += f" {popup_text}"
                                 file_path = Display._html_to_file_path(html_str, file_name, **options)
                                 html_obj = Display.get_show_window_html_obj(file_name, file_path, button_text=button_text, onclick_visibility="visible", **options)
                                 return html_obj
@@ -772,7 +793,7 @@ class Kqlmagic_core(object):
             mystdout.getvalue()
 
             # added 4 blanks in begining of each line, to maked md formatter keep format as is
-            return MarkdownString("    " + mystdout.getvalue().replace("\n","\n    "))
+            return MarkdownString("    " + mystdout.getvalue().replace("\n","\n    "), title="config")
 
         if params == "":
             message = f"{Constants.MAGIC_PACKAGE_NAME} doesn't have '' option"
@@ -839,7 +860,7 @@ class Kqlmagic_core(object):
                 Display.kernelExecute("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}""", **options)
 
 
-    def execute_query(self, parsed, user_ns: dict, result_set=None, override_vars=None):
+    def _execute_query(self, parsed, user_ns: dict, result_set=None, override_vars=None):
 
         query = parsed.get('query', '').strip()
         options = parsed.get('options', {})
@@ -896,7 +917,7 @@ class Kqlmagic_core(object):
                     cluster_name = conn.get_cluster()
                     uri_schema_name = conn._URI_SCHEMA_NAME
                     # TODO: fix it to have all tokens, but enforce code()
-                    connection_string = "{0}://code().cluster('{1}').database('{2}')".format(uri_schema_name, cluster_name, database_name)
+                    connection_string = f"{uri_schema_name}://code().cluster('{cluster_name}').database('{database_name}')"
                     conn = Connection.get_connection(connection_string, user_ns, **options)
                     conn.validate(**options)
                     conn.set_validation_result(True)
@@ -1006,7 +1027,7 @@ class Kqlmagic_core(object):
                 result = saved_result.to_dataframe()
 
             if options.get("result_var") and result_set is None:
-                result_var = options["result_var"]
+                result_var = options.get("result_var")
                 if options.get("feedback"):
                     saved_result.feedback_info.append(f"Returning data to local variable {result_var}")
                 self.shell_user_ns.update({result_var: result if result is not None else saved_result})

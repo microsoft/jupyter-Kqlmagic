@@ -304,16 +304,18 @@ class ResultSet(list, ColumnGuesserMixin):
     def title(self):
         return self.visualization_properties.get(VisualizationKeys.TITLE)
 
-
+    # Public API
     def deep_link(self, qld_param: str=None):
         if (qld_param and qld_param not in ["Kusto.Explorer", "Kusto.WebExplorer"]):
             raise ValueError('Unknow deep link destination, the only supported are: ["Kusto.Explorer", "Kusto.WebExplorer"]')
         options = {**self.options, "query_link_destination": qld_param } if qld_param else self.options
         deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, options)
-        if deep_link_url is not None: #only use deep links for kusto connection
+        # only use deep links for kusto connection
+        if deep_link_url is not None: 
             qld = options.get("query_link_destination").lower().replace('.', '_')
-            isCloseWindow = options.get("query_link_destination") == "Kusto.Explorer"
-            html_obj = Display.get_show_deeplink_html_obj(f"query_link_{qld}", deep_link_url, isCloseWindow, **self.options)
+            close_window_timeout_in_secs = 60 if options.get("query_link_destination") == "Kusto.Explorer" else None
+            # close opening window only for Kusto.Explorer app, for Kusto.WebExplorer leave window
+            html_obj = Display.get_show_deeplink_html_obj(f"query_link_{qld}", deep_link_url, close_window_timeout_in_secs, options=self.options)
             return html_obj
         else:
             raise ValueError('Deep link not supported for this connection, only Azure Data Explorer connections are supported')
@@ -445,15 +447,18 @@ class ResultSet(list, ColumnGuesserMixin):
         return ""
 
 
-    # use _.open_url_kusto_explorer(True) for opening the url automatically (no button)
-    # use _.open_url_kusto_explorer(web_app="app") for opening the url in Kusto Explorer (app) and not in Kusto Web Explorer
     def show_button_to_deep_link(self, browser=False, display_handler_name=None):
-        isCloseWindow = None
+        close_window_timeout_in_secs = 60 if self.options.get("query_link_destination") == "Kusto.Explorer" else None
         deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, self.options)
+
         import urllib.parse
+        # nteract cannot execute deep link script, workaround using temp_file_server webbrowser
         if self.options.get("notebook_app") in ["nteract"]:
-            deep_link_url = f"{self.options.get('temp_files_server_address')}/webbrowser?url={urllib.parse.quote(deep_link_url)}"
-            isCloseWindow = True
+            if self.options.get("kernel_location") != "local" or self.options.get("temp_files_server_address") is None:
+                return None
+            qld = self.options.get("query_link_destination").lower().replace('.', '_')
+            deep_link_url = Display.get_show_deeplink_webbrowser_html_obj(f"query_link_{qld}", deep_link_url, close_window_timeout_in_secs, options=self.options)
+            deep_link_url = f'{self.options.get("temp_files_server_address")}/webbrowser?url={urllib.parse.quote(deep_link_url)}&kernelid={self.options.get("kernel_id")}'
 
 
         if deep_link_url is not None: #only use deep links for kusto connection 
@@ -466,7 +471,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 palette=Display.info_style,
                 before_text=f"Click to execute query in {self.options.get('query_link_destination')} ",
                 display_handler_name=display_handler_name,
-                isCloseWindow=isCloseWindow,
+                close_window_timeout_in_secs=close_window_timeout_in_secs,
                 **self.options
             )
         return None
@@ -499,10 +504,10 @@ class ResultSet(list, ColumnGuesserMixin):
             return None
         elif options.get("table_package", "").upper() == "PANDAS":
             t = self.to_dataframe()._repr_html_()
-            html = Display.toHtml(body=t)
+            html = Display.toHtml(body=t, title='table')
         else:
             t = self._getTableHtml()
-            html = Display.toHtml(**t)
+            html = Display.toHtml(**t, title='table')
         if options.get("popup_window") and not options.get("button_text"):
             options["button_text"] = "popup " + "table" + ((" - " + self.title) if self.title else "") + " "
         Display.show(html, display_handler_name=display_handler_name, **options)
@@ -625,7 +630,7 @@ class ResultSet(list, ColumnGuesserMixin):
             options["button_text"] = "popup " + self.visualization + ((" - " + self.title) if self.title else "") + " "
         c = self._getChartHtml(window_mode, **options)
         if c.get("body") or c.get("head"):
-            html = Display.toHtml(**c)
+            html = Display.toHtml(**c, title='chart')
             Display.show(html, display_handler_name=display_handler_name, **options)
         elif c.get("fig"):
             if Display.notebooks_host or options.get("notebook_app") in ["jupyterlab", "visualstudiocode", "ipython"]: 
@@ -701,17 +706,15 @@ class ResultSet(list, ColumnGuesserMixin):
         if len(self) == 0:
             id = uuid.uuid4().hex
             head = (
-                """<style>#uuid-"""
-                + id
-                + """ {
-                display: block; 
-                font-style:italic;
-                font-size:300%;
-                text-align:center;
-            } </style>"""
+                f"""<style>#uuid-{id} {{
+                    display: block; 
+                    font-style:italic;
+                    font-size:300%;
+                    text-align:center;
+                }} </style>"""
             )
 
-            body = '<div id="uuid-' + id + '"><br><br>EMPTY CHART (no data)<br><br>.</div>'
+            body = f'<div id="uuid-{id}"><br><br>EMPTY CHART (no data)<br><br>.</div>'
             return {"body": body, "head": head}
 
         figure_or_data = None
@@ -1160,7 +1163,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return self._CHART_X_TYPE.get(properties.get(VisualizationKeys.VISUALIZATION), "first")
     
 
-    def _get_plotly_chart_properties(self, properties: dict, tabs: list) -> dict:
+    def _get_plotly_chart_properties(self, properties: dict, tabs: list, options: dict={}) -> dict:
         chart_properties = {}
         if properties.get(VisualizationKeys.VISUALIZATION) == VisualizationValues.BAR_CHART:
             chart_properties["xlabel"] = self._get_plotly_ylabel(properties.get(VisualizationKeys.X_TITLE), tabs)
@@ -1202,7 +1205,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self._build_chart_sub_tables(properties , x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables, options=options)
 
         data = [
             go.Scatter(
@@ -1245,7 +1248,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables, options=options)
 
         # create stack one on top of each other
         # TODO: chack newer version of plotly, support it better
@@ -1296,7 +1299,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables, options=options)
 
         data = [
             go.Scatter(
@@ -1415,7 +1418,7 @@ class ResultSet(list, ColumnGuesserMixin):
             # this print is not for debug
             print("No valid chart to show")
             return None
-        chart_properties = self._get_plotly_chart_properties(properties, sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, sub_tables, options=options)
 
         data = [
             go.Bar(
@@ -1456,7 +1459,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables, options=options)
 
         data = [
             go.Scatter(
@@ -1498,7 +1501,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
-        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables)
+        chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables, options=options)
 
         data = [
             go.Scatter(

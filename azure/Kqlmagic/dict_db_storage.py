@@ -35,9 +35,9 @@ class DictDbStorage(object):
         
         sso_db_key_authority = authority[authority.find("://")+3:] if authority else ""
         if authority:
-            path = os.path.join(Constants.SSO_DB_KEY_PREFIX, cache_name + str(suffix), sso_db_key_authority)
+            path = os.path.join(Constants.SSO_DB_KEY_PREFIX, f"{cache_name}{str(suffix)}", sso_db_key_authority)
         else:
-            path = os.path.join(Constants.SSO_DB_KEY_PREFIX, cache_name + str(suffix))
+            path = os.path.join(Constants.SSO_DB_KEY_PREFIX, f"{cache_name}{str(suffix)}")
         return path
 
 

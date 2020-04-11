@@ -109,16 +109,16 @@ class KqlEngine(object):
         if match:
             components = match.group("subscription").split("/")
             resource_name = "app" if match.group("io") == "applicationinsights" else "workspace"
-            name = "{0}s_in_subscription_{1}".format(resource_name, components[0])
+            name = f"{resource_name}s_in_subscription_{components[0]}"
 
             if len(components) >= 3:
                 key = components[1].lower
                 if key == "resourcegroups":
-                    name = "{0}_resourcegroup_{1}".format(name, components[2])
+                    name = f"{name}_resourcegroup_{components[2]}"
                     if len(components) >= 5:
-                        name = "{0}_{1}_{2}".format(name, resource_name, components[-1])
+                        name = f"{name}_{resource_name}_{components[-1]}"
                 else:
-                    name = "{0}_{1}_{2}".format(name, resource_name, components[-1])
+                    name = f"{name}_{resource_name}_{components[-1]}"
         elif _FQN_ARIA_KUSTO_CLUSTER_PATTERN.match(name):
             name = "adx_aria"
         else:
@@ -322,7 +322,7 @@ class KqlEngine(object):
             elif key not in self._SECRET_KEYS:
                 if parsed_conn_kv[key] == f"<{key}>" or parsed_conn_kv[key] == "":
                     raise KqlEngineError(f"key {key} cannot be empty or set to <{key}>")
-        logger().debug("kql_engine.py - _check_for_restricted_values - make sure that all required keys are with proper value: {0}".format(matched_keys_set))
+        logger().debug(f"kql_engine.py - _check_for_restricted_values - make sure that all required keys are with proper value: {matched_keys_set}")
 
 
     def _set_and_check_for_cluster_name(self, parsed_conn_kv: dict, uri_schema_name: str) -> None:

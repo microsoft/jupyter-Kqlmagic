@@ -34,7 +34,7 @@ class CacheEngine(KqlEngine):
         self.kql_engine = None
         if isinstance(conn_str_or_engine, KqlEngine):
             self.kql_engine = conn_str_or_engine
-            folder_name = self.kql_engine.get_database_friendly_name() + "_at_" + self.kql_engine.cluster_friendly_name()
+            folder_name = f"{self.kql_engine.get_database_friendly_name()}_at_{self.kql_engine.cluster_friendly_name()}"
             conn_str = f"{self._URI_SCHEMA_NAME}://{ConnStrKeys.FOLDER}='{folder_name}'"
         else:
             conn_str = conn_str_or_engine

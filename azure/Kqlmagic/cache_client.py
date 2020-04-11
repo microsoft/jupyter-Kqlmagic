@@ -135,7 +135,7 @@ class CacheClient(object):
             folder_parts = []
             for part in parts[:-1]:
                 folder_parts.append(part)
-                folder_name = path_obj.get("prefix") + "/".join(folder_parts)
+                folder_name = f'{path_obj.get("prefix")}/'.join(folder_parts)
                 os_folder_name = adjust_path(folder_name)
                 if not os.path.exists(os_folder_name):
                     os.makedirs(os_folder_name)

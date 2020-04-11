@@ -25,6 +25,7 @@ from pygments.formatters.terminal import TerminalFormatter
 
 
 from .my_utils import adjust_path, adjust_path_to_uri, get_valid_filename_with_spaces
+from .constants import Constants
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -236,22 +237,30 @@ class Display(object):
 
 
     @staticmethod
-    def get_show_deeplink_html_obj(window_name, deep_link_url:str, isCloseWindow: bool, **options):
-        html_str = Display._get_Launch_page_html(window_name, deep_link_url, isCloseWindow, False, **options)
-        if options.get("notebook_app") in ["visualstudiocode", "azuredatastudio", "ipython", "nteract"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "azuredatastudio", "ipython", "nteract"]:
+    def get_show_deeplink_webbrowser_html_obj(window_name, deep_link_url:str, close_window_timeout_in_secs: int, options={}):
+            close_itself_timeout_in_secs = 0
+            html_str = Display._get_Launch_page_html(window_name, deep_link_url, close_window_timeout_in_secs, close_itself_timeout_in_secs, False, options=options)
             file_name = Display._get_name()
             file_path = Display._html_to_file_path(html_str, file_name, **options)
-            url = Display._get_file_path_url(file_path)
-            # url = urllib.parse.quote(url)
+            url = Display._get_file_path_url(file_path, options=options)
+            return url
+
+
+    @staticmethod
+    def get_show_deeplink_html_obj(window_name, deep_link_url:str, close_window_timeout_in_secs: int, options={}):
+        if  options.get("kernel_location") == "local":
+            url = Display.get_show_deeplink_webbrowser_html_obj(window_name, deep_link_url, close_window_timeout_in_secs, options=options)
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
             return None
         else:
+            close_itself_timeout_in_secs = None
+            html_str = Display._get_Launch_page_html(window_name, deep_link_url, close_window_timeout_in_secs, close_itself_timeout_in_secs, False, options=options)
             return HTML(html_str)
 
 
     @staticmethod
-    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, **options):
+    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, **options):
         html_str = None
         mode = options.get("popup_interaction", "auto")
         if mode == "auto":
@@ -259,20 +268,21 @@ class Display(object):
                 mode = "webbrowser_open_at_kernel"
             elif options.get("notebook_app") in ["visualstudiocode", "azuredatastudio"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "azuredatastudio"]: 
                 mode = "reference"
+            elif options.get("notebook_app") in ["nteract"] and options.get("temp_files_server_address") is None:
+                mode = "reference"
             else:
                 mode = "button"
-
         if mode == "webbrowser_open_at_kernel":
-            url = Display._get_file_path_url(file_path)
+            url = Display._get_file_path_url(file_path, options=options)
             # url = urllib.parse.quote(url)
             webbrowser.open(url, new=1, autoraise=True)
             html_str = Display._getInfoMessageHtmlStr(f"opened popup window: '{window_name}', see it in your browser", **options)
 
         elif mode == "button":
-            html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, **options)
+            html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, close_window_timeout_in_secs=close_window_timeout_in_secs, options=options)
 
         elif mode in ["reference", "reference_popup"]:
-            html_str = Display._get_window_ref_html(mode == "reference_popup", window_name, file_path, button_text, isText=isText, palette=palette, before_text=before_text, after_text=after_text, **options)
+            html_str = Display._get_window_ref_html(mode == "reference_popup", window_name, file_path, button_text, isText=isText, palette=palette, before_text=before_text, after_text=after_text, close_window_timeout_in_secs=close_window_timeout_in_secs, options=options)
 
         return HTML(html_str) if html_str is not None else None
 
@@ -281,37 +291,44 @@ class Display(object):
     #
     ############################################################################
     @staticmethod
-    def _get_file_path_url(file_path):
+    def _get_file_path_url(file_path, options={}):
         url = None
         if file_path.startswith("http"):
             url = file_path
 
-        elif Display.showfiles_url_base_path.startswith("http"):
-            url =  f"{Display.showfiles_url_base_path}/{adjust_path_to_uri(file_path)}"
+        elif options.get("temp_files_server_address") is not None and Display.showfiles_url_base_path.startswith("http"):
+            url = f'{Display.showfiles_url_base_path}/{adjust_path_to_uri(file_path)}?kernelid={options.get("kernel_id")}'
 
         else:
-            path_uri = adjust_path_to_uri(f"{Display.showfiles_file_base_path}/{file_path}")
-            url = (f"file:///{path_uri}")
+            url = Display._get_file_path_file_url(file_path, options=options)
+
+        return url
+
+    @staticmethod
+    def _get_file_path_file_url(file_path, options={}):
+        url = None
+        path_uri = adjust_path_to_uri(f"{Display.showfiles_file_base_path}/{file_path}")
+        url = (f"file:///{path_uri}")
 
         return url
 
 
     @staticmethod
-    def _get_window_ref_html(isPopupMode, window_name, file_path, ref_text=None, isText=None, palette=None, ref_palette=None, before_text=None, after_text=None, **options):
-        url = Display._get_file_path_url(file_path)
+    def _get_window_ref_html(isPopupMode, window_name, file_path, ref_text=None, isText=None, palette=None, ref_palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, options={}):
+        url = Display._get_file_path_url(file_path, options=options)
         popup_window_name = window_name
 
         if isPopupMode or options.get("temp_files_server_address") is not None:
-            close_window_timeout_in_secs = 1 * 60 # five minutes
-            popup_window_name = "popup_" + window_name
-            popup_html = Display._get_popup_window_html(url, window_name, close_window_timeout_in_secs, **options)
-            popup_file_name = "popup_" + file_path.split('/')[-1].split('.')[0]
+            close_window_timeout_in_secs = close_window_timeout_in_secs or 60 # five minutes
+            popup_window_name = f"popup_{window_name}"
+            popup_html = Display._get_popup_window_html(url, window_name, close_window_timeout_in_secs, options=options)
+            popup_file_name = f"popup_{file_path.split('/')[-1].split('.')[0]}"
             popup_file_path = Display._html_to_file_path(popup_html, popup_file_name, **options)
-            url = Display._get_file_path_url(popup_file_path)
+            url = Display._get_file_path_url(popup_file_path, options=options)
 
         if options.get("temp_files_server_address") is not None:
             import urllib.parse
-            indirect_url = f"{options.get('temp_files_server_address')}/webbrowser?url={urllib.parse.quote(url)}"
+            indirect_url = f'{options.get("temp_files_server_address")}/webbrowser?url={urllib.parse.quote(url)}&kernelid={options.get("kernel_id")}'
             url = indirect_url
         ref_text = ref_text or "popup window"
         
@@ -322,10 +339,10 @@ class Display(object):
         before_text = f"{before_text.replace(' ', '&nbsp;')}&nbsp;" if before_text is not None else ''
         after_text = f"&nbsp;{after_text.replace(' ', '&nbsp;')}" if after_text is not None else ''
         html_str = (
-            """<!DOCTYPE html>
+            f"""<!DOCTYPE html>
             <html><body>
-            <div style='""" + style_div + """'>
-            """ + before_text +  """<a href='""" + url + """' style='""" + style_ref + """' target='""" + popup_window_name + """'>""" + ref_text + """</a>""" + after_text + """
+            <div style='{style_div}'>
+            {before_text}<a href='{url}' style='{style_ref}' target='{popup_window_name}'>{ref_text}</a>{after_text}
             </div>
             </body></html>"""
         )
@@ -333,8 +350,8 @@ class Display(object):
 
 
     @staticmethod
-    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, display_handler_name=None, **options):
-        html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text,  **options)
+    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, display_handler_name=None, close_window_timeout_in_secs=None, **options):
+        html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, close_window_timeout_in_secs=close_window_timeout_in_secs, **options)
         if html_obj is not None:
             Display.show_html_obj(html_obj, display_handler_name=display_handler_name, **options)
 
@@ -372,120 +389,103 @@ class Display(object):
 
 
     @staticmethod
-    def _get_popup_window_html(url, window_name, close_window_timeout_in_secs, **kwargs):
-
+    def _get_popup_window_html(url, window_name, close_window_timeout_in_secs, options={}):
         window_params = "fullscreen=no,directories=no,location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,titlebar=no,toolbar=no,"
         window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
 
         html_str = (
-            """<!DOCTYPE html>
+            f"""<!DOCTYPE html>
             <html><body>
             <script>
-            function kql_MagicPopupWindowFunction(url, window_name, window_params, close_window_timeout_in_secs) {
+            function kql_MagicPopupWindowFunction(url, window_name, window_params, close_window_timeout_in_secs) {{
                 window.focus();
                 var w = screen.width / 2;
                 var h = screen.height / 2;
                 var params = 'width=' + w + ',height=' + h;
-                kql_Magic_""" + window_name + """ = window.open(url, window_name, window_params + params);
-                var new_window = kql_Magic_""" + window_name + """;
-                if (new_window != null) {
+                var new_window = window.open(url, window_name, window_params + params);
+                // close self window after new window is open
+                if (new_window != null) {{
                     window.close();
                     close_window_timeout_in_secs = 1;
-                }
-                setTimeout(function(){ window.close(); }, close_window_timeout_in_secs*1000);               
-            }
+                }}
+                setTimeout(function(){{ window.close(); }}, close_window_timeout_in_secs * 1000);               
+            }}
 
-            kql_MagicPopupWindowFunction('"""
-            + url
-            + """','"""
-            + window_name
-            + """','"""
-            + window_params
-            + """',"""
-            + str(close_window_timeout_in_secs)
-            + """);
+            kql_MagicPopupWindowFunction('{url}','{window_name}','{window_params}',{str(close_window_timeout_in_secs)});
             window.focus();
             </script>
-            <p>This page popups <b>'""" + window_name + """'</b> window. It will close itself in few minutes.
-            <br><br><br>If <b>'""" + window_name + """'</b> window doesn't popup, popups are probably blocked on this
+            <p>This page popups <b>'{window_name}'</b> window. It will close itself in few minutes.
+            <br><br><br>If <b>'{window_name}'</b> window doesn't popup, popups are probably blocked on this
             page.<br>To enable the popup, you should modify your browser settings to allow popups on pages from this host: http://127.0.0.1:5000.
-            To open popup manually press <a href='""" + url + """'>here</a>
+            To open popup manually press <a href='{url}'>here</a>
             <br><br><br><br><br><br><b>Note:</b> You can disable the popups in your notebook, by setting popup_interaction option 
             to 'reference' (will open in a tab) or 'webbrowser_open_at_kernel' (will auto open in a tab on the python kernel host)
             or 'button'. Some modes are not supported by some jupyter based implementations (try and find out).
-            <br> To set the default mode in your notebook, run: %config Kqlmagic.popup_interaction={mode}
-            <br> To set the mode for the current kql magic execution, add the option -pi '{mode}'
+            <br> To set the default mode in your notebook, run: %config Kqlmagic.popup_interaction={{mode}}
+            <br> To set the mode for the current kql magic execution, add the option -pi '{{mode}}'
             </p>
             </body></html>"""
         )
         return html_str
 
     @staticmethod
-    def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, isCloseWindow=None, **kwargs):
+    def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, close_itself_timeout_in_secs=None, options={}):
         # if isText is True, file_path is the text
         notebooks_host = 'text' if isText else (Display.notebooks_host or "")
         onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
         button_text = button_text or "popup window"
         window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
         if window_name[0] in "0123456789":
-            window_name = "w_" + window_name
+            window_name = f"w_{window_name}"
         window_params = "fullscreen=no,directories=no,location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,titlebar=no,toolbar=no,"
 
         style = f"padding: 10px; color: {palette['color']}; background-color: {palette['background-color']}; border-color: {palette['border-color']}" if palette else ""
         before_text = before_text or ''
         after_text = after_text or ''
 
-        close_window_sleep = '5000' if isCloseWindow else '0'
-
+        close_window_timeout_in_secs = close_window_timeout_in_secs if close_window_timeout_in_secs is not None else -1
+        if close_itself_timeout_in_secs is None:
+            close_itself_timeout_in_secs =  -1
+        elif close_window_timeout_in_secs >= 0:
+            close_itself_timeout_in_secs = max(close_itself_timeout_in_secs - close_window_timeout_in_secs, 0)
         if not isText and Display.showfiles_url_base_path.startswith("http"):
-            file_path = Display._get_file_path_url(file_path)
+            file_path = Display._get_file_path_url(file_path, options=options)
 
         html_str = (
-            """<!DOCTYPE html>
+            f"""<!DOCTYPE html>
             <html><body>
-            <div style='""" + style + """'>
-            """ + before_text + """
-
-            <button onclick="this.style.visibility='"""
-            + onclick_visibility
-            + """';kql_MagicLaunchWindowFunction('"""
-            + file_path
-            + """','"""
-            + window_params
-            + """','"""
-            + window_name
-            + """','"""
-            + notebooks_host
-            + """');kql_MagicCloseWindow(kql_Magic_""" 
-            + window_name 
-            + """,""" 
-            + close_window_sleep 
-            + """);">"""
-            + button_text
-            + """</button>
-            """ + after_text + """
+            <div style='{style}'>
+            {before_text}
+            <button onclick="this.style.visibility='{onclick_visibility}';
+            kql_MagicLaunchWindowFunction('{file_path}', '{window_params}', '{window_name}', '{notebooks_host}');
+            kql_MagicCloseWindow(kql_Magic_{window_name}, {str(close_window_timeout_in_secs)}, {str(close_itself_timeout_in_secs)});">
+            {button_text}</button>{after_text}
             </div>
 
             <script>
+            var kql_Magic_{window_name} = null;
 
-            function kql_MagicSleep(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
 
-            async function kql_MagicCloseWindow(window_obj, ms) {
-                if (ms > 0) {
-                    await kql_MagicSleep(ms);
-                    window_obj.close();
-                }
-            }
+            function kql_MagicCloseWindow(window_obj, obj_secs, itself_secs) {{
+                if (obj_secs >= 0) {{
+                    _timeout = setTimeout(function(){{
+                        window_obj.close();
+                        if (itself_secs >= 0) {{
+                            __timeout = setTimeout(function(){{window.close();}}, itself_secs * 1000);
+                        }}
+                    }}, obj_secs * 1000);
+                }} else if (itself_secs >= 0) {{
+                    _timeout = setTimeout(function(){{window.close();}}, itself_secs * 1000);
+                }}
+            }}
 
-            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {
+            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {{
                 var url;
-                if (notebooks_host == 'text') {
+                if (notebooks_host == 'text') {{
                     url = ''
-                } else if (file_path.startsWith('http')) {
+                }} else if (file_path.startsWith('http')) {{
                     url = file_path;
-                } else {
+                }} else {{
                     var base_url = '';
 
                     // check if azure notebook
@@ -496,54 +496,55 @@ class Display(object):
                     var loc = String(window.location);
                     var end = loc.search(azure_host_suffix);
                     start = loc.search('//');
-                    if (start > 0 && end > 0) {
+                    if (start > 0 && end > 0) {{
                         var parts = loc.substring(start+2, end).split('-');
-                        if (parts.length == 2) {
+                        if (parts.length == 2) {{
                             var library = parts[0];
                             var user = parts[1];
                             base_url = azure_host + '/api/user/' +user+ '/library/' +library+ '/html/';
-                        }
-                    }
+                        }}
+                    }}
 
                     // check if local jupyter lab
-                    if (base_url.length == 0) {
+                    if (base_url.length == 0) {{
                         var configDataScipt  = document.getElementById('jupyter-config-data');
-                        if (configDataScipt != null) {
+                        if (configDataScipt != null) {{
                             var jupyterConfigData = JSON.parse(configDataScipt.textContent);
-                            if (jupyterConfigData['appName'] == 'JupyterLab' && jupyterConfigData['serverRoot'] != null &&  jupyterConfigData['treeUrl'] != null) {
-                                var basePath = '""" + Display.showfiles_file_base_path + """' + '/';
-                                if (basePath.startsWith(jupyterConfigData['serverRoot'])) {
+                            if (jupyterConfigData['appName'] == 'JupyterLab' && jupyterConfigData['serverRoot'] != null &&  jupyterConfigData['treeUrl'] != null) {{
+                                var basePath = '{Display.showfiles_file_base_path}' + '/';
+                                if (basePath.startsWith(jupyterConfigData['serverRoot'])) {{
                                     base_url = '/files/' + basePath.substring(jupyterConfigData['serverRoot'].length+1);
-                                }
-                            } 
-                        }
-                    }
+                                }}
+                            }}
+                        }}
+                    }}
 
                     // assume local jupyter notebook
-                    if (base_url.length == 0) {
+                    if (base_url.length == 0) {{
 
                         var parts = loc.split('/');
                         parts.pop();
                         base_url = parts.join('/') + '/';
-                    }
+                    }}
                     url = base_url + file_path;
-                }
+                }}
 
                 window.focus();
                 var w = screen.width / 2;
                 var h = screen.height / 2;
                 params = 'width='+w+',height='+h;
                 // kql_Magic + window_name should be a global variable 
-                kql_Magic_""" + window_name + """ = window.open(url, window_name, window_params + params);
-                if (url == '') {
-                    var el = kql_Magic_""" + window_name + """.document.createElement('p');
-                    kql_Magic_""" + window_name + """.document.body.overflow = 'auto';
+                window_obj = window.open(url, window_name, window_params + params);
+                if (url == '') {{
+                    var el = window_obj.document.createElement('p');
+                    window_obj.document.body.overflow = 'auto';
                     el.style.top = 0;
                     el.style.left = 0;
                     el.innerHTML = file_path;
-                    kql_Magic_""" + window_name + """.document.body.appendChild(el);
-                }
-            }
+                    window_obj.document.body.appendChild(el);
+                }}
+                kql_Magic_{window_name} = window_obj;
+            }}
             </script>
 
             </body></html>"""
@@ -552,38 +553,48 @@ class Display(object):
         return html_str
 
     @staticmethod
-    def _get_Launch_page_html(window_name, file_path, isCloseWindow, isText, **kwargs):
+    def _get_Launch_page_html(window_name, file_path, close_window_timeout_in_secs, close_itself_timeout_in_secs, isText, options={}):
         # if isText is True, file_path is the text
         notebooks_host = 'text' if isText else (Display.notebooks_host or "")
         window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
         if window_name[0] in "0123456789":
-            window_name = "w_" + window_name
-        close_window_sleep = '5000' if isCloseWindow else '0'
+            window_name = f"w_{window_name}"
+        # negative means not to colose window
+        close_window_timeout_in_secs = close_window_timeout_in_secs if close_window_timeout_in_secs is not None else -1
+        if close_itself_timeout_in_secs is None:
+            close_itself_timeout_in_secs =  -1
+        elif close_window_timeout_in_secs >= 0:
+            close_itself_timeout_in_secs = max(close_itself_timeout_in_secs - close_window_timeout_in_secs, 0)
+
         window_params = "fullscreen=no,directories=no,location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,titlebar=no,toolbar=no,"
 
         html_str = (
-            """<!DOCTYPE html>
+            f"""<!DOCTYPE html>
             <html><body>
             <script>
+            var kql_Magic_{window_name} = null;
+            var kql_Magic_{window_name}_timeout = null;
 
-            function kql_MagicSleep(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
+            function kql_MagicCloseWindow(window_obj, obj_secs, itself_secs) {{
+                if (obj_secs >= 0) {{
+                    _timeout = setTimeout(function(){{
+                        window_obj.close();
+                        if (itself_secs >= 0) {{
+                            __timeout = setTimeout(function(){{window.close();}}, itself_secs * 1000);
+                        }}
+                    }}, obj_secs * 1000);
+                }} else if (itself_secs >= 0) {{
+                    _timeout = setTimeout(function(){{window.close();}}, itself_secs * 1000);
+                }}
+            }}
 
-            async function kql_MagicCloseWindow(window_obj, ms) {
-                if (ms > 0) {
-                    await kql_MagicSleep(ms);
-                    window_obj.close();
-                }
-            }
-
-            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {
+            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {{
                 var url;
-                if (notebooks_host == 'text') {
+                if (notebooks_host == 'text') {{
                     url = ''
-                } else if (file_path.startsWith('http')) {
+                }} else if (file_path.startsWith('http')) {{
                     url = file_path;
-                } else {
+                }} else {{
                     var base_url = '';
 
                     // check if azure notebook
@@ -594,66 +605,59 @@ class Display(object):
                     var loc = String(window.location);
                     var end = loc.search(azure_host_suffix);
                     start = loc.search('//');
-                    if (start > 0 && end > 0) {
+                    if (start > 0 && end > 0) {{
                         var parts = loc.substring(start+2, end).split('-');
-                        if (parts.length == 2) {
+                        if (parts.length == 2) {{
                             var library = parts[0];
                             var user = parts[1];
                             base_url = azure_host + '/api/user/' +user+ '/library/' +library+ '/html/';
-                        }
-                    }
+                        }}
+                    }}
 
                     // check if local jupyter lab
-                    if (base_url.length == 0) {
+                    if (base_url.length == 0) {{
                         var configDataScipt  = document.getElementById('jupyter-config-data');
-                        if (configDataScipt != null) {
+                        if (configDataScipt != null) {{
                             var jupyterConfigData = JSON.parse(configDataScipt.textContent);
-                            if (jupyterConfigData['appName'] == 'JupyterLab' && jupyterConfigData['serverRoot'] != null &&  jupyterConfigData['treeUrl'] != null) {
-                                var basePath = '""" + Display.showfiles_file_base_path + """' + '/';
-                                if (basePath.startsWith(jupyterConfigData['serverRoot'])) {
+                            if (jupyterConfigData['appName'] == 'JupyterLab' && jupyterConfigData['serverRoot'] != null &&  jupyterConfigData['treeUrl'] != null) {{
+                                var basePath = '{Display.showfiles_file_base_path}' + '/';
+                                if (basePath.startsWith(jupyterConfigData['serverRoot'])) {{
                                     base_url = '/files/' + basePath.substring(jupyterConfigData['serverRoot'].length+1);
-                                }
-                            } 
-                        }
-                    }
+                                }}
+                            }}
+                        }}
+                    }}
 
                     // assume local jupyter notebook
-                    if (base_url.length == 0) {
+                    if (base_url.length == 0) {{
 
                         var parts = loc.split('/');
                         parts.pop();
                         base_url = parts.join('/') + '/';
-                    }
+                    }}
                     url = base_url + file_path;
-                }
+                }}
 
                 window.focus();
                 var w = screen.width / 2;
                 var h = screen.height / 2;
                 params = 'width='+w+',height='+h;
                 // kql_Magic + window_name should be a global variable 
-                kql_Magic_""" + window_name + """ = window.open(url, window_name, window_params + params);
-                if (url == '') {
-                    var el = kql_Magic_""" + window_name + """.document.createElement('p');
-                    kql_Magic_""" + window_name + """.document.body.overflow = 'auto';
+                window_obj = window.open(url, window_name, window_params + params);
+                if (url == '') {{
+                    var el = window_obj.document.createElement('p');
+                    window_obj.document.body.overflow = 'auto';
                     el.style.top = 0;
                     el.style.left = 0;
                     el.innerHTML = file_path;
-                    kql_Magic_""" + window_name + """.document.body.appendChild(el);
-                }
-            }
+                    window_obj.document.body.appendChild(el);
+                }}
+                kql_Magic_{window_name} = window_obj;
+            }}
 
-            kql_MagicLaunchWindowFunction(
-                '""" + file_path + """',
-                '""" + window_params + """',
-                '""" + window_name + """',
-                '""" + notebooks_host + """'
-            );
+            kql_MagicLaunchWindowFunction('{file_path}', '{window_params}', '{window_name}', '{notebooks_host}');
 
-            kql_MagicCloseWindow(
-                kql_Magic_""" + window_name + """,
-                """ + close_window_sleep + """
-            );
+            kql_MagicCloseWindow(kql_Magic_{window_name}, {str(close_window_timeout_in_secs)}, {str(close_itself_timeout_in_secs)});
 
             </script>
             </body></html>"""
@@ -663,12 +667,14 @@ class Display(object):
 
     @staticmethod
     def toHtml(**kwargs):
+        title = '' if kwargs.get('title') is None else f"<title>{Constants.MAGIC_PACKAGE_NAME} - {kwargs.get('title')}</title>"
         return f"""<html>
         <head>
-        {kwargs.get('head', '')}
+            {kwargs.get('head', '')}
+            {title}
         </head>
         <body>
-        {kwargs.get('body', '')}
+            {kwargs.get('body', '')}
         </body>
         </html>"""
 
@@ -770,7 +776,7 @@ class Display(object):
 
     @staticmethod
     def kernelReconnect(**options):
-        if options is None or options.get("notebook_app") not in ["jupyterlab", "azuredatastudio", "nteract"]:
+        if options is None or options.get("notebook_app") not in ["jupyterlab", "visualstudiocode", "azuredatastudio", "nteract"]:
             Display.kernelExecute("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}""")
             time.sleep(1)
 

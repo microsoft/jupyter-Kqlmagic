@@ -30,7 +30,7 @@ query1 = "-conn=$TEST_CONNECTION_STR let T = view () { datatable(n:long, name:st
 query2 = "-conn=$TEST_CONNECTION_STR pageViews | where client_City != '' | summarize count() by client_City | sort by count_ | limit 10"
 
 version_command = "--version"
-version_pw_command = version_command + " -pw"
+version_pw_command = f"{version_command} -pw"
 version_expected_pattern = r'Kqlmagic version: [0-9]+\.[0-9]+\.[0-9]+'
 
 def test_ok(register_magic):

@@ -564,18 +564,30 @@ class MarkdownString(object):
     can present the string as markdown, html, and text
      """
 
-    def __init__(self, markdown_string: str):
+    def __init__(self, markdown_string: str, title: str=None):
         self.markdown_string = markdown_string
+        self.title = title
 
 
     # Printable unambiguous presentation of the object
     def __repr__(self):
-        html = self._repr_html_()
+        html = markdown(self.markdown_string)
         return ''.join(BeautifulSoup(html, features="lxml").findAll(text=True))
 
 
     def _repr_html_(self):
-        return markdown(self.markdown_string)
+        return f"""
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>{Constants.MAGIC_PACKAGE_NAME} - {self.title}</title>
+        </head>
+        <body>
+        {markdown(self.markdown_string)}
+        </body>
+        </html>
+        """
 
 
     def _repr_markdown_(self):
@@ -629,4 +641,4 @@ def execute_help_command(topic: str):
         help_topic_string = "Sorry, not implemented yet."
     elif help_topic_string == 'config':
         return 'config'
-    return MarkdownString(help_topic_string)
+    return MarkdownString(help_topic_string, title=f"help {topic}")

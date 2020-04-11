@@ -76,19 +76,20 @@ class VisualizationKeys(object):
 
     VISUALIZATION = "Visualization"
     """Visualization indicates the kind of visualization to use. The supported values are:
-        anomalychart	Similar to timechart, but highlights anomalies using an external machine-learning service.
+        anomalychart	Similar to timechart, but highlights anomalies using series_decompose_anomalies function.
         areachart	    Area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
-        barchart	    First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
-        columnchart	    Like barchart, with vertical strips instead of horizontal strips.
+        barchart	    First column is the x-axis and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
+        cards           First result record is treated as set of scalar values and shows as a card.
+        columnchart	    Like barchart with vertical strips instead of horizontal strips.
         ladderchart	    Last two columns are the x-axis, other columns are y-axis.
         linechart	    Line graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         piechart	    First column is color-axis, second column is numeric.
         pivotchart	    Displays a pivot table and chart. User can interactively select data, columns, rows and various chart types.
-        scatterchart	Points graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
+        scatterchart	Points graph. First column is x-axis and should be a numeric column. Other numeric columns are y-axes.
         stackedareachart	Stacked area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         table	        Default - results are shown as a table.
-        timechart	    Line graph. First column is x-axis, and should be datetime. Other columns are y-axes.
-        timepivot	    Interactive navigation over the events time-line (pivoting on time axis)    
+        timechart	    Line graph. First column is x-axis, and should be datetime. Other (numeric) columns are y-axes. There is one string column whose values are used to "group" the numeric columns and create different lines in the chart (further string columns are ignored).
+        timepivot	    Interactive navigation over the events time-line (pivoting on time axis)   
     """
 
     TITLE = "Title"
@@ -105,6 +106,12 @@ class VisualizationKeys(object):
 
     SERIES = "Series"
     "Comma-delimited list of columns whose combined per-record values define the series that record belongs to."
+
+    Y_MIN = "ymin"
+    "The minimum value to be displayed on Y-axis."
+
+    Y_MAX = "ymax"
+    "The maximum value to be displayed on Y-axis"
 
     Y_COLUMNS = "YColumns"
     "Comma-delimited list of columns that consist of the values provided per value of the x column."
@@ -153,10 +160,13 @@ class VisualizationKeys(object):
                     unstacked	    Same as default.
                     stacked	        Stack "columns" one atop the other.
                     stacked100	    Stack "columns" and stretch each one to the same height as the others.
+    piechart        map             Expected columns are [Longitude, Latitude] or GeoJSON point, color-axis and numeric. Supported in Kusto Explorer desktop.
+    scatterchart    map             Expected columns are [Longitude, Latitude] or GeoJSON point. Series column is optional. Supported in Kusto Explorer desktop.
     """
    
     # TODO: find out what it means
     ANOMALY_COLUMNS = "AnomalyColumns"
+    """Property relevant only for anomalychart. Comma-delimited list of columns which will be considered as anomaly series and displayed as points on the chart"""
  
 class VisualizationValues(object):
     TABLE              =            "table"
@@ -236,3 +246,67 @@ class SsoCrypto(object):
 class DpapiParam(object):
     DESCRIPTION = "description"
     SALT        =        "salt"
+
+class Profile(object):
+    app = {
+
+        "nteract": {
+            "support_javascript":       True,
+            "support_deep_link_script": False,
+            "support_auth_script":      False,
+                    "support_reconnect_script": False,
+            "support_file_url":         False,
+                    "support_help_menu":        False,
+                    "support_json_object":      True,
+        },
+
+        "azuredatastudio": {
+            "support_javascript":       True,
+            "support_deep_link_script": True,
+            "support_auth_script":      True,
+                    "support_reconnect_script": False,
+            "support_file_url":         True,
+                    "support__help_menu":       False,
+                    "support_json_object":      False,
+        },
+
+        "visualstudiocode": {
+            "support_javascript":       True,
+            "support_deep_link_script": True,
+            "support_auth_script":      True,
+                    "support_reconnect_script": False,
+            "support_file_url":         True,
+                    "support__help_menu":       False,
+                    "support_json_object":      False,
+        },
+
+        "jupyternotebook": {
+            "support_javascript":       True,
+            "support_deep_link_script": True,
+            "support_auth_script":      True,
+                    "support_reconnect_script": True,
+            "support_file_url":         True,
+                    "support__help_menu":       True,
+                    "support_json_object":      False,
+        },
+
+        "jupyterlab": {
+            "support_javascript":       True,
+            "support_deep_link_script": True,
+            "support_auth_script":      True,
+                    "support_reconnect_script": False,
+            "support_file_url":         True,
+                    "support__help_menu":       False,
+                    "support_json_object":      True,
+        },
+
+        "ipython": {
+            "support_javascript":       True,
+            "support_deep_link_script": True,
+            "support_auth_script":      True,
+                    "support_reconnect_script": False,
+            "support_file_url":         True,
+                    "support__help_menu":       False,
+                    "support_json_object":      False,
+        }
+    }

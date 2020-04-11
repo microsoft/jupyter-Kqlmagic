@@ -38,7 +38,7 @@ def initialize():
         # key is unique per ipkernel instance
         key = connection_info.get("key").decode(encoding="utf-8")
         log_level = log_level or logging.DEBUG
-        log_file = log_file or ((log_file_prefix or 'Kqlmagic') + '-' + key + '.log')
+        log_file = log_file or f"{log_file_prefix or 'Kqlmagic'}-{key}.log"
         # handler's default mode is 'a' (append)
         log_file_mode = (log_file_mode or "w").lower()[:1]
         log_handler = logging.FileHandler(log_file, mode=log_file_mode)

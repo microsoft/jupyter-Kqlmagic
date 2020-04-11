@@ -35,7 +35,7 @@ class ParentUnixMonitor(Thread):
         while True:
             try:
                 if os.getppid() == 1:
-                    print("Parent appears to have exited, shutting down.")
+                    print(f">>> Parent appears to have exited, shutting down.")
                     os_exit(1)
                     break
                 time.sleep(1.0)
@@ -80,7 +80,7 @@ class ParentWindowsMonitor(Thread):
                 if parent_exist:
                     time.sleep(1.0)
                 else:
-                    print("Parent appears to have exited, shutting down.")
+                    print(">>> Parent appears to have exited, shutting down.")
                     os_exit(1)
                     break
                     
@@ -112,14 +112,15 @@ def after_request_func(response):
     return response
 
 
-@app.route('/files/<foldername>/<kernelid>/<filename>')
-def files(foldername, kernelid, filename):
+@app.route('/files/<foldername>/<kernel_id>/<filename>')
+def files(foldername, kernel_id, filename):
     """return content of filename as the response body."""
-    if len(folderlist) == 0 or f"{foldername}/{kernelid}" in folderlist:
-        err_resp = check_path(foldername, kernelid, filename)
+    _kernel_id = request.args.get("kernelid")
+    if len(folderlist) == 0 or f"{foldername}/{kernel_id}" in folderlist:
+        err_resp = check_path(foldername, kernel_id, filename)
         if err_resp is not None:
             return err_resp
-        file_path = f"{base_folder}/{foldername}/{kernelid}/{filename}"
+        file_path = f"{base_folder}/{foldername}/{kernel_id}/{filename}"
         # print(f">>> files file_path: {file_path}")
         return send_file(file_path)
 
@@ -127,13 +128,13 @@ def files(foldername, kernelid, filename):
 @app.route('/folders/<foldername>')
 def folders(foldername):
     """return content of filename as the response body."""
-    kernelid = request.args.get("kernelid")
-    filename = request.args.get("filename")
-    if len(folderlist) == 0 or f"{foldername}/{kernelid}" in folderlist:
-        err_resp = check_path(foldername, kernelid, filename)
+    _kernel_id = request.args.get("kernelid")
+    _filename = request.args.get("filename")
+    if len(folderlist) == 0 or f"{foldername}/{_kernel_id}" in folderlist:
+        err_resp = check_path(foldername, _kernel_id, _filename)
         if err_resp is not None:
             return err_resp
-        file_path = f"{base_folder}/{foldername}/{kernelid}/{filename}"
+        file_path = f"{base_folder}/{foldername}/{_kernel_id}/{_filename}"
         # print(f">>> folders file_path: {file_path}")
         return send_file(file_path)
 
@@ -141,17 +142,19 @@ def folders(foldername):
 @app.route('/ping')
 def ping():
     """print 'pong' as the response body."""
+    _kernel_id = request.args.get("kernelId")
     return 'pong'
 
 @app.route('/webbrowser')
 def webbrowser():
     """open web browser."""
-    encoded_url = request.args.get('url')
+    _encoded_url = request.args.get("url")
+    _kernel_id = request.args.get("kernelId")
     # print(f">>> url: {encoded_url}")
     try:
         import urllib.parse
         import webbrowser
-        url = urllib.parse.unquote(encoded_url)
+        url = urllib.parse.unquote(_encoded_url)
         webbrowser.open(url, new=1, autoraise=True)
     except:
         pass
@@ -167,11 +170,12 @@ def webbrowser():
 @app.route('/abort')
 def abort():
     """aborts the process"""
+    _kernel_id = request.args.get("kernelId")
     os_exit(1)
     return ''
 
 
-def check_path(foldername, kernelid, filename):
+def check_path(foldername, kernel_id, filename):
     err_resp = None
     if not os.path.exists(f"{base_folder}"):
         err_resp = make_response(f"Base folder '{base_folder}' not found", 404)
@@ -179,11 +183,11 @@ def check_path(foldername, kernelid, filename):
     elif not os.path.exists(f"{base_folder}/{foldername}"):
         err_resp = make_response(f"Folder {base_folder}/{foldername} not found", 404)
 
-    elif not os.path.exists(f"{base_folder}/{foldername}/{kernelid}"):
-        err_resp = make_response(f"Folder {base_folder}/{foldername}/{kernelid}  not found", 404)
+    elif not os.path.exists(f"{base_folder}/{foldername}/{kernel_id}"):
+        err_resp = make_response(f"Folder {base_folder}/{foldername}/{kernel_id}  not found", 404)
 
-    elif not os.path.exists(f"{base_folder}/{foldername}/{kernelid}/{filename}"):
-        err_resp = make_response(f"File {base_folder}/{foldername}/{kernelid}/{filename} not found", 404)
+    elif not os.path.exists(f"{base_folder}/{foldername}/{kernel_id}/{filename}"):
+        err_resp = make_response(f"File {base_folder}/{foldername}/{kernel_id}/{filename} not found", 404)
     return err_resp
 
 
@@ -204,26 +208,26 @@ def os_exit(code):
     if os_exit_started is None:
         os_exit_started = True
         try:
-            print(f'OS_EXIT code: {code}!!!')
+            print(f'>>> OS_EXIT code: {code}!!!')
             to_clean = params.get("clean", None)
             if to_clean is not None and len(folderlist) > 0:
                 for folder in folderlist:
                     try:
                         folder_path = f"{base_folder}/{folder}"
-                        print(f'start to clean {folder_path}')
+                        print(f'>>> start to clean {folder_path}')
                         for filename in os.listdir(folder_path):
                             try:
                                 file_path = f"{base_folder}/{folder}/{filename}"
                                 os.unlink(file_path)
                             except:
-                                print(f'Failed to clean {file_path}, reason: {e}')
+                                print(f'>>> Failed to clean {file_path}, reason: {e}')
                         os.rmdir(folder_path)
-                        print(f'done to clean {folder_path}')
+                        print(f'>>> done to clean {folder_path}')
                     except Exception as e:
-                        print(f'Failed to clean {folder_path}, reason: {e}')
+                        print(f'>>> Failed to clean {folder_path}, reason: {e}')
         except:
-            print('Failed to delete to clean')
-        print(f'done all clean')
+            print('>>> Failed to delete to clean')
+        print(f'>>> done all clean')
         # time.sleep(60.0)
         os._exit(code)
 

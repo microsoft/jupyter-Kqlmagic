@@ -7,6 +7,7 @@
 import re
 
 
+from .constants import Constants
 from .display import Display
 from .kusto_engine import KustoEngine
 from .ai_engine import AppinsightsEngine
@@ -106,7 +107,7 @@ class Database_html(object):
             table_metadata_tree = database_metadata_tree.get(table)
             item += Database_html._convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs)
         header = connectionName
-        title = f"{connectionName.replace('@', '_at_')} schema"
+        title = f"{Constants.MAGIC_PACKAGE_NAME} - {connectionName.replace('@', '_at_')} schema"
         result = Database_html.database_metadata_html.format(
             title, Database_html.database_metadata_scripts, Database_html.database_metadata_css, header, item
         )

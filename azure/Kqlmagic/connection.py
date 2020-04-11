@@ -92,7 +92,7 @@ class Connection(object):
             raise KqlEngineError(
                 'invalid connection_str, connection_str pattern "database@cluster" cannot be used for "appinsights", "loganalytics" and "cache"'
             )
-        cluster_conn_name = "@" + cluster_friendly_name
+        cluster_conn_name = f"@{cluster_friendly_name}"
         cluster_conn = cls.connections.get(cluster_conn_name)
         if cluster_conn is None:
             raise KqlEngineError(
@@ -148,7 +148,7 @@ class Connection(object):
 
     @classmethod
     def get_connection_list_by_schema(cls, uri_schema_name):
-        prefix = uri_schema_name + "://"
+        prefix = f"{uri_schema_name}://"
         return [k for k in Connection.connection_list() if cls.connections[k].bind_url.startswith(prefix)]
 
 

@@ -11,32 +11,36 @@ class Help_html(object):
     """
     """
 
-    notebooks_host = None
     showfiles_base_url = None
     _pending_helps = {}
 
 
     @staticmethod
-    def flush(window_location, **options):
-        if window_location.startswith("http://localhost") or window_location.startswith("https://localhost"):
+    def flush(window_location:str, options:dict={}):
+        if (window_location.startswith("http://localhost") 
+            or window_location.startswith("https://localhost")
+            or window_location.startswith("http://127.0.0.")
+            or window_location.startswith("https://127.0.0.")):
             start = window_location[8:].find("/") + 9
             parts = window_location[start:].split("/")
             parts.pop()
             Help_html.showfiles_base_url = window_location[:start] + "/".join(parts)
         else:
-            if Help_html.notebooks_host:
-                host = Help_html.notebooks_host or ""
+            notebook_service_address = options.get("notebook_service_address")
+            if notebook_service_address is not None:
+                host = notebook_service_address or ""
                 start = host.find("//") + 2
                 suffix = "." + host[start:]
             else:
                 suffix = ".notebooks.azure.com"
             end = window_location.find(suffix)
+
             start = window_location.find("//")
             # azure notebook environment, assume template: https://library-user.libray.notebooks.azure.com
             if start > 0 and end > 0 and ('-' in window_location):
                 library, user = window_location[start + 2 : end].split("-", 1)
-                azure_notebooks_host = Help_html.notebooks_host or "https://notebooks.azure.com"
-                Help_html.showfiles_base_url = f"{azure_notebooks_host}/api/user/{user} /library/{library}/html"
+                host = notebook_service_address or "https://notebooks.azure.com"
+                Help_html.showfiles_base_url = f"{host}/api/user/{user}/library/{library}/html"
             # assume just a remote kernel, as local
             else:
                 parts = window_location.split("/")

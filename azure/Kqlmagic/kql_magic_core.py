@@ -175,7 +175,7 @@ class Kqlmagic_core(object):
         logger().debug("Kqlmagic::_start - add kql page reference to jupyter help")
         self._add_kql_ref_to_help(**options)
         logger().debug("Kqlmagic::_start - add help items to jupyter help")
-        self._add_help_to_jupyter_help_menu(None, options, start_time=time.time())
+        self._add_help_to_jupyter_help_menu(None, start_time=time.time(), options=options)
 
         logger().debug("Kqlmagic::_start - show banner")
         if options.get("show_init_banner"):
@@ -211,26 +211,14 @@ class Kqlmagic_core(object):
 
 
     def _init_options(self):
-
-        notebooks_host = os.getenv("AZURE_NOTEBOOKS_HOST")
-        Display.notebooks_host = Help_html.notebooks_host = notebooks_host
-
-        kernel_id = self.get_notebook_kernel_id() or "kernel_id"
-        setattr(self.default_options, "kernel_id", kernel_id)
-
-        temp_files_server = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_TEMP_FILES_SERVER")
-        if temp_files_server is not None:
-            setattr(self.default_options, "temp_files_server", temp_files_server)
-        temp_files_server = getattr(self.default_options, "temp_files_server")
-
         self._override_default_configuration()
 
-        app = getattr(self.default_options, "notebook_app", "auto")
-
         _kernel_location = None
+        app = getattr(self.default_options, "notebook_app", "auto")
         if app == "auto": # ELECTRON_RUN_AS_NODE, MPLBACKEND
-            if notebooks_host is not None:
-                app = "jupyternotebook"
+            notebook_service_address = getattr(self.default_options, "notebook_service_address")
+            if notebook_service_address is not None:
+                app = "azurenotebook"
                 _kernel_location = "remote"
             elif os.getenv("ADS_LOGS") is not None and os.getenv("ADS_LOGS").find('azuredatastudio') >= 0:
                 app = "azuredatastudio"
@@ -256,8 +244,7 @@ class Kqlmagic_core(object):
                 app = "ipython"
 
             if app == "auto":
-                notebooks_host = notebooks_host or self.get_notebook_host_from_running_processes()
-                app = "jupyternotebook"
+                    app = "jupyternotebook"
 
             setattr(self.default_options, "notebook_app", app)
             # print(f">>> notebook_app: {app}")
@@ -269,11 +256,12 @@ class Kqlmagic_core(object):
                 app_info = self.get_app_from_parent()
                 kernel_location = app_info.get("kernel_location", kernel_location)
             if kernel_location == "auto":           
-                if notebooks_host is not None:
+                if app in ["azurenotebook"]:
                     kernel_location = "remote"
                 elif app in ["ipython"]:
                     kernel_location = "local"
                 elif app in ["visualstudiocode", "azuredatastudio", "nteract"]:
+                    temp_files_server = getattr(self.default_options, "temp_files_server")
                     kernel_location = "auto" if temp_files_server in ["auto", "kqlmagic"] else "remote"
 
                 # it can stay "auto", maybe based on NOTEBOOK_URL it will be discovered
@@ -284,6 +272,7 @@ class Kqlmagic_core(object):
         parsed_queries = Parser.parse(f"dummy_query\n", self.default_options, _ENGINES, {})
         # parsed_queries = Parser.parse("%s\n%s" % ("dummy_query", ""), self.default_options, _ENGINES, {})
         options = parsed_queries[0]["options"]
+
         return options
 
 
@@ -324,6 +313,7 @@ class Kqlmagic_core(object):
 
 
     def get_notebook_host_from_running_processes(self):
+        found_item = None
         try:
             import psutil
 
@@ -333,13 +323,16 @@ class Kqlmagic_core(object):
                     for item in cmdline:
                         item = item.lower()
                         if item.endswith("notebooks.azure.com"):
-                            return item
+                            if item.startswith("https://"):
+                                return item
+                            elif item.startswith("http://") or found_item is None:
+                                found_item = item
                 except:
                     pass
         except:
             pass
 
-        return None
+        return found_item
 
 
     def get_notebook_kernel_id(self):
@@ -668,7 +661,7 @@ class Kqlmagic_core(object):
                 options = parsed["options"]
                 command = parsed["command"].get("command")
 
-                self._add_help_to_jupyter_help_menu(user_ns, options)
+                self._add_help_to_jupyter_help_menu(user_ns, options=options)
                 self._set_temp_files_server(options=options)
 
                 if command is None or command == "submit":
@@ -684,11 +677,11 @@ class Kqlmagic_core(object):
                     elif command == "faq":
                         result = execute_faq_command()
                     elif command == "config":
-                        result = self.execute_config_command(param, options)
+                        result = self.execute_config_command(param=param, options=options)
                     elif command == "help":
                         result = execute_help_command(param)
                         if result == "config":
-                            result = self.execute_config_command("None", options)
+                            result = self.execute_config_command(param="None", options=options)
                     elif command == "cache":
                         result = self.execute_cache_command(param)
                     elif command == "use_cache":
@@ -763,8 +756,8 @@ class Kqlmagic_core(object):
                 return None
             raise 
 
-    def execute_config_command(self, params, options):
-        if params == "None":
+    def execute_config_command(self, param:str=None, options:dict={}):
+        if param == "None":
             from io import StringIO
             c = self.default_options
             help_all = []
@@ -795,12 +788,12 @@ class Kqlmagic_core(object):
             # added 4 blanks in begining of each line, to maked md formatter keep format as is
             return MarkdownString("    " + mystdout.getvalue().replace("\n","\n    "), title="config")
 
-        if params == "":
+        if param == "":
             message = f"{Constants.MAGIC_PACKAGE_NAME} doesn't have '' option"
             Display.showDangerMessage(message)
             return None
 
-        kv = params.split(sep='=', maxsplit=1)
+        kv = param.split(sep='=', maxsplit=1)
         key, value = Parser.parse_default_option_key("default_configuration", kv[0], self.default_options) or (None, None)
         if key is not None:
             if len(kv) == 1:
@@ -836,7 +829,7 @@ class Kqlmagic_core(object):
             Display.showInfoMessage(msg)
 
 
-    def _add_help_to_jupyter_help_menu(self, user_ns, options, start_time=None):
+    def _add_help_to_jupyter_help_menu(self, user_ns, start_time=None, options:dict={}):
         if Help_html.showfiles_base_url is None and self.default_options.notebook_app not in ["azuredatastudio", "ipython", "visualstudiocode", "nteract"]:
             if start_time is not None:
                 self._discover_notebook_url_start_time = start_time
@@ -854,7 +847,7 @@ class Kqlmagic_core(object):
                             kernel_location = "remote"
                         setattr(self.default_options, "kernel_location", kernel_location)
                         options["kernel_location"] = getattr(self.default_options, "kernel_location")
-                    Help_html.flush(window_location, notebook_app=self.default_options.notebook_app)
+                    Help_html.flush(window_location, options=options)
 
             if Help_html.showfiles_base_url is None:
                 Display.kernelExecute("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}""", **options)
@@ -1090,8 +1083,79 @@ class Kqlmagic_core(object):
         for example:
         {Constants.MAGIC_CLASS_NAME_UPPER}_CONFIGURATION = 'auto_limit = 1000; auto_dataframe = True' """
 
+        #
+        # kernel_id
+        #
+        kernel_id = self.get_notebook_kernel_id() or "kernel_id"
+        setattr(self.default_options, "kernel_id", kernel_id)
+
+        #
+        # KQLMAGIC_NOTEBOOK_SERVICE_ADDRESS
+        #
+        notebook_service_address = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_NOTEBOOK_SERVICE_ADDRESS") or os.getenv("AZURE_NOTEBOOKS_HOST")
+        if notebook_service_address is None and (os.getenv("AZURE_NOTEBOOKS_SERVER_URL") is not None or os.getenv("AZURE_NOTEBOOKS_VMVERSION") is not None):
+            notebook_service_address = self.get_notebook_host_from_running_processes()
+            if notebook_service_address is None or (not notebook_service_address.startswith("https://") and not notebook_service_address.startswith("http://")):
+                notebook_service_address = "https://notebooks.azure.com"
+        if notebook_service_address is not None:
+            setattr(self.default_options, "notebook_service_address", notebook_service_address)
+
+        #
+        # KQLMAGIC_TEMP_FILES_SERVER
+        #
+        temp_files_server = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_TEMP_FILES_SERVER")
+        if temp_files_server is not None:
+            setattr(self.default_options, "temp_files_server", temp_files_server)
+
+        #
+        # KQLMAGIC_DEVICE_CODE_NOTIFICATION_EMAIL
+        #
+        email_details = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_DEVICE_CODE_NOTIFICATION_EMAIL")
+        if email_details:
+            setattr(self.default_options, 'device_code_notification_email', email_details.strip())
+
+        #
+        # KQLMAGIC_NOTEBOOK_APP
+        #
+        app = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_NOTEBOOK_APP")
+        if app is not None:
+            lookup_key = app.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
+            app = {
+                "jupyterlab": "jupyterlab",
+                "azurenotebook": "azurenotebook",
+                "jupyternotebook": "jupyternotebook", 
+                "ipython": "ipython", 
+                "visualstudiocode": "visualstudiocode",
+                "azuredatastudio": "azuredatastudio",
+                "nteract": "nteract",
+                "lab": "jupyterlab", 
+                "notebook": "jupyternotebook", 
+                "ipy": "ipython", 
+                "vsc": "visualstudiocode",
+                "ads": "azuredatastudio",
+                "azure": "azurenotebook",
+                "azurenotebooks": "azurenotebook",
+                # "papermill":"papermill" #TODO: add "papermill"
+            }.get(lookup_key)
+            if app is not None:
+                setattr(self.default_options, 'notebook_app', app.strip())
+
+        #
+        # KQLMAGIC_LOAD_MODE
+        #
+        load_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOAD_MODE")
+        if load_mode:
+            load_mode = load_mode.strip().lower().replace("_", "").replace("-", "")
+            if load_mode.startswith("'") or load_mode.startswith('"'):
+                load_mode = load_mode[1:-1].strip()
+            if load_mode == "silent":
+                setattr(self.default_options, 'show_init_banner', False)
+
+        #
+        # KQLMAGIC_CONFIGURATION
+        #
         kql_magic_configuration = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_CONFIGURATION")
-        if kql_magic_configuration:
+        if kql_magic_configuration is not None:
             kql_magic_configuration = kql_magic_configuration.strip()
             if kql_magic_configuration.startswith("'") or kql_magic_configuration.startswith('"'):
                 kql_magic_configuration = kql_magic_configuration[1:-1]
@@ -1102,38 +1166,6 @@ class Kqlmagic_core(object):
                     kv = pair.split(sep="=", maxsplit=1)
                     key, value = Parser.parse_default_option("default_configuration", kv[0], kv[1], self.default_options)
                     setattr(self.default_options, key, value)
-
-        app = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_NOTEBOOK_APP")
-        if app is not None:
-            lookup_key = app.lower().strip().strip("\"'").replace("_", "").replace("-", "").replace("/", "")
-            app = {
-                "jupyterlab": "jupyterlab", 
-                "jupyternotebook": "jupyternotebook", 
-                "ipython": "ipython", 
-                "visualstudiocode": "visualstudiocode",
-                "azuredatastudio": "azuredatastudio",
-                "nteract": "nteract",
-                "lab": "jupyterlab", 
-                "notebook": "jupyternotebook", 
-                "ipy": "ipython", 
-                "vsc": "visualstudiocode",
-                "ads": "azuredatastudio"
-                # "papermill":"papermill" #TODO: add "papermill", "nteract"
-            }.get(lookup_key)
-            if app is not None:
-                setattr(self.default_options, 'notebook_app', app.strip())
-
-        email_details = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_DEVICE_CODE_NOTIFICATION_EMAIL")
-        if email_details:
-            setattr(self.default_options, 'device_code_notification_email', email_details.strip())
-
-        load_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOAD_MODE")
-        if load_mode:
-            load_mode = load_mode.strip().lower().replace("_", "").replace("-", "")
-            if load_mode.startswith("'") or load_mode.startswith('"'):
-                load_mode = load_mode[1:-1].strip()
-            if load_mode == "silent":
-                setattr(self.default_options, 'show_init_banner', False)
 
 
     def _set_default_connections(self, **options):

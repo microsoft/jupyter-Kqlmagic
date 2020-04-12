@@ -453,7 +453,18 @@ class Parser(object):
         
         "kernellocation": {"flag": "kernel_location", "readonly": "True", "type": "str", "config": "config.kernel_location"},
         "kernelid": {"flag": "kernel_id", "readonly": "True", "type": "str", "config": "config.kernel_id"},
+
+        "notebookserviceaddress": {"flag": "notebook_service_address", "readonly": "True", "type": "str", "config": "config.notebook_service_address"},
+
+
+        "plotlyconfig": {"flag": "plotly_config", "type": "dict", "config": "config.plotly_config"},
     }
+
+    reserved_list = [
+        "format", "scale", "width", "height", "filename","show"
+        "encoding",
+        "button_text"
+    ]
 
 
     @classmethod

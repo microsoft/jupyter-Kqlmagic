@@ -251,55 +251,68 @@ class ResultSet(list, ColumnGuesserMixin):
             return str(palette[idx])
         return None
 
+
+    # Public API   
     @property 
     def parametrized_query(self):
         return self.parametrized_query_obj.pretty_query
 
+
+    # Public API   
     @property
     def query(self):
         return self._metadata.get("parsed").get("query").strip()
 
 
+    # Public API   
     @property
     def plotly_fig(self):
-        return self._metadata.get("figure_or_data")
+        return self._metadata.get("chart_figure")
 
 
+    # Public API   
     @property
     def palette(self):
         return self._metadata.get("palette")
 
 
+    # Public API   
     @property
     def palettes(self):
         return Palettes(n_colors=self.options.get("palette_colors"), desaturation=self.options.get("palette_desaturation"))
 
 
+    # Public API   
     @property
     def connection(self):
         return self._metadata.get("connection")
 
 
+    # Public API   
     @property
     def start_time(self):
         return self._metadata.get("start_time")
 
 
+    # Public API   
     @property
     def end_time(self):
         return self._metadata.get("end_time")
 
 
+    # Public API   
     @property
     def elapsed_timespan(self):
         return self.end_time - self.start_time
 
 
+    # Public API   
     @property
     def visualization(self):
         return self.visualization_properties.get(VisualizationKeys.VISUALIZATION)
 
 
+    # Public API   
     @property
     def title(self):
         return self.visualization_properties.get(VisualizationKeys.TITLE)
@@ -308,14 +321,14 @@ class ResultSet(list, ColumnGuesserMixin):
     def deep_link(self, qld_param: str=None):
         if (qld_param and qld_param not in ["Kusto.Explorer", "Kusto.WebExplorer"]):
             raise ValueError('Unknow deep link destination, the only supported are: ["Kusto.Explorer", "Kusto.WebExplorer"]')
-        options = {**self.options, "query_link_destination": qld_param } if qld_param else self.options
-        deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, options)
+        _options = {**self.options, "query_link_destination": qld_param } if qld_param else self.options
+        deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, options=_options)
         # only use deep links for kusto connection
         if deep_link_url is not None: 
-            qld = options.get("query_link_destination").lower().replace('.', '_')
-            close_window_timeout_in_secs = 60 if options.get("query_link_destination") == "Kusto.Explorer" else None
+            qld = _options.get("query_link_destination").lower().replace('.', '_')
+            close_window_timeout_in_secs = 60 if _options.get("query_link_destination") == "Kusto.Explorer" else None
             # close opening window only for Kusto.Explorer app, for Kusto.WebExplorer leave window
-            html_obj = Display.get_show_deeplink_html_obj(f"query_link_{qld}", deep_link_url, close_window_timeout_in_secs, options=self.options)
+            html_obj = Display.get_show_deeplink_html_obj(f"query_link_{qld}", deep_link_url, close_window_timeout_in_secs, options=_options)
             return html_obj
         else:
             raise ValueError('Deep link not supported for this connection, only Azure Data Explorer connections are supported')
@@ -449,7 +462,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def show_button_to_deep_link(self, browser=False, display_handler_name=None):
         close_window_timeout_in_secs = 60 if self.options.get("query_link_destination") == "Kusto.Explorer" else None
-        deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, self.options)
+        deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, options=self.options)
 
         import urllib.parse
         # nteract cannot execute deep link script, workaround using temp_file_server webbrowser
@@ -509,16 +522,18 @@ class ResultSet(list, ColumnGuesserMixin):
             t = self._getTableHtml()
             html = Display.toHtml(**t, title='table')
         if options.get("popup_window") and not options.get("button_text"):
-            options["button_text"] = "popup " + "table" + ((" - " + self.title) if self.title else "") + " "
+            options["button_text"] = f'popup table{((" - " + self.title) if self.title else "")} '
         Display.show(html, display_handler_name=display_handler_name, **options)
         return None
 
 
+    # Public API   
     def popup_table(self, **kwargs):
         "display the table in popup window"
         return self.show_table(**{"popup_window": True, **kwargs})
 
 
+    # Public API   
     def display_table(self, **kwargs):
         "display the table in cell"
         return self.show_table(**{"popup_window": False, **kwargs})
@@ -570,6 +585,7 @@ class ResultSet(list, ColumnGuesserMixin):
             yield dict(zip(self.columns_name, row))
 
 
+    # Public API   
     def to_dataframe(self):
         "Returns a Pandas DataFrame instance built from the result set."
         if self._dataframe is None:
@@ -581,6 +597,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return self._dataframe
 
 
+    # Public API   
     def submit(self, override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
         "execute the query again"
         magic = self._metadata.get("magic")
@@ -594,7 +611,7 @@ class ResultSet(list, ColumnGuesserMixin):
             override_connection=override_connection)
 
 
-
+    # Public API   
     def refresh(self, override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
         "refresh the results of the query, on the same object: self"
 
@@ -614,52 +631,58 @@ class ResultSet(list, ColumnGuesserMixin):
             override_result_set=self)
 
 
+    # Public API   
     def popup(self):
         if self.is_chart():
             self.popup_Chart(**self.options)
         else:
             self.popup_table(**self.options)
 
-            
+
+    # Public API        
     def show_chart(self, display_handler_name=None, **kwargs):
         "display the chart that was specified in the query"
-        options = {**self.options, **kwargs}
-        window_mode = options is not None and options.get("popup_window")
+        _options = {**self.options, **kwargs}
+        window_mode = _options.get("popup_window")
 
-        if window_mode and not options.get("button_text"):
-            options["button_text"] = "popup " + self.visualization + ((" - " + self.title) if self.title else "") + " "
-        c = self._getChartHtml(window_mode, **options)
+        if window_mode and not _options.get("button_text"):
+            _options["button_text"] = "popup " + self.visualization + ((" - " + self.title) if self.title else "") + " "
+        c = self._getChartHtml(window_mode, options=_options)
         if c.get("body") or c.get("head"):
             html = Display.toHtml(**c, title='chart')
-            Display.show(html, display_handler_name=display_handler_name, **options)
+            Display.show(html, display_handler_name=display_handler_name, **_options)
         elif c.get("fig"):
-            if Display.notebooks_host or options.get("notebook_app") in ["jupyterlab", "visualstudiocode", "ipython"]: 
+            if _options.get("notebook_app") in ["azurenotebook", "jupyterlab", "visualstudiocode", "ipython"]: 
                 plotly.offline.init_notebook_mode(connected=True)
                 plotly.offline.iplot(c.get("fig"), filename="plotlychart")
             else:
-                Display.show(c.get("fig"), display_handler_name=display_handler_name, **options)
+                Display.show(c.get("fig"), display_handler_name=display_handler_name, **_options)
         else:
             return self.show_table(**kwargs)
 
 
-    def to_image(self, **params):
+    # Public API 
+    def to_image(self, **kwargs):
         "export image of the chart that was specified in the query to a file"
-        _options = {**self.options, **params}
+        _options = {**self.options, **kwargs}
 
-        if self.options.get("plot_package") == "plotly_orca" or self.options.get("plot_package") == "plotly":
+        if self.options.get("plot_package") in ["plotly_orca", "plotly", "plotly_widget"]:
 
+            # replace rendering to plotly, to make it work with _plotly_fig_to_image() below
             _options = {**self.options, **{"plot_package": "plotly"}}
-            fig = self._getChartHtml(window_mode=False, **_options).get("fig")
+            fig = self._getChartHtml(window_mode=False, options=_options).get("fig")
             if fig is not None:
 
-                filename = adjust_path(params.get("filename"))
-                file_or_image_bytes = self._plotly_fig_to_image(fig, filename, **params)
+                filename = adjust_path(kwargs.get("filename"))
+                if filename is not None:
+                    file_or_image_bytes = self._plotly_fig_to_image(fig, filename, options=_options)
 
-                if file_or_image_bytes:
+                    if file_or_image_bytes:
 
-                    return FileResultDescriptor(file_or_image_bytes, message="image results", format=params.get("format"), show=params.get("show"))
+                        return FileResultDescriptor(file_or_image_bytes, message="image results", format=_options.get("format"), show=_options.get("show"))
 
 
+    # Public API 
     def popup_Chart(self, **kwargs):
         "display the chart that was specified in the query in a popup window"
         return self.chart_popup(**kwargs)
@@ -686,11 +709,12 @@ class ResultSet(list, ColumnGuesserMixin):
 
     _SUPPORTED_PLOT_PACKAGES = [
         "plotly",
-        "plotly_orca"
+        "plotly_orca",
+        "plotly_widget"
     ]
 
 
-    def _getChartHtml(self, window_mode=False, **options):
+    def _getChartHtml(self, window_mode=False, options={}):
         "get query result in a char format as an HTML string"
         # https://kusto.azurewebsites.net/docs/queryLanguage/query_language_renderoperator.html
 
@@ -717,46 +741,42 @@ class ResultSet(list, ColumnGuesserMixin):
             body = f'<div id="uuid-{id}"><br><br>EMPTY CHART (no data)<br><br>.</div>'
             return {"body": body, "head": head}
 
-        figure_or_data = None
+        chart_obj = None
 
         # First column is color-axis, second column is numeric
         if self.visualization == VisualizationValues.PIE_CHART:
-            figure_or_data = self._render_piechart_plotly(self.visualization_properties, " ", **options)
-            # chart = self._render_pie(self.visualization_properties, " ")
+            chart_obj = self._render_piechart_plotly(self.visualization_properties, " ", options=options)
 
         # First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
         # kind = default, unstacked, stacked, stacked100 (Default, same as unstacked; unstacked - Each "area" to its own; stacked - "Areas" are stacked to the right; stacked100 - "Areas" are stacked to the right, and stretched to the same width)
         elif self.visualization == VisualizationValues.BAR_CHART:
-            figure_or_data = self._render_barchart_plotly(self.visualization_properties, " ", **options)
-            # chart = self._render_barh(self.visualization_properties, " ")
+            chart_obj = self._render_barchart_plotly(self.visualization_properties, " ", options=options)
 
         # Like barchart, with vertical strips instead of horizontal strips.
         # kind = default, unstacked, stacked, stacked100
         elif self.visualization == VisualizationValues.COLUMN_CHART:
-            figure_or_data = self._render_barchart_plotly(self.visualization_properties, " ", **options)
-            # chart = self._render_bar(self.visualization_properties, " ")
+            chart_obj = self._render_barchart_plotly(self.visualization_properties, " ", options=options)
 
         # Area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         # kind = default, unstacked, stacked, stacked100
         elif self.visualization == VisualizationValues.AREA_CHART:
-            figure_or_data = self._render_areachart_plotly(self.visualization_properties, " ", **options)
-            # chart = self._render_areachart(self.visualization_properties, " ")
+            chart_obj = self._render_areachart_plotly(self.visualization_properties, " ", options=options)
 
         # Line graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         elif self.visualization == VisualizationValues.LINE_CHART:
-            figure_or_data = self._render_linechart_plotly(self.visualization_properties, " ", **options)
+            chart_obj = self._render_linechart_plotly(self.visualization_properties, " ", options=options)
 
         # Line graph. First column is x-axis, and should be datetime. Other columns are y-axes.
         elif self.visualization == VisualizationValues.TIME_CHART:
-            figure_or_data = self._render_timechart_plotly(self.visualization_properties, " ", **options)
+            chart_obj = self._render_timechart_plotly(self.visualization_properties, " ", options=options)
 
         # Similar to timechart, but highlights anomalies using an external machine-learning service.
         elif self.visualization == VisualizationValues.ANOMALY_CHART:
-            figure_or_data = self._render_linechart_plotly(self.visualization_properties, " ", **options)
+            chart_obj = self._render_linechart_plotly(self.visualization_properties, " ", options=options)
 
         # Stacked area graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         elif self.visualization == VisualizationValues.STACKED_AREA_CHART:
-            figure_or_data = self._render_stackedareachart_plotly(self.visualization_properties, " ", **options)
+            chart_obj = self._render_stackedareachart_plotly(self.visualization_properties, " ", options=options)
 
         # Last two columns are the x-axis, other columns are y-axis.
         elif self.visualization == VisualizationValues.LADDER_CHART:
@@ -775,12 +795,16 @@ class ResultSet(list, ColumnGuesserMixin):
 
         # Points graph. First column is x-axis, and should be a numeric column. Other numeric columns are y-axes
         elif self.visualization == VisualizationValues.SCATTER_CHART:
-            figure_or_data = self._render_scatterchart_plotly(self.visualization_properties, " ", **options)
+            chart_obj = self._render_scatterchart_plotly(self.visualization_properties, " ", options=options)
 
-        if figure_or_data is not None:
-            self._metadata["figure_or_data"] = figure_or_data
+        if chart_obj is None:
+            return {}
+
+        chart_figure = self._figure_or_figurewidget(data=chart_obj.get("data"), layout=chart_obj.get("layout"), window_mode=window_mode, options=options)
+        if chart_figure is not None:
+            self._metadata["chart_figure"] = chart_figure
             if options.get("plot_package") == "plotly_orca":
-                image_bytes = self._plotly_fig_to_image(figure_or_data, None, **options)
+                image_bytes = self._plotly_fig_to_image(chart_figure, None, options=options)
                 image_base64_bytes= base64.b64encode(image_bytes)
                 image_base64_str = image_base64_bytes.decode("utf-8")
                 image_html_str = f"""<div><img src='data:image/png;base64,{image_base64_str}'></div>"""
@@ -789,40 +813,39 @@ class ResultSet(list, ColumnGuesserMixin):
             elif window_mode:
                 head = '<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>' if not self.options.get("plotly_fs_includejs") else None
                 body = plotly.offline.plot(
-                    figure_or_data,
+                    chart_figure,
                     include_plotlyjs=window_mode and self.options.get("plotly_fs_includejs", False), 
                     output_type="div"
                 )
                 return {"body": body, "head": head}
 
             else:
-                return {"fig": figure_or_data}
+                return {"fig": chart_figure}
         return {}
 
 
-    def _plotly_fig_to_image(self, fig, filename, **kwargs) -> bytes:
-        params = kwargs or {}
+    def _plotly_fig_to_image(self, fig, filename:str, options:dict={}) -> bytes:
         try:
             if filename: #requires plotly orca package
-
                 fig.write_image(
                     adjust_path(filename),
-                    format=params.get("format"), 
-                    scale=params.get("scale"), width=params.get("width"), height=params.get("height")
+                    format=options.get("format"), 
+                    scale=options.get("scale"), width=options.get("width"), height=options.get("height")
                 )
                 # plotly.io.write_image(
-                #     fig, file, format=params.get("format"), scale=params.get("scale"), width=params.get("width"), height=params.get("height")
+                #     fig, file, format=options.get("format"), scale=options.get("scale"), width=options.get("width"), height=options.get("height")
                 # )
                 return filename        
             else:
                 return plotly.io.to_image(
-                    fig, format=params.get("format"), scale=params.get("scale"), width=params.get("width"), height=params.get("height")
+                    fig, format=options.get("format"), scale=options.get("scale"), width=options.get("width"), height=options.get("height")
                 )
         except:
             # display image with 'orca is missing'
             plotly_orca_is_missing_base64_png: str = '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'
             plotly_orca_is_missing_bytes_png: bytes = base64.b64decode(plotly_orca_is_missing_base64_png)
             return plotly_orca_is_missing_bytes_png
+
 
     @classmethod
     def _init_matplotlib(cls, **options):
@@ -1186,9 +1209,9 @@ class ResultSet(list, ColumnGuesserMixin):
         return chart_properties
 
 
-    def _figure_or_figurewidget(self, data, layout, **options):
+    def _figure_or_figurewidget(self, data, layout, window_mode:bool, options:dict={}):
 
-        if ipywidgets_installed and options.get("plot_package") == "plotly_widget":
+        if ipywidgets_installed and options.get("plot_package") == "plotly_widget" and not window_mode:
             # print("----------- FigureWidget --------------")
             fig = go.FigureWidget(data=data, layout=layout)
         else:
@@ -1197,7 +1220,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return fig
 
 
-    def _render_areachart_plotly(self, properties: dict, key_word_sep=" ", **options):
+    def _render_areachart_plotly(self, properties: dict, key_word_sep=" ", options:dict={}):
         """Generates a pylab plot from the result set.
 
         Area graph. 
@@ -1237,11 +1260,10 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
-        return fig
+        return {"data": data, "layout": layout}
 
 
-    def _render_stackedareachart_plotly(self, properties:dict, key_word_sep=" ", **options):
+    def _render_stackedareachart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
         """Generates a pylab plot from the result set.
 
         Stacked area graph. 
@@ -1288,11 +1310,10 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
-        return fig
+        return {"data": data, "layout": layout}
 
 
-    def _render_timechart_plotly(self, properties: dict, key_word_sep=" ", **options):
+    def _render_timechart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
         """Generates a pylab plot from the result set.
 
         Line graph. 
@@ -1341,11 +1362,10 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
-        return fig
+        return {"data": data, "layout": layout}
 
 
-    def _render_piechart_plotly(self, properties: dict, key_word_sep=" ", **options):
+    def _render_piechart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
         """Generates a pylab plot from the result set.
 
         Pie chart. 
@@ -1405,11 +1425,10 @@ class ResultSet(list, ColumnGuesserMixin):
                 for idx, tab in enumerate(self.chart_sub_tables)
             ],
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
-        return fig
+        return {"data": data, "layout": layout}
 
 
-    def _render_barchart_plotly(self, properties: dict, key_word_sep=" ", **options):
+    def _render_barchart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
         """Generates a pylab plot from the result set.
 
         Bar chart. 
@@ -1449,11 +1468,10 @@ class ResultSet(list, ColumnGuesserMixin):
                 range=chart_properties.get("range") if chart_properties.get("orientation") != "h" else None,
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
-        return fig
+        return {"data": data, "layout": layout}
 
 
-    def _render_linechart_plotly(self, properties: dict, key_word_sep=" ", **options):
+    def _render_linechart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
         """Generates a pylab plot from the result set.
 
         Line graph. 
@@ -1491,11 +1509,10 @@ class ResultSet(list, ColumnGuesserMixin):
                 # ticksuffix=''
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
-        return fig
+        return {"data": data, "layout": layout}
 
 
-    def _render_scatterchart_plotly(self, properties: dict, key_word_sep=" ", **options):
+    def _render_scatterchart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
         """Generates a pylab plot from the result set.
 
         Points graph. 
@@ -1533,8 +1550,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 ticksuffix="",
             ),
         )
-        fig = self._figure_or_figurewidget(data=data, layout=layout, **options)
-        return fig
+        return {"data": data, "layout": layout}
 
 
 class PrettyTable(prettytable.PrettyTable):

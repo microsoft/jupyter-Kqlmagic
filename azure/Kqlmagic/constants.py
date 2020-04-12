@@ -290,6 +290,16 @@ class Profile(object):
                     "support_json_object":      False,
         },
 
+        "azurenotebook": {
+            "support_javascript":       True,
+            "support_deep_link_script": True,
+            "support_auth_script":      True,
+                    "support_reconnect_script": True,
+            "support_file_url":         True,
+                    "support__help_menu":       True,
+                    "support_json_object":      False,
+        },
+        
         "jupyterlab": {
             "support_javascript":       True,
             "support_deep_link_script": True,

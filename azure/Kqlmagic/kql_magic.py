@@ -18,7 +18,7 @@ from .log import logger
 logger().debug("kql_magic.py - import Configurable from traitlets.config.configurable")
 from traitlets.config.configurable import Configurable
 logger().debug("kql_magic.py - import Bool, Int, Float, Unicode, Enum, TraitError, validate from traitlets")
-from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate, TraitType
+from traitlets import Bool, Int, Float, Unicode, Enum, Dict, TraitError, validate, TraitType
 
 logger().debug("kql_magic.py - import Magics, magics_class, cell_magic, line_magic, needs_local_scope from IPython.core.magic")
 try:
@@ -71,7 +71,7 @@ kql_core_obj = None
 class Kqlmagic(Magics, Configurable):
 
     auto_limit = Int(
-        0, 
+        default_value=0, 
         config=True, 
         allow_none=True, 
         help="""Automatically limit the size of the returned result sets.\n
@@ -80,21 +80,21 @@ class Kqlmagic(Magics, Configurable):
 
     prettytable_style = Enum(
         ["DEFAULT", "MSWORD_FRIENDLY", "PLAIN_COLUMNS", "RANDOM"],
-        "DEFAULT",
+        default_value="DEFAULT",
         config=True,
         help="""Set the table printing style to any of prettytable's defined styles.\n
         Abbreviation: 'ptst'"""
     )
 
     short_errors = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help="""Don't display the full traceback on KQL Programming Error.\n
         Abbreviation: 'se'"""
     )
 
     display_limit = Int(
-        None,
+        default_value=None,
         config=True,
         allow_none=True,
         help="""Automatically limit the number of rows displayed (full result set is still stored).\n
@@ -102,21 +102,21 @@ class Kqlmagic(Magics, Configurable):
     )
 
     auto_dataframe = Bool(
-        False, 
+        default_value=False, 
         config=True, 
         help="""Return Pandas dataframe instead of regular result sets.\n
         Abbreviation: 'ad'"""
     )
 
     columns_to_local_vars = Bool(
-        False, 
+        default_value=False, 
         config=True, 
         help="""Return data into local variables from column names.\n
         Abbreviation: 'c2lv'"""
     )
 
     feedback = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help="""Show number of records returned, and assigned variables.\n
         Abbreviation: 'f'"""
@@ -124,7 +124,7 @@ class Kqlmagic(Magics, Configurable):
 
     show_conn_info = Enum(
         ["list", "current", "None"],
-        "current",
+        default_value="current",
         config=True,
         allow_none=True,
         help="""Show connection info, either current, the whole list, or None.\n
@@ -132,7 +132,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     dsn_filename = Unicode(
-        "odbc.ini",
+        default_value="odbc.ini",
         config=True,
         allow_none=True,
         help="""Sets path to DSN file.\n
@@ -142,35 +142,35 @@ class Kqlmagic(Magics, Configurable):
 
     cloud = Enum(
         [Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST],
-        Cloud.PUBLIC,
+        default_value=Cloud.PUBLIC,
         config=True,
         help="""Default cloud\n
         the kql connection will use the cloud as specified"""
     )
 
     enable_sso = Bool(
-        False, 
+        default_value=False, 
         config = True, 
         help=f"""Enables or disables SSO.\n
         If enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME_UPPER}_SSO_ENCRYPTION_KEYS is set properly."""
     )
 
     sso_db_gc_interval = Int(
-        168, 
+        default_value=168, 
         config=True,
         help= """Garbage Collection interval for not changed SSO cache entries. Default is one week."""
     )
 
     device_code_login_notification = Enum(
         ["auto", "button", "popup_interaction", "browser", "terminal", "email"],
-        "auto", 
+        default_value="auto", 
         config = True,
         help = """Sets device_code login notification method.\n
         Abbreviation: 'dcln'"""
     )
 
     device_code_notification_email = Unicode(
-        "", 
+        default_value="", 
         config=True, 
         help=f"""Email details. Should be set by {Constants.MAGIC_CLASS_NAME_UPPER}_DEVICE_CODE_NOTIFICATION_EMAIL.\n
         the email details string format is: SMTPEndPoint='endpoint';SMTPPort='port';sendFrom='email';sendFromPassword='password';sendTo='email';context='text'\n
@@ -178,7 +178,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     timeout = Int(
-        None, 
+        default_value=None, 
         config=True, 
         allow_none=True, 
         help="""Specifies the maximum time in seconds, to wait for a query response. None, means default http wait time.\n
@@ -187,7 +187,7 @@ class Kqlmagic(Magics, Configurable):
 
     plot_package = Enum(
         ["None", "plotly", "plotly_orca", 'plotly_widget'], 
-        "plotly", 
+        default_value="plotly", 
         config=True, 
         help="""Set the plot package (plotlt_orca requires plotly orca to be installed on the server).\n 
         Abbreviation: 'pp'"""
@@ -195,41 +195,41 @@ class Kqlmagic(Magics, Configurable):
 
     table_package = Enum(
         ["prettytable", "pandas", "plotly", "qgrid"], 
-        "prettytable", 
+        default_value="prettytable", 
         config=True, 
         help="Set the table display package. Abbreviation: tp"
     )
 
     last_raw_result_var = Unicode(
-        "_kql_raw_result_", 
+        default_value="_kql_raw_result_", 
         config=True, 
         help="""Set the name of the variable that will contain last raw result.\n
         Abbreviation: 'var'"""
     )
 
     enable_suppress_result = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help="""Suppress result when magic ends with a semicolon ;.\n 
         Abbreviation: 'esr'"""
     )
 
     show_query_time = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help="""Print query execution elapsed time.\n 
         Abbreviation: 'sqt'"""
     )
 
     show_query = Bool(
-        False, 
+        default_value=False, 
         config=True, 
         help="""Print parametrized query.\n
         Abbreviation: 'sq'"""
     )
 
     show_query_link = Bool(
-        False, 
+        default_value=False, 
         config=True, 
         help="""Show query deep link as a button, to run query in the deafult tool.\n
         Abbreviation: ''sql'"""
@@ -237,26 +237,26 @@ class Kqlmagic(Magics, Configurable):
 
     query_link_destination = Enum(
         ["Kusto.Explorer", "Kusto.WebExplorer"], 
-        "Kusto.WebExplorer", 
+        default_value="Kusto.WebExplorer", 
         config=True, help="""Set the deep link destination.\n
         Abbreviation: 'qld'"""
     )
 
     plotly_fs_includejs = Bool(
-        False,
+        default_value=False,
         config=True,
         help="""Include plotly javascript code in popup window. If set to False (default), it download the script from https://cdn.plot.ly/plotly-latest.min.js.\n
         Abbreviation: 'pfi'"""
     )
 
     validate_connection_string = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help="Validate connectionString with an implicit query, when query statement is missing. Abbreviation: vc"
     )
 
     auto_popup_schema = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help="""Popup schema when connecting to a new database.\n
         Abbreviation: 'aps'"""
@@ -264,48 +264,49 @@ class Kqlmagic(Magics, Configurable):
 
     json_display = Enum(
         ["auto", "raw", "formatted"], 
-        "formatted", 
+        default_value="formatted", 
         config=True, 
         help="""Set json/dict display format.\n
         Abbreviation: 'jd'"""
     )
 
     palette_name = Unicode(
-        Palettes.DEFAULT_NAME, 
+        default_value=Palettes.DEFAULT_NAME, 
         config=True, 
         help="""Set pallete by name to be used for charts.\n
         Abbreviation: 'pn'"""
     )
 
     palette_colors = Int(
-        Palettes.DEFAULT_N_COLORS, 
+        default_value=Palettes.DEFAULT_N_COLORS, 
         config=True, 
         help="""Set pallete number of colors to be used for charts.\n
         Abbreviation: 'pc'"""
     
     )
     palette_desaturation = Float(
-        Palettes.DEFAULT_DESATURATION, 
+        default_value=Palettes.DEFAULT_DESATURATION, 
         config=True, 
         help="""Set pallete desaturation to be used for charts.\n
         Abbreviation: 'pd'"""
     )
 
     temp_folder_name = Unicode(
-        f"{Constants.MAGIC_CLASS_NAME}_temp_files", 
+        default_value=f"{Constants.MAGIC_CLASS_NAME}_temp_files", 
         config=True, 
         help="""Set the folder name for temporary files"""
     )
 
+    # TODO: export files not used yet
     export_folder_name = Unicode(
-        f"{Constants.MAGIC_CLASS_NAME}_exported_files", 
+        default_value=f"{Constants.MAGIC_CLASS_NAME}_exported_files", 
         config=True, 
-        help="""Set the folder name  for exported files"""
+        help="""Set the folder name for exported files"""
     )
 
     popup_interaction = Enum(
         ["auto", "button", "reference", "webbrowser_open_at_kernel", "reference_popup"],
-        "auto",
+        default_value="auto",
         config=True, 
         help="""Set popup interaction.\n
         Abbreviation: 'pi'"""        
@@ -313,13 +314,13 @@ class Kqlmagic(Magics, Configurable):
 
     temp_files_server = Enum(
         ["auto", "jupyter", "kqlmagic", "disabled"],
-        "auto" if flask_installed else "disabled",
+        default_value="auto" if flask_installed else "disabled",
         config=True, 
         help="""Temp files server."""        
     )
 
     temp_files_server_address = Unicode(
-        None, 
+        default_value=None, 
         config=True, 
         allow_none=True, 
         help="""Temp files server address."""        
@@ -327,85 +328,91 @@ class Kqlmagic(Magics, Configurable):
 
     kernel_location = Enum(
         ["auto", "local", "remote"],
-        "auto",
+        default_value="auto",
         config=True, 
         help="""Kernel location"""    
     )
 
     cache_folder_name = Unicode(
-        f"{Constants.MAGIC_CLASS_NAME}_cache_files", 
+        default_value=f"{Constants.MAGIC_CLASS_NAME}_cache_files", 
         config=True, 
         help="Set the folder name for cache files"
     )
 
-    # valid values: jupyterlab or jupyternotebook
+    notebook_service_address = Unicode(
+        default_value=None, 
+        config=True, 
+        allow_none=True, 
+        help="""Notebook service address."""        
+    )
+
     notebook_app = Enum(
-        ["auto", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
-        "auto", 
+        ["auto", "jupyterlab", "azurenotebook", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
+        default_value="auto", 
         config=True, 
         help="""Set notebook application used."""
     ) #TODO: add "papermill"
 
     test_notebook_app = Enum(
-        ["none", "jupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
-        "none", 
+        ["none", "jupyterlab", "azurenotebook", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
+        default_value="none", 
         config=True, 
         help="""Set testing application mode, results should return for the specified notebook application."""
     ) #TODO: add "papermill"
 
     kernel_id = Unicode(
-        None, 
+        default_value=None, 
         config=True,
         allow_none=True, 
         help="Current notebook kernel_id"
     )
 
     add_kql_ref_to_help = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help=f"""On {Constants.MAGIC_CLASS_NAME} load, auto add kql reference to Help menu."""
     )
 
     add_schema_to_help = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help="""On connection to database@cluster add  schema to Help menu."""
     )
 
     cache = Unicode(
-        None, 
+        default_value=None, 
         config=True, 
         allow_none=True, 
         help="""Cache query results to the specified folder."""
     )
 
     use_cache = Unicode(
-        None, 
+        default_value=None, 
         config=True, 
         allow_none=True, 
         help="""Use cached query results from the specified folder, instead of executing the query."""
     )
 
     check_magic_version = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help=f"""On {Constants.MAGIC_CLASS_NAME} load, check whether new version of {Constants.MAGIC_CLASS_NAME} exist"""
     )
 
     show_what_new = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help=f"""On {Constants.MAGIC_CLASS_NAME} load, get history file of {Constants.MAGIC_CLASS_NAME} and show what new button to open it"""
     )
 
     show_init_banner = Bool(
-        True, 
+        default_value=True, 
         config=True, 
         help=f"""On {Constants.MAGIC_CLASS_NAME} load, show init banner"""
     )
 
     request_id_tag = Unicode(
-        None, 
+        default_value=None, 
         config=True, 
         allow_none=True, 
         help=f"""Tags request 'x-ms-client-request-id' header.\n
@@ -414,7 +421,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     request_app_tag = Unicode(
-        None, 
+        default_value=None, 
         config=True, 
         allow_none=True, 
         help=f"""Tags request 'x-ms-app' header.\n
@@ -423,12 +430,20 @@ class Kqlmagic(Magics, Configurable):
     )
 
     request_user_tag = Unicode(
-        None, 
+        default_value=None, 
         config=True, 
         allow_none=True, 
         help=f"""Tags request 'x-ms-user' header.\n
         Header pattern: {{tag}}\n
         Abbreviation: 'usertag'"""
+    )
+
+    # TODO: utilize using fig.show shouw(comfig=..) instead of oofline.iplot
+    plotly_config = Dict(
+        default_value=None,
+        config=True, 
+        allow_none=True, 
+        help=f"""plotly configuration options. see: https://plotly.com/python/configuration-options."""
     )
   
     logger().debug("Kqlmagic:: - define class code")

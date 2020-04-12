@@ -1,2 +1,2 @@
-Kqlmagic==0.1.111.post5
+Kqlmagic==0.1.111.post6
 ipywidgets>=7.5.1

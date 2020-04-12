@@ -197,7 +197,6 @@ class Display(object):
     showfiles_url_base_path = None
     showfiles_file_base_path = None
     showfiles_folder_name = None
-    notebooks_host = None
 
 
     @staticmethod
@@ -431,7 +430,7 @@ class Display(object):
     @staticmethod
     def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, close_itself_timeout_in_secs=None, options={}):
         # if isText is True, file_path is the text
-        notebooks_host = 'text' if isText else (Display.notebooks_host or "")
+        host_or_text = 'text' if isText else (options.get("notebook_service_address") or "")
         onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
         button_text = button_text or "popup window"
         window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
@@ -457,7 +456,7 @@ class Display(object):
             <div style='{style}'>
             {before_text}
             <button onclick="this.style.visibility='{onclick_visibility}';
-            kql_MagicLaunchWindowFunction('{file_path}', '{window_params}', '{window_name}', '{notebooks_host}');
+            kql_MagicLaunchWindowFunction('{file_path}', '{window_params}', '{window_name}', '{host_or_text}');
             kql_MagicCloseWindow(kql_Magic_{window_name}, {str(close_window_timeout_in_secs)}, {str(close_itself_timeout_in_secs)});">
             {button_text}</button>{after_text}
             </div>
@@ -479,9 +478,9 @@ class Display(object):
                 }}
             }}
 
-            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {{
+            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, host_or_text) {{
                 var url;
-                if (notebooks_host == 'text') {{
+                if (host_or_text == 'text') {{
                     url = ''
                 }} else if (file_path.startsWith('http')) {{
                     url = file_path;
@@ -489,7 +488,7 @@ class Display(object):
                     var base_url = '';
 
                     // check if azure notebook
-                    var azure_host = (notebooks_host == null || notebooks_host.length == 0) ? 'https://notebooks.azure.com' : notebooks_host;
+                    var azure_host = (host_or_text == null || host_or_text.length == 0) ? 'https://notebooks.azure.com' : host_or_text;
                     var start = azure_host.search('//');
                     var azure_host_suffix = '.' + azure_host.substring(start+2);
 
@@ -555,7 +554,7 @@ class Display(object):
     @staticmethod
     def _get_Launch_page_html(window_name, file_path, close_window_timeout_in_secs, close_itself_timeout_in_secs, isText, options={}):
         # if isText is True, file_path is the text
-        notebooks_host = 'text' if isText else (Display.notebooks_host or "")
+        host_or_text = 'text' if isText else (options.get("notebook_service_address") or "")
         window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
         if window_name[0] in "0123456789":
             window_name = f"w_{window_name}"
@@ -588,9 +587,9 @@ class Display(object):
                 }}
             }}
 
-            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, notebooks_host) {{
+            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, host_or_text) {{
                 var url;
-                if (notebooks_host == 'text') {{
+                if (host_or_text == 'text') {{
                     url = ''
                 }} else if (file_path.startsWith('http')) {{
                     url = file_path;
@@ -598,7 +597,7 @@ class Display(object):
                     var base_url = '';
 
                     // check if azure notebook
-                    var azure_host = (notebooks_host == null || notebooks_host.length == 0) ? 'https://notebooks.azure.com' : notebooks_host;
+                    var azure_host = (host_or_text == null || host_or_text.length == 0) ? 'https://notebooks.azure.com' : host_or_text;
                     var start = azure_host.search('//');
                     var azure_host_suffix = '.' + azure_host.substring(start+2);
 
@@ -655,7 +654,7 @@ class Display(object):
                 kql_Magic_{window_name} = window_obj;
             }}
 
-            kql_MagicLaunchWindowFunction('{file_path}', '{window_params}', '{window_name}', '{notebooks_host}');
+            kql_MagicLaunchWindowFunction('{file_path}', '{window_params}', '{window_name}', '{host_or_text}');
 
             kql_MagicCloseWindow(kql_Magic_{window_name}, {str(close_window_timeout_in_secs)}, {str(close_itself_timeout_in_secs)});
 

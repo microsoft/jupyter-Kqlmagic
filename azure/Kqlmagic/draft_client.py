@@ -158,7 +158,7 @@ class DraftClient(object):
         else:
             client_request_id = f"{client_request_id};{str(uuid.uuid4())}"
 
-        app = f"{Constants.MAGIC_CLASS_NAME}"
+        app = f'{Constants.MAGIC_CLASS_NAME};{options.get("notebook_app")}'
         app_tag = options.get("request_app_tag")
         if app_tag is not None:
             app = f"{app};{app_tag}"

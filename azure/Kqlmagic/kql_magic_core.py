@@ -271,7 +271,7 @@ class Kqlmagic_core(object):
 
         table_package = getattr(self.default_options, "table_package", "auto")
         if table_package == "auto":
-            if app in ["azurenotebook", "nteract"]:
+            if app in ["azuredatastudio", "nteract"]:
                 table_package = "pandas_html_table_schema"
             else:
                 table_package = "prettytable"

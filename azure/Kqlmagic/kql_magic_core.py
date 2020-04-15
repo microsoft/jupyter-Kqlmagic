@@ -269,6 +269,14 @@ class Kqlmagic_core(object):
             setattr(self.default_options, "kernel_location", kernel_location)
             # print(f">>> kernel_location: {kernel_location}")
 
+        table_package = getattr(self.default_options, "table_package", "auto")
+        if table_package == "auto":
+            if app in ["azurenotebook", "nteract"]:
+                table_package = "pandas_html_table_schema"
+            else:
+                table_package = "prettytable"
+            setattr(self.default_options, "table_package", table_package)
+
         parsed_queries = Parser.parse(f"dummy_query\n", self.default_options, _ENGINES, {})
         # parsed_queries = Parser.parse("%s\n%s" % ("dummy_query", ""), self.default_options, _ENGINES, {})
         options = parsed_queries[0]["options"]

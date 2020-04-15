@@ -511,19 +511,38 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def show_table(self, display_handler_name=None, **kwargs):
         "display the table"
+
         options = {**self.options, **kwargs}
+
         if len(self) == 1 and len(self[0]) == 1  and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
-            Display.show(Display.to_styled_class(self[0][0]), display_handler_name=display_handler_name, **options)
-            return None
-        elif options.get("table_package", "").upper() == "PANDAS":
-            t = self.to_dataframe()._repr_html_()
-            html = Display.toHtml(body=t, title='table')
+            content = Display.to_styled_class(self[0][0])
         else:
-            t = self._getTableHtml()
-            html = Display.toHtml(**t, title='table')
-        if options.get("popup_window") and not options.get("button_text"):
-            options["button_text"] = f'popup table{((" - " + self.title) if self.title else "")} '
-        Display.show(html, display_handler_name=display_handler_name, **options)
+            if options.get("table_package", "").lower() in ["pandas", "pandas_html_table_schema"]:
+                import pandas as pd
+                df = self.to_dataframe()
+                display_limit = options.get("display_limit")
+                if display_limit is not None:
+                    df = df.head(display_limit)
+                pd.set_option('display.max_rows', display_limit)
+                pd.set_option('display.max_columns', None)
+                pd.set_option('display.min_rows', display_limit)
+                pd.set_option('display.large_repr', "truncate")
+
+                if options.get("table_package", "").lower() == "pandas_html_table_schema" and not options.get("popup_window"):
+                    pd.options.display.html.table_schema = True
+                    content = df
+                else:
+                    pd.options.display.html.table_schema = False
+                    t = df._repr_html_()
+                    content = Display.toHtml(body=t, title='table')
+            else:
+                t = self._getTableHtml()
+                content = Display.toHtml(**t, title='table')
+
+            if options.get("popup_window") and not options.get("button_text"):
+                options["button_text"] = f'popup table{((" - " + self.title) if self.title else "")} '
+
+        Display.show(content, display_handler_name=display_handler_name, **options)
         return None
 
 

@@ -194,8 +194,8 @@ class Kqlmagic(Magics, Configurable):
     )
 
     table_package = Enum(
-        ["prettytable", "pandas", "plotly", "qgrid"], 
-        default_value="prettytable", 
+        ["auto", "prettytable", "pandas", "plotly", "qgrid", "pandas_html_table_schema"], 
+        default_value="auto", 
         config=True, 
         help="Set the table display package. Abbreviation: tp"
     )
@@ -489,7 +489,18 @@ class Kqlmagic(Magics, Configurable):
             raise TraitError(message)
         return proposal["value"]
 
-        
+
+    @validate("table_package")
+    def _valid_value_table_package(self, proposal):
+        try:
+            if proposal["value"] == "auto":
+                raise ValueError("cannot be set to auto, after instance is loaded")
+        except (AttributeError , ValueError) as e:
+            message = f"The 'table_package' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
+            raise TraitError(message)
+        return proposal["value"]     
+
+
     @validate("temp_files_server")
     def _valid_value_temp_files_server(self, proposal):
         try:

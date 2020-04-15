@@ -65,7 +65,7 @@ class Kqlmagic_core(object):
     # make sure the right python version is used
     validate_required_python_version_running(Constants.MINIMAL_PYTHON_VERSION_REQUIRED)
 
-    logger().debug("Kqlmagic:: - define class code")
+    logger().debug("Kqlmagic:: - define class Kqlmagic_core")
 
 
     def execute_cache_command(self, cache_name:str) -> str:

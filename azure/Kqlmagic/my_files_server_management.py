@@ -13,6 +13,7 @@ import subprocess as sub
 import requests
 
 
+from .log import logger
 from .constants import Constants
 from .display import Display
 
@@ -36,6 +37,7 @@ class FilesServerManagement(object):
         self._is_registered = False
         self._is_started = False
         self._kernel_id = options.get("kernel_id")
+        logger().debug(f"FilesServerManagement::startServer init: server_py_code: {server_py_code}, server_url: {self._server_url}, base_folder: {base_folder}, folders: {folders}, _kernel_id: {self._kernel_id}")
 
 
     def get_notused_port(self, host=""):
@@ -87,34 +89,41 @@ class FilesServerManagement(object):
 
 
     def startServer(self):
+        logger().debug(f"FilesServerManagement::startServer")
         if not self._is_started or not self.pingServer():
             python_exe = sys.executable or 'python'
             os.environ['FLASK_ENV'] = "development"
             window_visibility = os.getenv(f'{Constants.MAGIC_CLASS_NAME_UPPER}_FILES_SERVER_WINDOW_VISIBILITY')
-            show_window = window_visibility is not None and window_visibility.lower() == 'show'
+            show_window = window_visibility is not None and window_visibility.lower() == "show"
+            logger().debug(f"FilesServerManagement::startServer with show_window: {show_window}")
             if not show_window:
                 # must use double quotes for base folder and folders, to allow spaces (note single quoted does not work)
                 command = f'{python_exe} {self._server_py_code} -protocol={self._protocol} -host={self._host} -port={self._port} -base_folder="{self._base_folder}" -folders="{self._folders}" -parent_id="{os.getpid()}" -clean="folders"'
                 sub.Popen(command, shell=True)
+                logger().debug(f"FilesServerManagement::startServer start sub process command: {command}")
             else:
                 # must use double quotes for base folder and folders, to allow spaces (note single quoted does not work)
                 command = f'start /min /wait {python_exe} {self._server_py_code} -protocol={self._protocol} -host={self._host} -port={self._port} -base_folder="{self._base_folder}" -folders="{self._folders}" -parent_id="{os.getpid()}" -clean="folders"'
                 sub.Popen(command, shell=True)
+                logger().debug(f"FilesServerManagement::startServer start sub process command: {command}")
 
             self._is_started = True
 
         if not self._is_registered:
             Display._register_to_ipython_atexit(FilesServerManagement._abortServer, self._server_url, self._kernel_id)
             self._is_registered = True
+            logger().debug(f"FilesServerManagement::startServer _register_to_ipython_atexit: _abortServer({self._server_url}, {self._kernel_id})")
 
 
     def pingServer(self):
         try:
             ping_url = f'{self._server_url}/ping?kernelid={self._kernel_id}'
             requests.get(ping_url)
-            return True
+            result = True
         except:
-            return False
+            result = False
+        logger().debug(f"FilesServerManagement::startServer pingServer: url: {ping_url}, result: {result}")
+        return result
 
 
     def abortServer(self):
@@ -126,5 +135,7 @@ class FilesServerManagement(object):
         try:
             abort_url = f'{server_url}/abort?kernelid={kernel_id}'
             requests.get(abort_url)
+            result = True
         except:
-            None
+            result = False
+        logger().debug(f"FilesServerManagement::_abortServer abortServer: url: {abort_url}, result: {result}")

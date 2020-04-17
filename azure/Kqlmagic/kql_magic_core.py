@@ -247,6 +247,7 @@ class Kqlmagic_core(object):
                     app = "jupyternotebook"
 
             setattr(self.default_options, "notebook_app", app)
+            logger().debug(f"_init_options - set default option 'notebook_app' to: {app}")
             # print(f">>> notebook_app: {app}")
 
         kernel_location = getattr(self.default_options, "kernel_location", "auto")    
@@ -267,6 +268,7 @@ class Kqlmagic_core(object):
                 # it can stay "auto", maybe based on NOTEBOOK_URL it will be discovered
 
             setattr(self.default_options, "kernel_location", kernel_location)
+            logger().debug(f"_init_options - set default option 'kernel_location' to: {kernel_location}")
             # print(f">>> kernel_location: {kernel_location}")
 
         table_package = getattr(self.default_options, "table_package", "auto")
@@ -276,6 +278,7 @@ class Kqlmagic_core(object):
             else:
                 table_package = "prettytable"
             setattr(self.default_options, "table_package", table_package)
+            logger().debug(f"_init_options - set default option 'table_package' to: {table_package}")
 
         parsed_queries = Parser.parse(f"dummy_query\n", self.default_options, _ENGINES, {})
         # parsed_queries = Parser.parse("%s\n%s" % ("dummy_query", ""), self.default_options, _ENGINES, {})
@@ -538,6 +541,7 @@ class Kqlmagic_core(object):
             self.temp_files_server_manager.abortServer()
             self.temp_files_server_manager = None
             setattr(self.default_options, "temp_files_server_address", None)
+            logger().debug(f"_abort_temp_files_server - set defaul option 'temp_files_server_address' to: None")
             options["temp_files_server_address"] = None
             Display.showfiles_url_base_path = Display.showfiles_file_base_path
 
@@ -674,6 +678,10 @@ class Kqlmagic_core(object):
 
                 if command is None or command == "submit":
                     result = self._execute_query(parsed, user_ns, result_set=override_result_set, override_vars=override_vars)
+                    # can't just return result, it fails when used with table package  pandas_show_schema 
+                    if type(result) == ResultSet:
+                        result._repr_html_()
+                        return None
                 else:
                     param = parsed["command"].get("param")
                     if command == "version":
@@ -755,6 +763,7 @@ class Kqlmagic_core(object):
                                 return html_obj
             return result
         except Exception as e:
+            logger().error(f"execute_config_command - param: {param}")
             if parsed:
                 if parsed["options"].get("short_errors"):
                     Display.showDangerMessage(str(e))
@@ -765,6 +774,7 @@ class Kqlmagic_core(object):
             raise 
 
     def execute_config_command(self, param:str=None, options:dict={}):
+        logger().debug(f"execute_config_command - param: {param}")
         if param == "None":
             from io import StringIO
             c = self.default_options
@@ -786,6 +796,7 @@ class Kqlmagic_core(object):
                     # help = c.class_get_trait_help(trait)
                     # help += f"\n    Value: {getattr(self.default_options, name)}"
                     help_all.append(help)
+
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
             # this print is not for debug
@@ -810,6 +821,7 @@ class Kqlmagic_core(object):
                 try:
                     key, value = Parser.parse_default_option("default_configuration", key, kv[1], self.default_options)
                     setattr(self.default_options, key, value)
+                    logger().debug(f"execute_config_command - set default option '{key}' to: {value}")
                     options[key] = value
                 except Exception as e:
                     if options.get("short_errors"):
@@ -848,12 +860,14 @@ class Kqlmagic_core(object):
                     time.sleep(5 - seconds)
                 window_location = user_ns.get("NOTEBOOK_URL")
                 if window_location is not None:
+                    logger().debug(f"_add_help_to_jupyter_help_menu - got NOTEBOOK_URL value: {window_location}")
                     if getattr(self.default_options, "kernel_location") == "auto":
                         if window_location.find("//localhost:") >= 0 or "window_location".find("//127.0.0.") >= 0:
                             kernel_location = "local"
                         else:
                             kernel_location = "remote"
                         setattr(self.default_options, "kernel_location", kernel_location)
+                        logger().debug(f"_add_help_to_jupyter_help_menu - set default option 'kernel_location' to: {kernel_location}")
                         options["kernel_location"] = getattr(self.default_options, "kernel_location")
                     Help_html.flush(window_location, options=options)
 
@@ -1096,6 +1110,7 @@ class Kqlmagic_core(object):
         #
         kernel_id = self.get_notebook_kernel_id() or "kernel_id"
         setattr(self.default_options, "kernel_id", kernel_id)
+        logger().debug(f"_override_default_configuration - set default option 'kernel_id' to: {kernel_id}")
 
         #
         # KQLMAGIC_NOTEBOOK_SERVICE_ADDRESS
@@ -1107,6 +1122,7 @@ class Kqlmagic_core(object):
                 notebook_service_address = "https://notebooks.azure.com"
         if notebook_service_address is not None:
             setattr(self.default_options, "notebook_service_address", notebook_service_address)
+            logger().debug(f"_override_default_configuration - set default option 'notebook_service_address' to: {notebook_service_address}")
 
         #
         # KQLMAGIC_TEMP_FILES_SERVER
@@ -1119,8 +1135,10 @@ class Kqlmagic_core(object):
         # KQLMAGIC_DEVICE_CODE_NOTIFICATION_EMAIL
         #
         email_details = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_DEVICE_CODE_NOTIFICATION_EMAIL")
-        if email_details:
-            setattr(self.default_options, 'device_code_notification_email', email_details.strip())
+        if email_details is not None:
+            email_details = email_details.strip()
+            setattr(self.default_options, 'device_code_notification_email', email_details)
+            logger().debug(f"_override_default_configuration - set default option 'device_code_notification_email' to: {email_details}")
 
         #
         # KQLMAGIC_NOTEBOOK_APP
@@ -1146,7 +1164,9 @@ class Kqlmagic_core(object):
                 # "papermill":"papermill" #TODO: add "papermill"
             }.get(lookup_key)
             if app is not None:
-                setattr(self.default_options, 'notebook_app', app.strip())
+                app = app.strip()
+                setattr(self.default_options, 'notebook_app', app)
+                logger().debug(f"_override_default_configuration - set default option 'notebook_app' to: {app}")
 
         #
         # KQLMAGIC_LOAD_MODE
@@ -1158,6 +1178,7 @@ class Kqlmagic_core(object):
                 load_mode = load_mode[1:-1].strip()
             if load_mode == "silent":
                 setattr(self.default_options, 'show_init_banner', False)
+                logger().debug(f"_override_default_configuration - set default option 'show_init_banner' to: {False}")
 
         #
         # KQLMAGIC_CONFIGURATION
@@ -1174,17 +1195,19 @@ class Kqlmagic_core(object):
                     kv = pair.split(sep="=", maxsplit=1)
                     key, value = Parser.parse_default_option("default_configuration", kv[0], kv[1], self.default_options)
                     setattr(self.default_options, key, value)
+                    logger().debug(f"_override_default_configuration - set default option '{key}' to: {value}")
 
 
     def _set_default_connections(self, **options):
         connection_str = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_CONNECTION_STR")
-        if connection_str:
+        if connection_str is not None:
             connection_str = connection_str.strip()
             if connection_str.startswith("'") or connection_str.startswith('"'):
                 connection_str = connection_str[1:-1]
             
             try:
                 Connection(connection_str, {}, **options)
+                logger().debug(f"_set_default_connections - set default connection_str to: {connection_str}")
                 # ip = get_ipython()  # pylint: disable=E0602
                 # result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
                 # if conn and _get_kql_magic_load_mode() != "silent":

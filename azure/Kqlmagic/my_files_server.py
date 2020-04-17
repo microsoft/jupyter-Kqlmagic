@@ -29,19 +29,36 @@ class ParentUnixMonitor(Thread):
         super(ParentUnixMonitor, self).__init__()
         self.daemon = True
 
+
     def run(self):
         # We cannot use os.waitpid because it works only for child processes.
         from errno import EINTR
+
+        count = 1
+
         while True:
             try:
+                if count == 0:
+                    count = 60
+                    print(f">>> ParentUnixMonitor for ppid {os.getppid()}, parent is running.")
+                count -= 1
+
+                time.sleep(1.0)
+
                 if os.getppid() == 1:
                     print(f">>> Parent appears to have exited, shutting down.")
-                    os_exit(1)
+                    os_exit(0)
                     break
-                time.sleep(1.0)
+
             except OSError as e:
                 if e.errno != EINTR:
-                    raise
+                    error_message = f"ParentUnixMonitor failed. error: {e}"
+                    print(f">>> {error_message}, continue monitoring.")
+                    # raise
+
+            except Exception as ex:
+                error_message = f"ParentUnixMonitor failed. error: {ex}"
+                print(f">>> {error_message}, continue monitoring.")
 
 
 
@@ -52,41 +69,56 @@ class ParentWindowsMonitor(Thread):
 
 
     def __init__(self, parent_id=None):
-
-        assert(parent_id)
         super(ParentWindowsMonitor, self).__init__()
 
         self.daemon = True
         self.parent_id = parent_id
         self.parent_create_time = None
 
+
     def run(self):
         """ Run the monitor loop. This method never returns.
         """
         import psutil
         from errno import EINTR
+
+        count = 0
         # Listen forever.
         while True:
             try:
-                parent_exist = False
+
+                if count == 0:
+                    count = 60
+                    print(f">>> ParentWindowsMonitor for ppid {self.parent_id}, parent is running.")
+                count -= 1
+
+                time.sleep(1.0)
+
+                parent_proc_not_found = True
                 for proc in psutil.process_iter():
                     if proc.pid == self.parent_id:
                         proc_create_time = proc.create_time()
                         self.parent_create_time = self.parent_create_time or proc_create_time
                         # check proc.create_time to make sure the parent_id is not resued
                         if self.parent_create_time == proc_create_time:
-                            parent_exist = True
+                            parent_proc_not_found = False
                             break
-                if parent_exist:
-                    time.sleep(1.0)
-                else:
+
+                if parent_proc_not_found:
                     print(">>> Parent appears to have exited, shutting down.")
-                    os_exit(1)
+                    os_exit(0)
                     break
                     
             except OSError as e:
                 if e.errno != EINTR:
-                    raise
+                    error_message = f"ParentWindowsMonitor failed. error: {e}"
+                    print(f">>> {error_message}, continue monitoring.")
+                    # raise
+
+            except Exception as ex:
+                error_message = f"ParentWindowsMonitor failed. error: {ex}"
+                print(f">>> {error_message}, continue monitoring.")
+
 
 
 DEFAULT_PORT = "5000"
@@ -100,64 +132,109 @@ os_exit_started = None
 params = {}
 folderlist = []
 
+
 app = Flask("kqlmagic_temp_files_server")
 
 
 @app.after_request
 def after_request_func(response):
     """disable server and client cache"""
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, public, max-age=0"
-    response.headers["Expires"] = 0
-    response.headers["Pragma"] = "no-cache"
+    try:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, public, max-age=0"
+        response.headers["Expires"] = 0
+        response.headers["Pragma"] = "no-cache"
+
+    except Exception as ex:
+        error_message = f"after_request_func failed. error: {ex}"
+        print(f">>> {error_message}.")
+        pass
+
     return response
 
 
 @app.route('/files/<foldername>/<kernel_id>/<filename>')
 def files(foldername, kernel_id, filename):
     """return content of filename as the response body."""
-    _kernel_id = request.args.get("kernelid")
-    if len(folderlist) == 0 or f"{foldername}/{kernel_id}" in folderlist:
-        err_resp = check_path(foldername, kernel_id, filename)
-        if err_resp is not None:
-            return err_resp
-        file_path = f"{base_folder}/{foldername}/{kernel_id}/{filename}"
-        # print(f">>> files file_path: {file_path}")
-        return send_file(file_path)
+    try:
+        _kernel_id = request.args.get("kernelid")
+
+        if len(folderlist) == 0 or f"{foldername}/{kernel_id}" in folderlist:
+            err_resp = check_path(foldername, kernel_id, filename)
+            if err_resp is not None:
+                return err_resp
+            file_path = f"{base_folder}/{foldername}/{kernel_id}/{filename}"
+
+            return send_file(file_path)
+
+        else:
+            error_message = f"folder {foldername} not in {folderlist}"
+            print(f">>> {error_message}.")
+            return make_response(f"{error_message}, internal error", 404)
+
+    except Exception as ex:
+        error_message = f"/files/<foldername>/<kernel_id>/<filename> failed, error: {ex}"
+        print(f">>> {error_message}.")
+        return make_response(f"{error_message}, internal error", 500)
 
 
 @app.route('/folders/<foldername>')
 def folders(foldername):
     """return content of filename as the response body."""
-    _kernel_id = request.args.get("kernelid")
-    _filename = request.args.get("filename")
-    if len(folderlist) == 0 or f"{foldername}/{_kernel_id}" in folderlist:
-        err_resp = check_path(foldername, _kernel_id, _filename)
-        if err_resp is not None:
-            return err_resp
-        file_path = f"{base_folder}/{foldername}/{_kernel_id}/{_filename}"
-        # print(f">>> folders file_path: {file_path}")
-        return send_file(file_path)
+    try:
+        _kernel_id = request.args.get("kernelid")
+        _filename = request.args.get("filename")
+
+        if len(folderlist) == 0 or f"{foldername}/{_kernel_id}" in folderlist:
+            err_resp = check_path(foldername, _kernel_id, _filename)
+            if err_resp is not None:
+                return err_resp
+            file_path = f"{base_folder}/{foldername}/{_kernel_id}/{_filename}"
+            return send_file(file_path)
+
+        else:
+            error_message = f"folder {foldername} not in {folderlist}"
+            print(f">>> {error_message}.")
+            return make_response(f"{error_message}, internal error", 404)
+
+    except Exception as ex:
+        error_message = f"/folders/<foldername> failed. error: {ex}."
+        print(f">>> {error_message}.")
+        return make_response(f"{error_message}, internal error", 500)
+    
 
 
 @app.route('/ping')
 def ping():
     """print 'pong' as the response body."""
-    _kernel_id = request.args.get("kernelId")
-    return 'pong'
+    try:
+        _kernel_id = request.args.get("kernelId")
+
+        return f'pong kernelid: {_kernel_id}'
+
+    except Exception as ex:
+        error_message = f"/ping failed. error: {ex}"
+        print(f">>> {error_message}.")
+        return make_response(f"{error_message}, internal error", 500)
+    
 
 @app.route('/webbrowser')
 def webbrowser():
     """open web browser."""
-    _encoded_url = request.args.get("url")
-    _kernel_id = request.args.get("kernelId")
-    # print(f">>> url: {encoded_url}")
     try:
+        _encoded_url = request.args.get("url")
+        _kernel_id = request.args.get("kernelId")
+
         import urllib.parse
         import webbrowser
+
         url = urllib.parse.unquote(_encoded_url)
         webbrowser.open(url, new=1, autoraise=True)
-    except:
+
+    except Exception as ex:
+        error_message = f"/ping failed. error: {ex}"
+        print(f">>> {error_message}.")
         pass
+
     return """<!DOCTYPE html>
             <html><body>
             <script>
@@ -170,38 +247,65 @@ def webbrowser():
 @app.route('/abort')
 def abort():
     """aborts the process"""
-    _kernel_id = request.args.get("kernelId")
-    os_exit(1)
+    try:
+        _kernel_id = request.args.get("kernelId")
+
+        os_exit(0)
+
+    except Exception as ex:
+        error_message = f"/abort failed. error: {ex}"
+        print(f">>> {error_message}.")
+        raise ex
+
     return ''
 
 
 def check_path(foldername, kernel_id, filename):
     err_resp = None
-    if not os.path.exists(f"{base_folder}"):
-        err_resp = make_response(f"Base folder '{base_folder}' not found", 404)
+    try:
+        error_message = None
+        if not os.path.exists(f"{base_folder}"):
+            error_message = f"Base folder '{base_folder}' not found"
 
-    elif not os.path.exists(f"{base_folder}/{foldername}"):
-        err_resp = make_response(f"Folder {base_folder}/{foldername} not found", 404)
+        elif not os.path.exists(f"{base_folder}/{foldername}"):
+            error_message = f"Folder {base_folder}/{foldername} not found"
 
-    elif not os.path.exists(f"{base_folder}/{foldername}/{kernel_id}"):
-        err_resp = make_response(f"Folder {base_folder}/{foldername}/{kernel_id}  not found", 404)
+        elif not os.path.exists(f"{base_folder}/{foldername}/{kernel_id}"):
+            error_message = f"Folder {base_folder}/{foldername}/{kernel_id}  not found"
 
-    elif not os.path.exists(f"{base_folder}/{foldername}/{kernel_id}/{filename}"):
-        err_resp = make_response(f"File {base_folder}/{foldername}/{kernel_id}/{filename} not found", 404)
+        elif not os.path.exists(f"{base_folder}/{foldername}/{kernel_id}/{filename}"):
+            error_message = f"File {base_folder}/{foldername}/{kernel_id}/{filename} not found"
+
+        if error_message is not None:
+            err_resp = make_response(error_message, 404)
+            print(f">>> check_path failed, {error_message}. code: 404.")
+
+    except Exception as ex:
+        error_message = f"File {base_folder}/{foldername}/{kernel_id}/{filename}, error: {ex}"
+        print(f">>>check_path failed, {error_message}, code: 500")
+        err_resp = make_response(f"{error_message}, internal error", 500)
+
     return err_resp
 
 
 def init_parent_monitor(parent_id):
     if parent_id is not None:
-        parent_id = int(parent_id) 
+        try:
+            parent_id = int(parent_id) 
 
-        if sys.platform == 'win32':
-            return ParentWindowsMonitor(parent_id)
-        elif parent_id != 1:
-            # PID 1 (init) is special and will never go away,
-            # only be reassigned.
-            # Parent polling doesn't work if ppid == 1 to start with.
-            return ParentUnixMonitor()
+            if sys.platform == 'win32':
+                return ParentWindowsMonitor(parent_id)
+
+            elif parent_id != 1:
+                # PID 1 (init) is special and will never go away,
+                # only be reassigned.
+                # Parent polling doesn't work if ppid == 1 to start with.
+                return ParentUnixMonitor()
+        
+        except Exception as ex:
+            error_message = f"init_parent_monitor got an error: {ex}, parent monitor disabled"
+            print(f">>> {error_message}.")
+
 
 def os_exit(code):
     global os_exit_started
@@ -233,37 +337,52 @@ def os_exit(code):
 
 
 if __name__ == "__main__":
-    # print(f">>> argv: {sys.argv[1:]}")
-    import time
-    key = None
-    for arg in sys.argv[1:]:
-        kv = arg.split("=")
-        if arg.startswith('-') and len(kv) == 2:
-            key = kv[0][1:]
-            value = kv[1]
-            params[key] = value
-            key= None
+    try:
+        # print(f">>> argv: {sys.argv[1:]}")
+        import time
+        key = None
+        for arg in sys.argv[1:]:
+            kv = arg.split("=")
+            if arg.startswith('-') and len(kv) == 2:
+                key = kv[0][1:]
+                value = kv[1]
+                params[key] = value
+                key= None
 
-        elif key is not None:
-            params[key] = arg
-            key = None
+            elif key is not None:
+                params[key] = arg
+                key = None
 
-        elif arg.startswith('-'):
-            key = arg[1:]
+            elif arg.startswith('-'):
+                key = arg[1:]
 
-    # print(f">>> params: {params}")
-    base_folder = params.get("base_folder")       
-    if base_folder is not None:
-        base_folder = base_folder[:-1] if base_folder.endswith('/') else base_folder
-        folders = params.get("folders", [])
-        folderlist = [f[:-1] if f.endswith('/') else f for f in folders.split(",")]
-        port = params.get("port", DEFAULT_PORT)
-        host = params.get("host", DEFAULT_HOST)
-        parent_id = params.get("parent_id", None) 
-        parent_monitor = init_parent_monitor(parent_id)
-        if parent_monitor is not None:
-            parent_monitor.start()
-        print(f" * Base folder: {base_folder}")
-        print(f" * Folder list: {folderlist}")
-        print(f" * ")
-        app.run(host=host, port=port, debug=False, use_reloader=False, use_debugger=False)
+        # print(f">>> params: {params}")
+        base_folder = params.get("base_folder")       
+        if base_folder is not None:
+            base_folder = base_folder[:-1] if base_folder.endswith('/') else base_folder
+            folders = params.get("folders", [])
+            folderlist = [f[:-1] if f.endswith('/') else f for f in folders.split(",")]
+            port = params.get("port", DEFAULT_PORT)
+            host = params.get("host", DEFAULT_HOST)
+            parent_id = params.get("parent_id", None) 
+            parent_monitor = init_parent_monitor(parent_id)
+            if parent_monitor is not None:
+                print(f">>> start parent_monitor for parent id: {parent_id}")
+                parent_monitor.start()
+            print(f" * parent id: {parent_id}")
+            print(f" * Base folder: {base_folder}")
+            print(f" * Folder list: {folderlist}")
+            print(f" * ")
+            app.run(host=host, port=port, debug=False, use_reloader=False, use_debugger=False)
+
+        else:
+            error_message = f"__name__ failed. base_folder value is None"
+            print(f">>> {error_message}.")
+            time.sleep(5 * 60 * 1.0)
+            os._exit(1)
+
+    except Exception as ex:
+        error_message = f"__name__ failed. error: {ex}"
+        print(f">>> {error_message}.")
+        time.sleep(5 * 60 * 1.0)
+        os._exit(1)

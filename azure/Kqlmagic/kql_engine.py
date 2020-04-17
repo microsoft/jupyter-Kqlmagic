@@ -212,7 +212,8 @@ class KqlEngine(object):
 
 
     def _parse_connection_str(self, conn_str: str, user_ns: dict) -> dict:
-        logger().debug(f"kql_engine.py - _parse_connection_str - params:  conn_str: {conn_str}, user_ns: {safe_str(user_ns)}")
+        # logger().debug(f"kql_engine.py - _parse_connection_str - params:  conn_str: {conn_str}, user_ns: {safe_str(user_ns)}")
+        logger().debug(f"kql_engine.py - _parse_connection_str - params:  conn_str: {conn_str}")
         rest = conn_str[conn_str.find("://")+3:].strip()
         # get key/values in connection string
         parsed_conn_kv = Parser.parse_and_get_kv_string(rest, user_ns)
@@ -380,7 +381,8 @@ class KqlEngine(object):
     def _parse_common_connection_str(
         self, conn_str: str, current, uri_schema_name: str, mandatory_key: str, keys_combinations: list, user_ns: dict):
 
-        logger().debug(f"kql_engine.py -_parse_common_connection_str - params:  conn_str: {conn_str}; current: {current}, uri_schema_name: {uri_schema_name};mandatory_key: {mandatory_key}, valid_keys_combinations: {keys_combinations}, user_ns: {safe_str(user_ns)}")
+        # logger().debug(f"kql_engine.py -_parse_common_connection_str - params:  conn_str: {conn_str}; current: {current}, uri_schema_name: {uri_schema_name};mandatory_key: {mandatory_key}, valid_keys_combinations: {keys_combinations}, user_ns: {safe_str(user_ns)}")
+        logger().debug(f"kql_engine.py -_parse_common_connection_str - params:  conn_str: {conn_str}; current: {current}, uri_schema_name: {uri_schema_name};mandatory_key: {mandatory_key}, valid_keys_combinations: {keys_combinations}")
 
         try:
             parsed_conn_kv = self._parse_connection_str(conn_str, user_ns)

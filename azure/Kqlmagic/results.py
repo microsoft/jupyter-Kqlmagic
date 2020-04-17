@@ -324,7 +324,8 @@ class ResultSet(list, ColumnGuesserMixin):
         _options = {**self.options, "query_link_destination": qld_param } if qld_param else self.options
         deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, options=_options)
         # only use deep links for kusto connection
-        if deep_link_url is not None: 
+        if deep_link_url is not None:
+            logger().debug("ResultSet::deep_link - url: {deep_link_url}")
             qld = _options.get("query_link_destination").lower().replace('.', '_')
             close_window_timeout_in_secs = 60 if _options.get("query_link_destination") == "Kusto.Explorer" else None
             # close opening window only for Kusto.Explorer app, for Kusto.WebExplorer leave window
@@ -438,12 +439,14 @@ class ResultSet(list, ColumnGuesserMixin):
                 self.show_chart(**self.options, display_handler_name='table_or_chart')
             else:
                 self.show_table(**self.options, display_handler_name='table_or_chart')
+
             Display.showInfoMessage(feedback_info, display_handler_name='feedback_info', **self.options)
 
             if self.display_info and self.options.get("show_query_link"):
                 self.show_button_to_deep_link(display_handler_name='deep_link')
             else:
                 Display.showInfoMessage(None, display_handler_name='deep_link', **self.options)
+
         else:
             Display.showWarningMessage(None, display_handler_name='feedback_warning', **self.options)
             Display.showInfoMessage(None, display_handler_name='conn_info', **self.options)
@@ -464,17 +467,17 @@ class ResultSet(list, ColumnGuesserMixin):
         close_window_timeout_in_secs = 60 if self.options.get("query_link_destination") == "Kusto.Explorer" else None
         deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, options=self.options)
 
-        import urllib.parse
-        # nteract cannot execute deep link script, workaround using temp_file_server webbrowser
-        if self.options.get("notebook_app") in ["nteract"]:
-            if self.options.get("kernel_location") != "local" or self.options.get("temp_files_server_address") is None:
-                return None
-            qld = self.options.get("query_link_destination").lower().replace('.', '_')
-            deep_link_url = Display.get_show_deeplink_webbrowser_html_obj(f"query_link_{qld}", deep_link_url, close_window_timeout_in_secs, options=self.options)
-            deep_link_url = f'{self.options.get("temp_files_server_address")}/webbrowser?url={urllib.parse.quote(deep_link_url)}&kernelid={self.options.get("kernel_id")}'
-
-
         if deep_link_url is not None: #only use deep links for kusto connection 
+            logger().debug(f"ResultSet::show_button_to_deep_link - url: {deep_link_url}")
+            import urllib.parse
+            # nteract cannot execute deep link script, workaround using temp_file_server webbrowser
+            if self.options.get("notebook_app") in ["nteract"]:
+                if self.options.get("kernel_location") != "local" or self.options.get("temp_files_server_address") is None:
+                    return None
+                qld = self.options.get("query_link_destination").lower().replace('.', '_')
+                deep_link_url = Display.get_show_deeplink_webbrowser_html_obj(f"query_link_{qld}", deep_link_url, close_window_timeout_in_secs, options=self.options)
+                deep_link_url = f'{self.options.get("temp_files_server_address")}/webbrowser?url={urllib.parse.quote(deep_link_url)}&kernelid={self.options.get("kernel_id")}'
+
             qld = self.options.get("query_link_destination").lower().replace('.', '_')
             Display.show_window(
                 f"query_link_{qld}", 
@@ -519,18 +522,31 @@ class ResultSet(list, ColumnGuesserMixin):
         else:
             if options.get("table_package", "").lower() in ["pandas", "pandas_html_table_schema"]:
                 import pandas as pd
+
                 df = self.to_dataframe()
                 display_limit = options.get("display_limit")
                 if display_limit is not None:
                     df = df.head(display_limit)
+
                 pd.set_option('display.max_rows', display_limit)
                 pd.set_option('display.max_columns', None)
                 pd.set_option('display.min_rows', display_limit)
                 pd.set_option('display.large_repr', "truncate")
 
                 if options.get("table_package", "").lower() == "pandas_html_table_schema" and not options.get("popup_window"):
+                    df_copied = False
+                    for idx, column_type in enumerate(self.columns_type):
+                        if column_type == "dynamic":
+                            if not df_copied:
+                               df_copied =  True
+                               df = df.copy()
+                            col_name = self.columns_name[idx]
+                            for item_idx, item in enumerate(df[col_name]):
+                                df.loc[item_idx, col_name] = f"{item}"
+
                     pd.options.display.html.table_schema = True
                     content = df
+
                 else:
                     pd.options.display.html.table_schema = False
                     t = df._repr_html_()

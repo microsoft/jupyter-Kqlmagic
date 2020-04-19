@@ -445,6 +445,14 @@ class Kqlmagic(Magics, Configurable):
         allow_none=True, 
         help=f"""plotly configuration options. see: https://plotly.com/python/configuration-options."""
     )
+
+    dynamic_to_dataframe = Enum(
+        ["object", "str"],
+        default_value="object",
+        config=True,
+        help=f"""controls to what dataframe type should an kql dynamic value be translated.\n
+        Abbreviation: 'dtd'"""
+    )
   
     logger().debug("Kqlmagic:: - define class code")
 
@@ -570,10 +578,14 @@ def kql(text:str='', options:dict=None, query_properties:dict=None, vars:dict=No
     shell = None
     if kql_core_obj is None:
         if global_ns is None and local_ns is None:
-            if 'IPython' in sys.modules:
-                from IPython import get_ipython
-                shell = get_ipython()
-            else:
+            if "IPython" in sys.modules:
+                try:
+                    from IPython import get_ipython
+                    shell = get_ipython()
+                except:
+                    pass
+
+            if shell is None:
                 global_ns = globals()
                 local_ns = locals()
         

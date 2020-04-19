@@ -170,7 +170,7 @@ class KqlTableResponse(object):
         return self.data_table.rows_count > 0
 
 
-    def to_dataframe(self, raise_errors=True):
+    def to_dataframe(self, raise_errors=True, options={}):
         """Returns Pandas data frame."""
 
         if self.data_table.columns_count == 0 or self.data_table.rows_count == 0:
@@ -189,7 +189,12 @@ class KqlTableResponse(object):
                 # frame[col_name] = frame[col_name].apply(lambda x: json.dumps(x) if type(x) == str else x)
                 pass
             elif col_type == "dynamic":
-                frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_object(x))
+                if options.get("dynamic_to_dataframe") == "str":
+                    frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_str(x))
+                else:
+                    frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_object(x))
+
+                
             elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
                 pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
                 # NA type promotion
@@ -211,6 +216,14 @@ class KqlTableResponse(object):
     def _dynamic_to_object(value):
         try:
             return json.loads(value) if value and isinstance(value, str) else value if value else None
+        except Exception:
+            return value
+
+
+    @staticmethod
+    def _dynamic_to_str(value):
+        try:
+            return value if value and isinstance(value, str) else f"{value}" if value else None
         except Exception:
             return value
 

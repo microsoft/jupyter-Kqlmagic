@@ -30,6 +30,7 @@ else:
 from .log import logger
 
 
+from .version import VERSION as kqlmagic_version
 from .constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
 from .my_utils import adjust_path
 from .column_guesser import ColumnGuesserMixin
@@ -517,6 +518,8 @@ class ResultSet(list, ColumnGuesserMixin):
 
         options = {**self.options, **kwargs}
 
+        pandas__repr_data_resource_ = None
+        pandas_display_html_table_schema = None
         if len(self) == 1 and len(self[0]) == 1  and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
             content = Display.to_styled_class(self[0][0])
         else:
@@ -533,6 +536,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 pd.set_option('display.min_rows', display_limit)
                 pd.set_option('display.large_repr', "truncate")
 
+
                 if options.get("table_package", "").lower() == "pandas_html_table_schema" and not options.get("popup_window"):
                     df_copied = False
                     for idx, column_type in enumerate(self.columns_type):
@@ -544,10 +548,13 @@ class ResultSet(list, ColumnGuesserMixin):
                             for item_idx, item in enumerate(df[col_name]):
                                 df.loc[item_idx, col_name] = f"{item}"
 
+                    pandas_display_html_table_schema = pd.options.display.html.table_schema
                     pd.options.display.html.table_schema = True
+                    pandas__repr_data_resource_ = self._patch_pandas__repr_data_resource_()
                     content = df
 
                 else:
+                    pandas_display_html_table_schema = pd.options.display.html.table_schema
                     pd.options.display.html.table_schema = False
                     t = df._repr_html_()
                     content = Display.toHtml(body=t, title='table')
@@ -559,8 +566,63 @@ class ResultSet(list, ColumnGuesserMixin):
                 options["button_text"] = f'popup table{((" - " + self.title) if self.title else "")} '
 
         Display.show(content, display_handler_name=display_handler_name, **options)
+
+        #
+        # restore pandas state
+        #
+        if pandas__repr_data_resource_ is not None:
+            self._unpatch_pandas__repr_data_resource_(pandas__repr_data_resource_)
+        if pandas_display_html_table_schema is not None:
+            pd.options.display.html.table_schema = pandas_display_html_table_schema
+
         return None
 
+
+    def _patch_pandas__repr_data_resource_(self):
+        "patch pandas' _repr_data_resource_ method. main modifications is to remove pandas primary key index"
+        import pandas as pd
+        pandas__repr_data_resource_ = pd.DataFrame._repr_data_resource_
+
+        def my__repr_data_resource_(self):
+            obj = pandas__repr_data_resource_(self)
+
+            #
+            # mofify schema part
+            #
+            schema = obj.get("schema")
+
+            # remove primary key, becuase index is the primary key
+            del schema["primaryKey"]
+
+            # replace pandas version with kqlmagic version
+            del schema["pandas_version"]
+            schema["kqmagic_version"] = kqlmagic_version
+            
+            # remove index field
+            fields = schema.get("fields")
+            for idx, field in enumerate(fields):
+                if field.get("name") == "index":
+                    fields.pop(idx)
+                    break
+            
+            #
+            # modify data part
+            #
+            data = obj.get("data")
+            for row in data:
+                del row["index"]
+
+            # return modified object
+            return obj
+
+
+        pd.DataFrame._repr_data_resource_ = my__repr_data_resource_
+
+        return pandas__repr_data_resource_
+
+    def _unpatch_pandas__repr_data_resource_(self, pandas__repr_data_resource_):
+        import pandas as pd
+        pd.DataFrame._repr_data_resource_ = pandas__repr_data_resource_
 
     # Public API   
     def popup_table(self, **kwargs):
@@ -624,7 +686,7 @@ class ResultSet(list, ColumnGuesserMixin):
     def to_dataframe(self):
         "Returns a Pandas DataFrame instance built from the result set."
         if self._dataframe is None:
-            self._dataframe = self._queryResult.tables[self.fork_table_id].to_dataframe()
+            self._dataframe = self._queryResult.tables[self.fork_table_id].to_dataframe(options=self.options)
 
             # import pandas as pd
             # frame = pd.DataFrame(self, columns=(self and self.columns_name) or [])

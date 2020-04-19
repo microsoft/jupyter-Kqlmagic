@@ -456,8 +456,8 @@ class Parser(object):
 
         "notebookserviceaddress": {"flag": "notebook_service_address", "readonly": "True", "type": "str", "config": "config.notebook_service_address"},
 
-
-        "plotlyconfig": {"flag": "plotly_config", "type": "dict", "config": "config.plotly_config"},
+        "dtd": {"abbreviation": "dynamictodataframe"},
+        "dynamictodataframe": {"flag": "dynamic_to_dataframe", "type": "str", "config": "config.dynamic_to_dataframe"},
     }
 
     reserved_list = [

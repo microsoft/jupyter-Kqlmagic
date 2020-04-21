@@ -223,7 +223,11 @@ class Kqlmagic_core(object):
         self._override_default_configuration()
 
         _kernel_location = None
-        app = getattr(self.default_options, "notebook_app", "auto")
+
+        #
+        # first we do auto detection
+        #
+        app = "auto"
         if app == "auto": # ELECTRON_RUN_AS_NODE, MPLBACKEND
             notebook_service_address = getattr(self.default_options, "notebook_service_address")
             if notebook_service_address is not None:
@@ -254,6 +258,11 @@ class Kqlmagic_core(object):
 
             if app == "auto":
                 app = "jupyternotebook"
+
+            default_app = getattr(self.default_options, "notebook_app", "auto")
+            if default_app != "auto" and default_app != app:
+                app = default_app
+                _kernel_location = None
 
             setattr(self.default_options, "notebook_app", app)
             logger().debug(f"Kqlmagic_core::_init_options - set default option 'notebook_app' to: {app}")
@@ -803,13 +812,13 @@ class Kqlmagic_core(object):
             return None
 
         kv = param.split(sep='=', maxsplit=1)
-        key, value = Parser.parse_default_option_key("default_configuration", kv[0], self.default_options) or (None, None)
+        key, value = Parser.parse_option_key("default_configuration", kv[0], config=self.default_options) or (None, None)
         if key is not None:
             if len(kv) == 1:
                 return value
             else:
                 try:
-                    key, value = Parser.parse_default_option("default_configuration", key, kv[1], self.default_options)
+                    key, value = Parser.parse_option("default_configuration", key, kv[1], config=self.default_options)
                     setattr(self.default_options, key, value)
                     logger().debug(f"execute_config_command - set default option '{key}' to: {value}")
                     options[key] = value
@@ -1183,7 +1192,7 @@ class Kqlmagic_core(object):
             for pair in pairs:
                 if pair:
                     kv = pair.split(sep="=", maxsplit=1)
-                    key, value = Parser.parse_default_option("default_configuration", kv[0], kv[1], self.default_options)
+                    key, value = Parser.parse_option("default_configuration", kv[0], kv[1], config=self.default_options)
                     setattr(self.default_options, key, value)
                     logger().debug(f"_override_default_configuration - set default option '{key}' to: {value}")
 

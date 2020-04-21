@@ -434,6 +434,15 @@ class Kqlmagic(Magics, Configurable):
         help=f"""controls to what dataframe type should an kql dynamic value be translated.\n
         Abbreviation: 'dtd'"""
     )
+
+    plotly_layout = Dict(
+        default_value=None, 
+        config=True, 
+        allow_none=True, 
+        help=f"""plotly layout parameter, when set they override the defualt layout parameters.\n
+        Abbreviation: 'pl'"""        
+    )
+
   
     logger().debug("Kqlmagic:: - define class code")
 
@@ -513,6 +522,7 @@ class Kqlmagic(Magics, Configurable):
             raise TraitError(message)
         return proposal["value"]
 
+
     @validate("kernel_id")
     def _valid_value_kernel_id_app(self, proposal):
         try:
@@ -523,8 +533,8 @@ class Kqlmagic(Magics, Configurable):
             raise TraitError(message)
         return proposal["value"]
 
-    def __init__(self, shell, global_ns=None, local_ns=None, is_magic=True):
 
+    def __init__(self, shell, global_ns=None, local_ns=None, is_magic=True):
         global kql_core_obj
         if kql_core_obj is None:
             Configurable.__init__(self, config=(shell.config if shell is not None else None))

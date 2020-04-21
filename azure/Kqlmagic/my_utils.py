@@ -133,4 +133,15 @@ def safe_str(s) -> str:
     except:
         return "<failed safe_str()>"
 
+
+def quote_spaced_items_in_path(_path: str) -> str:
+    path = _path.replace("\\", "/")
+    items = path.split("/")
+    for idx, item in enumerate(items):
+        if item.find(" ") >= 0:
+            items[idx] = f'"{item}"'
+    path = "/".join(items)
+    # path = os.path.normpath(path)
+    return path
+
     

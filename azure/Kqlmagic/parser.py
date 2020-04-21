@@ -460,6 +460,9 @@ class Parser(object):
         "dynamictodataframe": {"flag": "dynamic_to_dataframe", "type": "str", "config": "config.dynamic_to_dataframe"},
 
         "tempfolderlocation": {"flag": "temp_folder_location", "readonly": "True", "type": "str", "config": "config.temp_folder_location"},
+
+        "pl": {"abbreviation": "plotlylayout"},
+        "plotlylayout": {"flag": "plotly_layout", "type": "dict", "config": "config.plotly_layout"},
         
     }
 
@@ -492,14 +495,15 @@ class Parser(object):
 
 
     @classmethod
-    def parse_default_option(cls, name:str, key:str, val:str, config:dict):
+    def parse_option(cls, name:str, key:str, val:str, config:dict=None, lookup:dict=None):
         """validate the provided option are valid
            return normalized key and value"""
         lookup_key = key.lower().replace("-", "").replace("_", "")
-        obj = cls._OPTIONS_TABLE.get(lookup_key)
+        lookup_table = lookup or cls._OPTIONS_TABLE
+        obj = lookup_table.get(lookup_key)
         if obj is not None:
             if obj.get("abbreviation"):
-                obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
+                obj = lookup_table.get(obj.get("abbreviation"))
             if obj.get("type") == "str" and val == "":
                 value = ""
             else:
@@ -511,11 +515,12 @@ class Parser(object):
                     else:
                         raise e
                 value = cls._convert(name, obj, key, eval_value)
-            cls._validate_config_trait(name, obj, key, value, config)
-            return obj.get("flag"), value
+            if config is not None:
+                cls._validate_config_trait(name, obj, key, value, config)
+            return obj.get("flag", key), value
 
     @classmethod
-    def parse_default_option_key(cls, name:str, key:str, config:dict):
+    def parse_option_key(cls, name:str, key:str, config:dict):
         """validate the provided option key is valid
            return normalized key"""
         lookup_key = key.lower().replace("-", "").replace("_", "")
@@ -773,11 +778,36 @@ class Parser(object):
         # validate using config traits
         option_config = obj.get("config")
         if option_config is not None:
+            #
+            # save current value
+            #
+            saved_value = eval(option_config)
+
+            #
+            # prepare statement
+            #
             _type = obj.get("type")
-            template = "'{0}'" if _type == "str" else "{0}"
-            saved = eval(option_config)
+            if _type == "str":
+                value_str = "'" + value.replace("'", "\\'") + "'"
+                saved_value_str = "'" + saved_value.replace("'", "\\'") + "'"
+            else:
+                value_str = f"{value}"
+                saved_value_str = f"{saved_value}"
+            set_value_statement = f"{option_config} = {value_str}"
+            set_saved_value_statement = f"{option_config} = {saved_value_str}"
+
+            #
+            # try to modify value
+            #
+            exception = None
             try:
-                exec(option_config + "=" + (template.format(str(value).replace("'", "\\'")) if value is not None else "None"))
+                exec(set_value_statement)
             except:
-                raise ValueError(f"failed to set option '{key}' in {name}, due to invalid value '{value}'.")
-            exec(option_config + "=" + (template.format(str(saved).replace("'", "\\'")) if saved is not None else "None"))
+                exception = ValueError(f"failed to set option '{key}' in {name}, due to invalid value '{value}'.")
+
+            #
+            # restore value
+            #
+            exec(set_saved_value_statement)
+            if exception is not None: 
+                raise exception

@@ -103,7 +103,7 @@ from .help import MarkdownString
 
 version_info = (0, 1, 111)
 
-VERSION = '0.1.111.post12'
+VERSION = '0.1.111.post13'
 
 # cannot be used till code in setup is fixed
 # '.'.join(map(str, version_info))

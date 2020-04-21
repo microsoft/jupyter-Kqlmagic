@@ -16,6 +16,7 @@ import requests
 from .log import logger
 from .constants import Constants
 from .ipython_api import IPythonAPI
+from .my_utils import quote_spaced_items_in_path
 
 
 DEFAULT_PROTOCOL = "http"
@@ -100,8 +101,8 @@ class FilesServerManagement(object):
             # must use double quotes for base folder and folders, to allow spaces (note single quoted does not work)
             command_params = f'-protocol={self._protocol} -host={self._host} -port={self._port} -base_folder="{self._base_folder}" -folders="{self._folders}" -parent_id="{os.getpid()}" -parent_kernel_id="{self._kernel_id}" -clean="folders"'
             command_head = "start /min /wait" if show_window else ""
-
-            command = f"{command_head} {python_exe} {self._server_py_code} {command_params}"
+            python_exe = quote_spaced_items_in_path(python_exe)
+            command = f'{command_head} {python_exe} "{self._server_py_code}" {command_params}'
             sub.Popen(command, shell=True)
             logger().debug(f"FilesServerManagement::startServer start sub process command: {command}")
 

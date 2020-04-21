@@ -525,6 +525,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
         pandas__repr_data_resource_ = None
         pandas_display_html_table_schema = None
+        pandas__repr_data_resource_patched = False
         if len(self) == 1 and len(self[0]) == 1  and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
             content = Display.to_styled_class(self[0][0])
         else:
@@ -555,7 +556,9 @@ class ResultSet(list, ColumnGuesserMixin):
 
                     pandas_display_html_table_schema = pd.options.display.html.table_schema
                     pd.options.display.html.table_schema = True
-                    pandas__repr_data_resource_ = self._patch_pandas__repr_data_resource_()
+                    if options.get("notebook_app") in ["azuredatastudio"]:
+                        pandas__repr_data_resource_ = self._patch_pandas__repr_data_resource_()
+                        pandas__repr_data_resource_patched = True
                     content = df
 
                 else:
@@ -575,7 +578,7 @@ class ResultSet(list, ColumnGuesserMixin):
         #
         # restore pandas state
         #
-        if pandas__repr_data_resource_ is not None:
+        if pandas__repr_data_resource_patched and pandas__repr_data_resource_ is not None:
             self._unpatch_pandas__repr_data_resource_(pandas__repr_data_resource_)
         if pandas_display_html_table_schema is not None:
             pd.options.display.html.table_schema = pandas_display_html_table_schema
@@ -1314,8 +1317,14 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def _figure_or_figurewidget(self, data, layout, window_mode:bool, options:dict={}):
 
+        plotly_layout = options.get("plotly_layout")
+        if plotly_layout is not None:
+            for l in plotly_layout:
+                layout[l] = plotly_layout.get(l)
+
         if IPythonAPI.is_ipywidgets_installed() and options.get("plot_package") == "plotly_widget" and not window_mode:
             # print("----------- FigureWidget --------------")
+
             fig = go.FigureWidget(data=data, layout=layout)
         else:
             # print("----------- Figure --------------")

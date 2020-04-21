@@ -18,7 +18,70 @@ import time
 import signal
 from threading import Thread
 from _thread import interrupt_main
+import logging
 
+
+
+MAGIC_CLASS_NAME_UPPER = "KQLMAGIC"
+
+
+
+def _get_env_var(var_name:str)->str:
+    value = os.getenv(var_name)
+    if value:
+        # value = value.strip().upper().replace("_", "").replace("-", "")
+        if value.startswith("'") or value.startswith('"'):
+            value = value[1:-1].strip()
+    return value
+
+
+logger = None
+def init_logger(kernel_id, log_level=None, log_file=None, log_file_prefix=None, log_file_mode=None):
+    global logger
+        # create logger
+    logger = logging.getLogger("kqlmagic-srv")
+    logger.setLevel(logging.DEBUG)
+
+    log_level = log_level or _get_env_var(f"{MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL")
+    log_file = log_file or _get_env_var(f"{MAGIC_CLASS_NAME_UPPER}_SRV_LOG_FILE")
+    log_file_prefix = log_file_prefix or _get_env_var(f"{MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX")
+    log_file_mode = log_file_mode or _get_env_var(f"{MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE")
+
+    # create file log handler
+    create_file_logger_error_message = None
+    try:
+        if log_level or log_file or log_file_mode or log_file_prefix:
+
+            log_level = log_level or logging.DEBUG
+            log_file = log_file or f"{log_file_prefix or 'kqlmagic'}-srv-{kernel_id}.log"
+            # handler's default mode is 'a' (append)
+            log_file_mode = (log_file_mode or "w").lower()[:1]
+            file_handler = logging.FileHandler(log_file, mode=log_file_mode)
+            file_handler.setLevel(log_level)
+            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
+
+            if log_file_mode == "a":
+                logger.info("\n\n----------------------------------------------------------------------\n\n")
+
+            now = datetime.now()
+            logger.info("start date %s", now.isoformat())
+            logger.info("logger level %s\n", log_level)
+
+    except Exception as e:
+        create_file_logger_error_message = f"failed to create file log handler. log_level: {log_level}, log_file: {log_file}, log_file_prefix: {log_file_prefix}, log_file_mode: {log_file_mode}, error: {e}" 
+
+    # create console log handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level or logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    if create_file_logger_error_message is not None:
+        logger.error(f"{create_file_logger_error_message}, continue log to console only.")
+        
 
 class ParentUnixMonitor(Thread):
     """ A Unix-specific daemon thread that terminates the program immediately
@@ -40,25 +103,25 @@ class ParentUnixMonitor(Thread):
             try:
                 if count == 0:
                     count = 60
-                    print(f">>> ParentUnixMonitor for ppid {os.getppid()}, parent is running.")
+                    logger.info(f"ParentUnixMonitor for ppid {os.getppid()}, parent is running.")
                 count -= 1
 
                 time.sleep(1.0)
 
                 if os.getppid() == 1:
-                    print(f">>> Parent appears to have exited, shutting down.")
+                    logger.info(f"Parent appears to have exited, shutting down.")
                     os_exit(0)
                     break
 
             except OSError as e:
                 if e.errno != EINTR:
                     error_message = f"ParentUnixMonitor failed. error: {e}"
-                    print(f">>> {error_message}, continue monitoring.")
+                    logger.error(f"{error_message}, continue monitoring.")
                     # raise
 
             except Exception as ex:
                 error_message = f"ParentUnixMonitor failed. error: {ex}"
-                print(f">>> {error_message}, continue monitoring.")
+                logger.error(f"{error_message}, continue monitoring.")
 
 
 
@@ -89,7 +152,7 @@ class ParentWindowsMonitor(Thread):
 
                 if count == 0:
                     count = 60
-                    print(f">>> ParentWindowsMonitor for ppid {self.parent_id}, parent is running.")
+                    logger.info(f"ParentWindowsMonitor for ppid {self.parent_id}, parent is running.")
                 count -= 1
 
                 time.sleep(1.0)
@@ -105,19 +168,19 @@ class ParentWindowsMonitor(Thread):
                             break
 
                 if parent_proc_not_found:
-                    print(">>> Parent appears to have exited, shutting down.")
+                    logger.info("Parent appears to have exited, shutting down.")
                     os_exit(0)
                     break
                     
             except OSError as e:
                 if e.errno != EINTR:
                     error_message = f"ParentWindowsMonitor failed. error: {e}"
-                    print(f">>> {error_message}, continue monitoring.")
+                    logger.error(f"{error_message}, continue monitoring.")
                     # raise
 
             except Exception as ex:
                 error_message = f"ParentWindowsMonitor failed. error: {ex}"
-                print(f">>> {error_message}, continue monitoring.")
+                logger.error(f"{error_message}, continue monitoring.")
 
 
 
@@ -127,6 +190,7 @@ DEFAULT_PROTOCOL = "http"
 
 
 parent_monitor = None
+parent_kernel_id = None
 base_folder = None
 os_exit_started = None
 params = {}
@@ -140,20 +204,41 @@ app = Flask("kqlmagic_temp_files_server")
 def after_request_func(response):
     """disable server and client cache"""
     try:
+        if request is not None:
+            logger.debug(f"{request.method} {request.url} - {response.status_code}")
+
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, public, max-age=0"
         response.headers["Expires"] = 0
         response.headers["Pragma"] = "no-cache"
 
     except Exception as ex:
         error_message = f"after_request_func failed. error: {ex}"
-        print(f">>> {error_message}.")
-        pass
+        logger.error(f"{error_message}.")
 
     return response
 
 
 @app.route('/files/<foldername>/<kernel_id>/<filename>')
-def files(foldername, kernel_id, filename):
+def files_1(foldername, kernel_id, filename):
+    """return content of filename as the response body."""
+    return _files(foldername, kernel_id, filename)
+
+
+@app.route('/files/<foldername0>/<foldername1>/<kernel_id>/<filename>')
+def files_2(foldername0, foldername1, kernel_id, filename):
+    """return content of filename as the response body."""
+    foldername = f"{foldername0}/{foldername1}"
+    return _files(foldername, kernel_id, filename)
+
+
+@app.route('/files/<foldername0>/<foldername1>/<foldername2>/<kernel_id>/<filename>')
+def files_3(foldername0, foldername1, foldername2, kernel_id, filename):
+    """return content of filename as the response body."""
+    foldername = f"{foldername0}/{foldername1}/{foldername2}"
+    return _files(foldername, kernel_id, filename)
+
+
+def _files(foldername, kernel_id, filename):
     """return content of filename as the response body."""
     try:
         _kernel_id = request.args.get("kernelid")
@@ -164,16 +249,17 @@ def files(foldername, kernel_id, filename):
                 return err_resp
             file_path = f"{base_folder}/{foldername}/{kernel_id}/{filename}"
 
+            logger.debug(f"/files/{foldername}/{kernel_id}/{filename} - {file_path}")
             return send_file(file_path)
 
         else:
             error_message = f"folder {foldername} not in {folderlist}"
-            print(f">>> {error_message}.")
+            logger.error(f"{error_message}.")
             return make_response(f"{error_message}, internal error", 404)
 
     except Exception as ex:
         error_message = f"/files/<foldername>/<kernel_id>/<filename> failed, error: {ex}"
-        print(f">>> {error_message}.")
+        logger.error(f"{error_message}.")
         return make_response(f"{error_message}, internal error", 500)
 
 
@@ -189,16 +275,18 @@ def folders(foldername):
             if err_resp is not None:
                 return err_resp
             file_path = f"{base_folder}/{foldername}/{_kernel_id}/{_filename}"
+
+            logger.debug(f"folders/{foldername} - {file_path}")
             return send_file(file_path)
 
         else:
-            error_message = f"folder {foldername} not in {folderlist}"
-            print(f">>> {error_message}.")
+            error_message = f"/folder {foldername} not in {folderlist}"
+            logger.error(f"{error_message}.")
             return make_response(f"{error_message}, internal error", 404)
 
     except Exception as ex:
         error_message = f"/folders/<foldername> failed. error: {ex}."
-        print(f">>> {error_message}.")
+        logger.error(f"{error_message}.")
         return make_response(f"{error_message}, internal error", 500)
     
 
@@ -207,13 +295,15 @@ def folders(foldername):
 def ping():
     """print 'pong' as the response body."""
     try:
-        _kernel_id = request.args.get("kernelId")
+        _kernel_id = request.args.get("kernelid")
 
-        return f'pong kernelid: {_kernel_id}'
+        pong = f"pong kernelid: {_kernel_id}"
+        logger.debug(f"/ping - {pong}")
+        return pong
 
     except Exception as ex:
         error_message = f"/ping failed. error: {ex}"
-        print(f">>> {error_message}.")
+        logger.error(f"{error_message}.")
         return make_response(f"{error_message}, internal error", 500)
     
 
@@ -222,17 +312,18 @@ def webbrowser():
     """open web browser."""
     try:
         _encoded_url = request.args.get("url")
-        _kernel_id = request.args.get("kernelId")
+        _kernel_id = request.args.get("kernelid")
 
         import urllib.parse
         import webbrowser
 
         url = urllib.parse.unquote(_encoded_url)
         webbrowser.open(url, new=1, autoraise=True)
+        logger.debug(f"/webbrowser - {url} - close after 1 sec")
 
     except Exception as ex:
-        error_message = f"/ping failed. error: {ex}"
-        print(f">>> {error_message}.")
+        error_message = f"/webbrowser failed. error: {ex}"
+        logger.error(f"{error_message}.")
         pass
 
     return """<!DOCTYPE html>
@@ -248,13 +339,14 @@ def webbrowser():
 def abort():
     """aborts the process"""
     try:
-        _kernel_id = request.args.get("kernelId")
+        _kernel_id = request.args.get("kernelid")
+        logger.debug(f"/abort")
 
         os_exit(0)
 
     except Exception as ex:
         error_message = f"/abort failed. error: {ex}"
-        print(f">>> {error_message}.")
+        logger.error(f"{error_message}.")
         raise ex
 
     return ''
@@ -278,11 +370,11 @@ def check_path(foldername, kernel_id, filename):
 
         if error_message is not None:
             err_resp = make_response(error_message, 404)
-            print(f">>> check_path failed, {error_message}. code: 404.")
+            logger.error(f"check_path failed, {error_message}. code: 404.")
 
     except Exception as ex:
         error_message = f"File {base_folder}/{foldername}/{kernel_id}/{filename}, error: {ex}"
-        print(f">>>check_path failed, {error_message}, code: 500")
+        logger.error(f"check_path failed, {error_message}, code: 500")
         err_resp = make_response(f"{error_message}, internal error", 500)
 
     return err_resp
@@ -304,7 +396,7 @@ def init_parent_monitor(parent_id):
         
         except Exception as ex:
             error_message = f"init_parent_monitor got an error: {ex}, parent monitor disabled"
-            print(f">>> {error_message}.")
+            logger.error(f"{error_message}.")
 
 
 def os_exit(code):
@@ -312,33 +404,33 @@ def os_exit(code):
     if os_exit_started is None:
         os_exit_started = True
         try:
-            print(f'>>> OS_EXIT code: {code}!!!')
+            logger.info(f"OS_EXIT code: {code}!!!")
             to_clean = params.get("clean", None)
             if to_clean is not None and len(folderlist) > 0:
                 for folder in folderlist:
                     try:
                         folder_path = f"{base_folder}/{folder}"
-                        print(f'>>> start to clean {folder_path}')
+                        logger.info(f"start to clean folder: {folder_path}")
                         for filename in os.listdir(folder_path):
                             try:
                                 file_path = f"{base_folder}/{folder}/{filename}"
                                 os.unlink(file_path)
                             except:
-                                print(f'>>> Failed to clean {file_path}, reason: {e}')
+                                logger.error(f"failed to clean file: {file_path}, reason: {e}")
                         os.rmdir(folder_path)
-                        print(f'>>> done to clean {folder_path}')
+                        logger.info(f"clean folder: {folder_path} done")
                     except Exception as e:
-                        print(f'>>> Failed to clean {folder_path}, reason: {e}')
-        except:
-            print('>>> Failed to delete to clean')
-        print(f'>>> done all clean')
+                        logger.error(f"failed to clean folder: {folder_path}, reason: {e}")
+        except Exception as e:
+            logger.error(f"failed to fully clean, reason: {e}")
+        logger.info(f"clean finished")
         # time.sleep(60.0)
         os._exit(code)
 
 
 if __name__ == "__main__":
     try:
-        # print(f">>> argv: {sys.argv[1:]}")
+
         import time
         key = None
         for arg in sys.argv[1:]:
@@ -355,8 +447,10 @@ if __name__ == "__main__":
 
             elif arg.startswith('-'):
                 key = arg[1:]
-
-        # print(f">>> params: {params}")
+        parent_kernel_id = params.get("parent_kernel_id")  
+        init_logger(parent_kernel_id)
+        logger.debug(f"__name__ argv: {sys.argv[1:]}")
+        logger.debug(f"__name__ params: {params}")
         base_folder = params.get("base_folder")       
         if base_folder is not None:
             base_folder = base_folder[:-1] if base_folder.endswith('/') else base_folder
@@ -367,22 +461,29 @@ if __name__ == "__main__":
             parent_id = params.get("parent_id", None) 
             parent_monitor = init_parent_monitor(parent_id)
             if parent_monitor is not None:
-                print(f">>> start parent_monitor for parent id: {parent_id}")
+                logger.info(f"start parent_monitor for parent id: {parent_id}")
                 parent_monitor.start()
-            print(f" * parent id: {parent_id}")
-            print(f" * Base folder: {base_folder}")
-            print(f" * Folder list: {folderlist}")
-            print(f" * ")
+            logger.info(f" * parent id: {parent_id}")
+            logger.info(f" * Base folder: {base_folder}")
+            logger.info(f" * Folder list: {folderlist}")
+            logger.info(f" * ")
+            
+            logger.info(f" **** ")
             app.run(host=host, port=port, debug=False, use_reloader=False, use_debugger=False)
 
         else:
             error_message = f"__name__ failed. base_folder value is None"
-            print(f">>> {error_message}.")
+            logger.error(f"{error_message}.")
             time.sleep(5 * 60 * 1.0)
             os._exit(1)
 
     except Exception as ex:
         error_message = f"__name__ failed. error: {ex}"
-        print(f">>> {error_message}.")
+        print(f"{error_message}.")
+        try:
+            if logger is not None:
+                logger.error(f"{error_message}.")
+        except:
+            pass
         time.sleep(5 * 60 * 1.0)
         os._exit(1)

@@ -4,19 +4,13 @@
 # license information.
 # --------------------------------------------------------------------------
 
+import os
 import sys
 import uuid
 import webbrowser
 import json
-import time
 import datetime
 import urllib.parse
-
-
-# ipython
-import atexit
-from IPython.core.display import display, HTML, Javascript, JSON
-from IPython import get_ipython
 
 
 from pygments import highlight
@@ -24,6 +18,8 @@ from pygments.lexers.data import JsonLexer
 from pygments.formatters.terminal import TerminalFormatter
 
 
+from .ipython_api import display, HTML, Javascript, JSON
+from .ipython_api import IPythonAPI
 from .my_utils import adjust_path, adjust_path_to_uri, get_valid_filename_with_spaces
 from .constants import Constants
 
@@ -374,7 +370,7 @@ class Display(object):
         text_file.write(bytes(html_str, 'utf-8'))
         text_file.close()
         # ipython will delete file at shutdown or by restart
-        Display._add_to_ipython_tempfiles(full_file_name)
+        IPythonAPI.try_add_to_ipython_tempfiles(full_file_name)
         return file_path
 
 
@@ -768,85 +764,17 @@ class Display(object):
         Display._showMessage(Display.getDangerMessageHtml(msg))
 
 
-    @staticmethod
-    def kernelExecute(javascript_statement, **options):
-            display(Javascript(javascript_statement))
 
 
-    @staticmethod
-    def kernelReconnect(**options):
-        if options is None or options.get("notebook_app") not in ["jupyterlab", "visualstudiocode", "azuredatastudio", "nteract"]:
-            Display.kernelExecute("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}""")
-            time.sleep(1)
 
 
-    @staticmethod
-    def add_to_help_links(text, url, reconnect, **options):
-        help_links = Display._get_ipython_help_links()
-        found = False
-        for link in help_links:
-            # if found update url
-            if link.get("text") == text:
-                if link.get("url") != url:
-                    link["url"] = url
-                else:
-                    reconnect = False
-                found = True
-                break
-        if not found:
-            help_links.append({"text": text, "url": url})
-        # print(f">>> help_links: {help_links)}")
-        if reconnect:
-            Display.kernelReconnect(**options)
 
 
-    @staticmethod
-    def _get_ipython_help_links(**options):
-        ip = get_ipython()  # pylint: disable=undefined-variable
-        help_links = ip.kernel._trait_values["help_links"]
-        return help_links
 
 
-    @staticmethod
-    def _add_to_ipython_tempfiles(filename, **options):
-        ip = get_ipython()  # pylint: disable=undefined-variable
-        ip.tempfiles.append(filename)
 
 
-    @staticmethod
-    def _add_to_ipython_tempdirs(foldername, **options):
-        ip = get_ipython()  # pylint: disable=undefined-variable
-        ip.tempdirs.append(foldername)
 
 
-    @staticmethod
-    def _get_ipython_root_path():
-        ip = get_ipython()  # pylint: disable=undefined-variable
-        root_path = ip.starting_dir
-        return root_path
 
 
-    @staticmethod
-    def _has_ipython_kernel():
-        ip = get_ipython()  # pylint: disable=undefined-variable
-        has_kernel = hasattr(ip, 'kernel')
-        return has_kernel
-
-
-    @staticmethod
-    def _register_to_ipython_atexit(func, *args):
-        # ip = get_ipython()  # pylint: disable=undefined-variable 
-        atexit.register(func, *args)
-
-
-    @staticmethod
-    def _init_ipython_matplotlib_magic(**options):
-        matplotlib_magic_command = "inline" if options.get('notebook_app') != "ipython" else "qt"
-        ip = get_ipython()  # pylint: disable=undefined-variable
-        ip.magic(f"matplotlib {matplotlib_magic_command}")
-
-
-    @staticmethod
-    def _get_ipython_db(**options):
-        ip = get_ipython()  # pylint: disable=undefined-variable
-        return ip.db

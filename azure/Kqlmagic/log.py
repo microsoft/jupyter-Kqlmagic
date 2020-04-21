@@ -12,33 +12,29 @@ import traceback
 
 
 from .constants import Constants
+from .ipython_api import IPythonAPI
 
 
-def _get_kql_magic_log_level():
-    log_level = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL")
-    if log_level:
-        log_level = log_level.strip().upper().replace("_", "").replace("-", "")
-        if log_level.startswith("'") or log_level.startswith('"'):
-            log_level = log_level[1:-1].strip()
-    return log_level
+def _get_env_var(var_name:str)->str:
+    value = os.getenv(var_name)
+    if value:
+        # value = value.strip().upper().replace("_", "").replace("-", "")
+        if value.startswith("'") or value.startswith('"'):
+            value = value[1:-1].strip()
+    return value
 
 
-def initialize():
-    log_level = _get_kql_magic_log_level()
-    log_file = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE")
-    log_file_prefix = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX")
-    log_file_mode = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE")
+def initialize(log_level=None, log_file=None, log_file_prefix=None, log_file_mode=None):
+    log_level = log_level or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL")
+    log_file = log_file or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE")
+    log_file_prefix = log_file_prefix or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX")
+    log_file_mode = log_file_mode or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE")
     if log_level or log_file or log_file_mode or log_file_prefix:
-        try:
-            import ipykernel as kernel
-        except:
-            from IPython.lib import kernel
+        kernel_id = IPythonAPI.get_notebook_kernel_id() or "kernel_id"
 
-        connection_info = kernel.get_connection_info(unpack=True)
-        # key is unique per ipkernel instance
-        key = connection_info.get("key").decode(encoding="utf-8")
+
         log_level = log_level or logging.DEBUG
-        log_file = log_file or f"{log_file_prefix or 'Kqlmagic'}-{key}.log"
+        log_file = log_file or f"{log_file_prefix or 'kqlmagic'}-{kernel_id}.log"
         # handler's default mode is 'a' (append)
         log_file_mode = (log_file_mode or "w").lower()[:1]
         log_handler = logging.FileHandler(log_file, mode=log_file_mode)

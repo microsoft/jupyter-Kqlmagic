@@ -28,8 +28,6 @@ def load_ipython_extension(ip):
 
         logger().debug(f"load_ipython_extension - register '{alias}' line alias for {Constants.MAGIC_NAME}")        
         ip.magics_manager.register_alias(alias, Constants.MAGIC_NAME, "line")
-
-        # ip.run_line_magic("alias_magic", f"{alias} {Constants.MAGIC_NAME}")
         
     logger().debug("load_ipython_extension - end")
     return result

@@ -5,7 +5,8 @@
 # --------------------------------------------------------------------------
 
 
-from .display import Display
+from .ipython_api import IPythonAPI
+
 
 class Help_html(object):
     """
@@ -53,7 +54,7 @@ class Help_html(object):
             refresh = True
         Help_html._pending_helps = {}
         if refresh:
-            Display.kernelReconnect(**options)
+            IPythonAPI.try_kernel_reconnect(**options)
 
 
     @staticmethod
@@ -73,6 +74,6 @@ class Help_html(object):
             url = None
 
         if url:
-            Display.add_to_help_links(text, url, reconnect, **options)
+            IPythonAPI.try_add_to_help_links(text, url, reconnect, **options)
         elif Help_html._pending_helps.get(text) is None:
             Help_html._pending_helps[text] = file_path

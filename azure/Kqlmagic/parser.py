@@ -458,6 +458,9 @@ class Parser(object):
 
         "dtd": {"abbreviation": "dynamictodataframe"},
         "dynamictodataframe": {"flag": "dynamic_to_dataframe", "type": "str", "config": "config.dynamic_to_dataframe"},
+
+        "tempfolderlocation": {"flag": "temp_folder_location", "readonly": "True", "type": "str", "config": "config.temp_folder_location"},
+        
     }
 
     reserved_list = [

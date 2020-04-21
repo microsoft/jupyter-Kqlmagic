@@ -15,6 +15,7 @@ class Constants(object):
     # class must start with an uppercase, because %config can't find it if it is lowercase?
     MAGIC_CLASS_NAME = "Kqlmagic"
     MAGIC_CLASS_NAME_UPPER = MAGIC_CLASS_NAME.upper()
+    MAGIC_CLASS_NAME_LOWER = MAGIC_CLASS_NAME.lower()
     MAGIC_NAME = "kql"
     MAGIC_ALIASES = []
     LOGGER_NAME = f"{MAGIC_CLASS_NAME}-py"
@@ -30,7 +31,7 @@ class Constants(object):
     # SSO
     SSO_GC_INTERVAL_IN_SECS = 1 * HOUR_SECS
     SSO_ENV_VAR_NAME  = f"{MAGIC_CLASS_NAME_UPPER}_SSO_ENCRYPTION_KEYS"
-    SSO_DB_KEY_PREFIX =        f"{MAGIC_CLASS_NAME.lower()}store/tokens/"
+    SSO_DB_KEY_PREFIX =        f"{MAGIC_CLASS_NAME_LOWER}store/tokens/"
 
 class Schema(object):
     APPLICATION_INSIGHTS = "applicationinsights"

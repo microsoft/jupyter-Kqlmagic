@@ -16,20 +16,21 @@ import urllib.request
 
 from .log import logger
 
-logger().debug("kql_magic.py - import Configurable from traitlets.config.configurable")
+
 from traitlets.config.configurable import Configurable
-logger().debug("kql_magic.py - import Bool, Int, Float, Unicode, Enum, TraitError, validate from traitlets")
+logger().debug("kql_magic_core.py - import Bool, Int, Float, Unicode, Enum, TraitError, validate from traitlets")
 from traitlets import Bool, Int, Float, Unicode, Enum, TraitError, validate
 try:
-    logger().debug("kql_magic.py - import Flask, send_file from flask")
+    logger().debug("kql_magic_core.py - import Flask, send_file from flask")
     from flask import Flask, send_file
 except Exception:
-    logger().debug("kql_magic.py - flask module not installed")
+    logger().debug("kql_magic_core.py - flask module not installed")
     flask_installed = False
 else:
     flask_installed = True
 
 
+from .ipython_api import IPythonAPI
 from .sso_storage import get_sso_store
 from .version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
 from .help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
@@ -65,7 +66,7 @@ class Kqlmagic_core(object):
     # make sure the right python version is used
     validate_required_python_version_running(Constants.MINIMAL_PYTHON_VERSION_REQUIRED)
 
-    logger().debug("Kqlmagic:: - define class Kqlmagic_core")
+    logger().debug("Kqlmagic_core::class - define class Kqlmagic_core")
 
 
     def execute_cache_command(self, cache_name:str) -> str:
@@ -164,33 +165,38 @@ class Kqlmagic_core(object):
     def _start(self):
 
 
-        logger().debug("Kqlmagic::_start - start")
+        logger().debug("Kqlmagic_core::_start - start")
 
-        logger().debug("Kqlmagic::_start - init options")
+        logger().debug("Kqlmagic_core::_start - init options")
         options = self._init_options()
 
-        logger().debug("Kqlmagic::_start - set temp folder")
+        logger().debug("Kqlmagic_core::_start - set temp folder")
         self._set_temp_files_folder(**options)
 
-        logger().debug("Kqlmagic::_start - add kql page reference to jupyter help")
+        logger().debug("Kqlmagic_core::_start - add kql page reference to jupyter help")
         self._add_kql_ref_to_help(**options)
-        logger().debug("Kqlmagic::_start - add help items to jupyter help")
+        logger().debug("Kqlmagic_core::_start - add help items to jupyter help")
         self._add_help_to_jupyter_help_menu(None, start_time=time.time(), options=options)
 
-        logger().debug("Kqlmagic::_start - show banner")
+        logger().debug("Kqlmagic_core::_start - show banner")
         if options.get("show_init_banner"):
             self._show_banner(options)
 
-        logger().debug("Kqlmagic::_start - set default connection")
+        logger().debug("Kqlmagic_core::_start - set default connection")
         self._set_default_connections(**options)
-        logger().debug("Kqlmagic::_start - end")
+        logger().debug("Kqlmagic_core::_start - end")
 
 
     def _set_temp_files_folder(self, **options):
 
         folder_name = options.get("temp_folder_name")
         if folder_name is not None:
-            root_path = Display._get_ipython_root_path()
+            folder_name = f"{Constants.MAGIC_CLASS_NAME_LOWER}/{folder_name}"
+            if options.get("temp_folder_location") == "user_dir":
+                # app that has a free/tree build server, are not supporting directories athat starts with a dot
+                folder_name = f".{folder_name}"
+
+            root_path = IPythonAPI.get_ipython_root_path(**options)
             # nteract
             # root_path = "C:\\Users\\michabin\\Desktop\\nteract-notebooks"
             #
@@ -199,11 +205,14 @@ class Kqlmagic_core(object):
             folder_name = f"{folder_name}/{kernel_id}"
 
             showfiles_folder_Full_name = adjust_path(f"{root_path}/{folder_name}") #dont remove spaces from root directory
+            logger().debug(f"Kqlmagic_core::_set_temp_files_folder - showfiles_folder_Full_name: {showfiles_folder_Full_name}")
             if not os.path.exists(showfiles_folder_Full_name):
+
+                logger().debug(f"Kqlmagic_core::_set_temp_files_folder - makedir({showfiles_folder_Full_name})")
                 os.makedirs(showfiles_folder_Full_name)
 
             # kernel will remove folder at shutdown or by restart
-            Display._add_to_ipython_tempdirs(showfiles_folder_Full_name, **options)
+            IPythonAPI.try_add_to_ipython_tempdirs(showfiles_folder_Full_name, **options)
 
             Display.showfiles_file_base_path = adjust_path_to_uri(root_path)
             Display.showfiles_url_base_path = Display.showfiles_file_base_path
@@ -239,15 +248,15 @@ class Kqlmagic_core(object):
                 app = app_info.get("app", app)
                 _kernel_location = _kernel_location or app_info.get("kernel_location")
 
-            if app == "auto" and not Display._has_ipython_kernel():
+            if app == "auto" and not IPythonAPI.has_ipython_kernel():
                 _kernel_location = "local"
                 app = "ipython"
 
             if app == "auto":
-                    app = "jupyternotebook"
+                app = "jupyternotebook"
 
             setattr(self.default_options, "notebook_app", app)
-            logger().debug(f"_init_options - set default option 'notebook_app' to: {app}")
+            logger().debug(f"Kqlmagic_core::_init_options - set default option 'notebook_app' to: {app}")
             # print(f">>> notebook_app: {app}")
 
         kernel_location = getattr(self.default_options, "kernel_location", "auto")    
@@ -268,7 +277,7 @@ class Kqlmagic_core(object):
                 # it can stay "auto", maybe based on NOTEBOOK_URL it will be discovered
 
             setattr(self.default_options, "kernel_location", kernel_location)
-            logger().debug(f"_init_options - set default option 'kernel_location' to: {kernel_location}")
+            logger().debug(f"Kqlmagic_core::_init_options - set default option 'kernel_location' to: {kernel_location}")
             # print(f">>> kernel_location: {kernel_location}")
 
         table_package = getattr(self.default_options, "table_package", "auto")
@@ -278,7 +287,20 @@ class Kqlmagic_core(object):
             else:
                 table_package = "prettytable"
             setattr(self.default_options, "table_package", table_package)
-            logger().debug(f"_init_options - set default option 'table_package' to: {table_package}")
+            logger().debug(f"Kqlmagic_core::_init_options - set default option 'table_package' to: {table_package}")
+
+        temp_folder_location = getattr(self.default_options, "temp_folder_location", "auto")
+        if temp_folder_location == "auto":
+            if kernel_location in ["auto", "remote"]:
+                temp_folder_location = "starting_dir"
+            elif app in ["azuredatastudio", "nteract", "visualstudiocode"]:
+                temp_folder_location = "user_dir"
+            elif app in ["azurenotebook", "jupyternotebook", "jupyterlab"]:
+                temp_folder_location = "starting_dir"
+            else:
+                temp_folder_location = "starting_dir"
+            setattr(self.default_options, "temp_folder_location", temp_folder_location)
+            logger().debug(f"Kqlmagic_core::_init_options - set default option 'temp_folder_location' to: {temp_folder_location}")
 
         parsed_queries = Parser.parse(f"dummy_query\n", self.default_options, _ENGINES, {})
         # parsed_queries = Parser.parse("%s\n%s" % ("dummy_query", ""), self.default_options, _ENGINES, {})
@@ -346,38 +368,6 @@ class Kqlmagic_core(object):
         return found_item
 
 
-    def get_notebook_kernel_id(self):
-        kernel_id = None
-        try:
-            try:
-                import ipykernel as kernel
-            except:
-                from IPython.lib import kernel
-
-            connection_file = kernel.get_connection_file()
-            kernel_id = re.search('kernel-(.*).json', connection_file).group(1)
-
-        except:
-            pass
-
-        return kernel_id
-
-
-    def get_notebook_connection_info(self):
-        conn_info = None
-        try:
-            try:
-                import ipykernel as kernel
-            except:
-                from IPython.lib import kernel
-            conn_info = kernel.get_connection_info(unpack=False)
-
-        except:
-            pass
-
-        return conn_info
-
-
     def _add_kql_ref_to_help(self, **options):
         # add help k
         if options.get('notebook_app') != "ipython":
@@ -388,17 +378,17 @@ class Kqlmagic_core(object):
 
 
     def _show_banner(self, options):
-        logger().debug("Kqlmagic::_show_banner() - show banner header")
+        logger().debug("Kqlmagic_core::_show_banner() - show banner header")
         self._show_banner_header(**options)
 
         Display.showInfoMessage(
             f"""{Constants.MAGIC_PACKAGE_NAME} package is updated frequently. Run '!pip install {Constants.MAGIC_PIP_REFERENCE_NAME} --no-cache-dir --upgrade' to use the latest version.<br>{Constants.MAGIC_PACKAGE_NAME} version: {VERSION}, source: {Constants.MAGIC_SOURCE_REPOSITORY_NAME}"""
         )
 
-        logger().debug("Kqlmagic::_show_banner() - show kqlmagic latest version info")
+        logger().debug("Kqlmagic_core::_show_banner() - show kqlmagic latest version info")
         self._show_magic_latest_version(**options)
 
-        logger().debug("Kqlmagic::_show_banner() - show what's new")
+        logger().debug("Kqlmagic_core::_show_banner() - show what's new")
         self._show_what_new(options)
 
 
@@ -451,7 +441,7 @@ class Kqlmagic_core(object):
     def _show_magic_latest_version(self, **options):
         if options.get("check_magic_version"):
             try:
-                logger().debug("Kqlmagic::_show_magic_latest_version - fetch PyPi Kqlmagic latest version")
+                logger().debug("Kqlmagic_core::_show_magic_latest_version - fetch PyPi Kqlmagic latest version")
                 only_stable_version = True
                 pypi_version = get_pypi_latest_version(Constants.MAGIC_PACKAGE_NAME, only_stable_version)
                 ignore_current_version_post = True
@@ -460,14 +450,14 @@ class Kqlmagic_core(object):
                         f"""You are using {Constants.MAGIC_PACKAGE_NAME} version {VERSION}, however version {pypi_version} is available. You should consider upgrading, execute '!pip install {Constants.MAGIC_PACKAGE_NAME} --no-cache-dir --upgrade'. To see what's new click on the button below."""
                     )
             except:
-                logger().debug("Kqlmagic::_show_magic_latest_version - failed to fetch PyPi Kqlmagic latest version")
+                logger().debug("Kqlmagic_core::_show_magic_latest_version - failed to fetch PyPi Kqlmagic latest version")
                 pass
 
 
     def _show_what_new(self, options):
         if options.get("show_what_new"):
             try:
-                logger().debug("Kqlmagic::_show_what_new - fetch HISTORY.md")
+                logger().debug("Kqlmagic_core::_show_what_new - fetch HISTORY.md")
                 # What's new (history.md)  button #
                 url = "https://raw.githubusercontent.com/microsoft/jupyter-Kqlmagic/master/HISTORY.md"
                 data = urllib.request.urlopen(url)
@@ -491,7 +481,7 @@ class Kqlmagic_core(object):
                         **options
                     )
             except:
-                logger().debug("Kqlmagic::_show_what_new - failed to fetch HISTORY.md")
+                logger().debug("Kqlmagic_core::_show_what_new - failed to fetch HISTORY.md")
                 pass
 
 
@@ -509,8 +499,6 @@ class Kqlmagic_core(object):
     def _start_temp_files_server(self, options={}):
         self.is_temp_files_server_on = False
         if self.temp_files_server_manager is None and options.get("temp_folder_name") is not None:
-            # folder_name = options.get("temp_folder_name")
-            # root_path = Display._get_ipython_root_path()
             server_py_path = os.getenv(f"{Constants.MAGIC_CLASS_NAME_UPPER}_TEMP_FILES_SERVER_PY_FOLDER")
             if server_py_path is None:
                 import Kqlmagic as kqlmagic
@@ -533,6 +521,8 @@ class Kqlmagic_core(object):
                 server_url = self.temp_files_server_manager.server_url
                 setattr(self.default_options, "temp_files_server_address", server_url)
                 options["temp_files_server_address"] = server_url
+            else:
+                logger().error(f"Kqlmagic_core::::_start_temp_files_server failed to ping server: {self.temp_files_server_manager.server_url}")
 
 
     def _abort_temp_files_server(self, options):
@@ -541,7 +531,7 @@ class Kqlmagic_core(object):
             self.temp_files_server_manager.abortServer()
             self.temp_files_server_manager = None
             setattr(self.default_options, "temp_files_server_address", None)
-            logger().debug(f"_abort_temp_files_server - set defaul option 'temp_files_server_address' to: None")
+            logger().debug(f"Kqlmagic_core::_abort_temp_files_server - set defaul option 'temp_files_server_address' to: None")
             options["temp_files_server_address"] = None
             Display.showfiles_url_base_path = Display.showfiles_file_base_path
 
@@ -642,7 +632,7 @@ class Kqlmagic_core(object):
             # Note set current (default) cluster to kusto.
         """
 
-        logger().debug(f"Kqlmagic::To Parsed: \n\rline: {line}\n\rcell:\n\r{cell}")
+        logger().debug(f"Kqlmagic_core::execute - input: \n\rline: {line}\n\rcell:\n\r{cell}")
         try:
 
             if self.shell is not None:
@@ -655,7 +645,7 @@ class Kqlmagic_core(object):
 
             parsed = None
             parsed_queries = Parser.parse("%s\n%s" % (line, cell), self.default_options, _ENGINES, user_ns)
-            logger().debug(f"Kqlmagic::Parsed: {parsed_queries}")
+            logger().debug(f"Kqlmagic_core::execute - parsed_queries: {parsed_queries}")
             result = None
             for parsed in parsed_queries:
                 parsed["line"] = line
@@ -678,10 +668,10 @@ class Kqlmagic_core(object):
 
                 if command is None or command == "submit":
                     result = self._execute_query(parsed, user_ns, result_set=override_result_set, override_vars=override_vars)
-                    # can't just return result, it fails when used with table package  pandas_show_schema 
                     if type(result) == ResultSet:
-                        result._repr_html_()
-                        return None
+                        # can't just return result as is, it fails when used with table package pandas_show_schema 
+                        # it will first show the result, and will suppres show by result._repr_html
+                        result.show_result(suppress_next_repr_html_=True)
                 else:
                     param = parsed["command"].get("param")
                     if command == "version":
@@ -872,7 +862,7 @@ class Kqlmagic_core(object):
                     Help_html.flush(window_location, options=options)
 
             if Help_html.showfiles_base_url is None:
-                Display.kernelExecute("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}""", **options)
+                IPythonAPI.try_kernel_execute("""try {IPython.notebook.kernel.execute("NOTEBOOK_URL = '" + window.location + "'");} catch(err) {;}""", **options)
 
 
     def _execute_query(self, parsed, user_ns: dict, result_set=None, override_vars=None):
@@ -1108,7 +1098,7 @@ class Kqlmagic_core(object):
         #
         # kernel_id
         #
-        kernel_id = self.get_notebook_kernel_id() or "kernel_id"
+        kernel_id = IPythonAPI.get_notebook_kernel_id() or "kernel_id"
         setattr(self.default_options, "kernel_id", kernel_id)
         logger().debug(f"_override_default_configuration - set default option 'kernel_id' to: {kernel_id}")
 
@@ -1208,10 +1198,7 @@ class Kqlmagic_core(object):
             try:
                 Connection(connection_str, {}, **options)
                 logger().debug(f"_set_default_connections - set default connection_str to: {connection_str}")
-                # ip = get_ipython()  # pylint: disable=E0602
-                # result = ip.run_line_magic(Constants.MAGIC_NAME, connection_str)
-                # if conn and _get_kql_magic_load_mode() != "silent":
-                    # print(conn)
+
             except Exception as err:
                 # this print is not for debug
                 print(err)

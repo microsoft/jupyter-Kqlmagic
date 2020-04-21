@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from .log import logger
 from .parser import Parser
 from .display import Display
+from .ipython_api import IPythonAPI
 from .constants import Constants, CryptoParam, SsoStorageParam, SsoEnvVarParam, SsoStorage, SsoCrypto
 
 from .fernet_crypto import FernetCrypto, fernet_installed, check_password_strength
@@ -114,5 +115,5 @@ def get_sso_store(authority = None, **options) -> SsoStorage: #pylint: disable=n
         }
 
         if storage == SsoStorage.IPYTHON_DB:
-            db = Display._get_ipython_db(**options)
+            db = IPythonAPI._get_ipython_db(**options)
             return DictDbStorage(db, storage_options)

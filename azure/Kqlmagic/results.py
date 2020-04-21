@@ -19,12 +19,6 @@ import six
 import prettytable
 import plotly
 import plotly.graph_objs as go
-try:
-    import ipywidgets
-except Exception:
-    ipywidgets_installed = False
-else:
-    ipywidgets_installed = True
 
 
 from .log import logger
@@ -36,6 +30,7 @@ from .my_utils import adjust_path
 from .column_guesser import ColumnGuesserMixin
 from .display import Display
 from .palette import Palette, Palettes
+from .ipython_api import IPythonAPI
 
 
 def _unduplicate_field_names(field_names):
@@ -222,7 +217,7 @@ class ResultSet(list, ColumnGuesserMixin):
         self.feedback_info = []
         self.feedback_warning = []
 
-
+        self._suppress_next_repr_html_=None
         self.display_info = True
         self.suppress_result = False
         self.update_obj(metadata, queryResult)
@@ -426,6 +421,16 @@ class ResultSet(list, ColumnGuesserMixin):
 
     # IPython html presentation of the object
     def _repr_html_(self):
+        self.show_result()
+        return ""
+
+    def show_result(self, suppress_next_repr_html_=None):
+
+        suppress_current_repr_html_ = self._suppress_next_repr_html_
+        self._suppress_next_repr_html_ = suppress_next_repr_html_
+        if suppress_current_repr_html_:
+            return ""
+
         if not self.suppress_result:
             feedback_warning = self.feedback_warning if self.display_info  else None
             conn_info = self._metadata.get("conn_info") if self.display_info  else None
@@ -729,11 +734,11 @@ class ResultSet(list, ColumnGuesserMixin):
 
 
     # Public API   
-    def popup(self):
+    def popup(self, **kwargs):
         if self.is_chart():
-            self.popup_Chart(**self.options)
+            self.popup_Chart(**kwargs)
         else:
-            self.popup_table(**self.options)
+            self.popup_table(**kwargs)
 
 
     # Public API        
@@ -948,8 +953,9 @@ class ResultSet(list, ColumnGuesserMixin):
     def _init_matplotlib(cls, **options):
         if not cls.is_matplotlib_intialized:
             logger().debug("ResultSet::_init_matplotlib - initialize matplotlib")
-            Display._init_ipython_matplotlib_magic(**options)
+            IPythonAPI.try_init_ipython_matplotlib_magic(**options)
             cls.is_matplotlib_intialized = True
+
 
     def pie(self, properties:dict, key_word_sep=" ", **kwargs):
         """Generates a pylab pie chart from the result set.
@@ -1308,7 +1314,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def _figure_or_figurewidget(self, data, layout, window_mode:bool, options:dict={}):
 
-        if ipywidgets_installed and options.get("plot_package") == "plotly_widget" and not window_mode:
+        if IPythonAPI.is_ipywidgets_installed() and options.get("plot_package") == "plotly_widget" and not window_mode:
             # print("----------- FigureWidget --------------")
             fig = go.FigureWidget(data=data, layout=layout)
         else:

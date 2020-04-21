@@ -11,8 +11,6 @@ import six
 import pandas
 
 
-from .display import Display
-
 
 class KqlRow(six.Iterator):
 

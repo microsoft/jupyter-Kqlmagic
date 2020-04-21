@@ -20,48 +20,19 @@ from traitlets.config.configurable import Configurable
 logger().debug("kql_magic.py - import Bool, Int, Float, Unicode, Enum, TraitError, validate from traitlets")
 from traitlets import Bool, Int, Float, Unicode, Enum, Dict, TraitError, validate, TraitType
 
-logger().debug("kql_magic.py - import Magics, magics_class, cell_magic, line_magic, needs_local_scope from IPython.core.magic")
-try:
-    from IPython.core.magic import Magics, magics_class, cell_magic, line_magic, needs_local_scope
-except Exception:
-    class Magics(object):
-        def __init__(self, shell):
-            pass
-    def magics_class(_class):
-        class _magics_class(object):
-            def __init__(self, *args, **kwargs):
-                self.oInstance = _class(*args,**kwargs)
-            def __getattribute__(self,s):
-                try:    
-                    x = super(_magics_class,self).__getattribute__(s)
-                except AttributeError:      
-                    return self.oInstance.__getattribute__(s)
-                else:
-                    return x
-        return _magics_class
-    def cell_magic(_name):
-        def _cell_magic(_func):
-            return _func
-        return _cell_magic
-    def line_magic(_name):
-        def _line_magic(_func):
-            return _func
-        return _line_magic
-    def needs_local_scope(_func):
-        return _func
-    
-
+from .ipython_api import Magics, magics_class, cell_magic, line_magic, needs_local_scope
+from .ipython_api import IPythonAPI
 
 from .kql_magic_core import Kqlmagic_core
 from .constants import Constants, Cloud
 from .palette import Palettes, Palette
+
 try:
     from flask import Flask
 except Exception:
     flask_installed = False
 else:
     flask_installed = True
-from .display import Display
 
 from .results import ResultSet
 
@@ -292,16 +263,25 @@ class Kqlmagic(Magics, Configurable):
     )
 
     temp_folder_name = Unicode(
-        default_value=f"{Constants.MAGIC_CLASS_NAME}_temp_files", 
+        default_value=f"temp_files", 
         config=True, 
-        help="""Set the folder name for temporary files"""
+        help=f"""Set the folder name for temporary files, relative to starting directory or user directory.\n
+        Will be prefixed by {Constants.MAGIC_CLASS_NAME_LOWER}/ or .{Constants.MAGIC_CLASS_NAME_LOWER}/"""
+    )
+
+    temp_folder_location = Enum(
+        ["auto", "starting_dir", "user_dir"], 
+        default_value="auto", 
+        config=True, 
+        help=f"""Set the location of the temp_folder, either within starting working directory or user workspace directory"""
     )
 
     # TODO: export files not used yet
     export_folder_name = Unicode(
-        default_value=f"{Constants.MAGIC_CLASS_NAME}_exported_files", 
+        default_value=f"exported_files", 
         config=True, 
-        help="""Set the folder name for exported files"""
+        help=f"""Set the folder name for exported files, relative to starting directory or user directory.\n
+        Will be prefixed by {Constants.MAGIC_CLASS_NAME_LOWER}/ or .{Constants.MAGIC_CLASS_NAME_LOWER}/"""
     )
 
     popup_interaction = Enum(
@@ -334,9 +314,10 @@ class Kqlmagic(Magics, Configurable):
     )
 
     cache_folder_name = Unicode(
-        default_value=f"{Constants.MAGIC_CLASS_NAME}_cache_files", 
+        default_value=f"cache_files", 
         config=True, 
-        help="Set the folder name for cache files"
+        help=f"""Set the folder name for cache files, relative to starting directory or user directory.\n
+        Will be prefixed by {Constants.MAGIC_CLASS_NAME_LOWER}/ or .{Constants.MAGIC_CLASS_NAME_LOWER}/"""
     )
 
     notebook_service_address = Unicode(
@@ -509,6 +490,17 @@ class Kqlmagic(Magics, Configurable):
         return proposal["value"]     
 
 
+    @validate("temp_folder_location")
+    def _valid_value_temp_folder_location(self, proposal):
+        try:
+            if proposal["value"] == "auto":
+                raise ValueError("cannot be set to auto, after instance is loaded")
+        except (AttributeError , ValueError) as e:
+            message = f"The 'temp_folder_location' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
+            raise TraitError(message)
+        return proposal["value"]   
+
+
     @validate("temp_files_server")
     def _valid_value_temp_files_server(self, proposal):
         try:
@@ -578,13 +570,7 @@ def kql(text:str='', options:dict=None, query_properties:dict=None, vars:dict=No
     shell = None
     if kql_core_obj is None:
         if global_ns is None and local_ns is None:
-            if "IPython" in sys.modules:
-                try:
-                    from IPython import get_ipython
-                    shell = get_ipython()
-                except:
-                    pass
-
+            shell = IPythonAPI.get_shell()
             if shell is None:
                 global_ns = globals()
                 local_ns = locals()

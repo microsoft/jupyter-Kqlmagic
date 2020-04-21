@@ -12,7 +12,8 @@ import os
 from .constants import Constants
 from .my_utils import get_valid_filename_with_spaces, adjust_path, convert_to_common_path_obj
 from .kql_response import KqlQueryResponse, KqlSchemaResponse
-from .display import Display
+from .ipython_api import IPythonAPI
+
 
 class CacheClient(object):
     """
@@ -28,11 +29,12 @@ class CacheClient(object):
             folder that contains all the database_folders that contains the query result files
         """
 
-        # ip = get_ipython()  # pylint: disable=undefined-variable
-        # root_path = ip.starting_dir
-        root_path = Display._get_ipython_root_path()
-        # cache_folder_name = ip.run_line_magic("config", f"{Constants.MAGIC_CLASS_NAME}.cache_folder_name")
+        root_path = IPythonAPI.get_ipython_root_path(**options)
         cache_folder_name = options.get("cache_folder_name")
+        cache_folder_name = f"{Constants.MAGIC_CLASS_NAME_LOWER}/{cache_folder_name}"
+        if options.get("temp_folder_location") == "user_dir":
+            # app that has a free/tree build server, are not supporting directories athat starts with a dot
+            cache_folder_name = f".{cache_folder_name}"
         self.files_folder = adjust_path(f"{root_path}/{cache_folder_name}")
 
 

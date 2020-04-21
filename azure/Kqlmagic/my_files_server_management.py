@@ -15,7 +15,7 @@ import requests
 
 from .log import logger
 from .constants import Constants
-from .display import Display
+from .ipython_api import IPythonAPI
 
 
 DEFAULT_PROTOCOL = "http"
@@ -96,23 +96,21 @@ class FilesServerManagement(object):
             window_visibility = os.getenv(f'{Constants.MAGIC_CLASS_NAME_UPPER}_FILES_SERVER_WINDOW_VISIBILITY')
             show_window = window_visibility is not None and window_visibility.lower() == "show"
             logger().debug(f"FilesServerManagement::startServer with show_window: {show_window}")
-            if not show_window:
-                # must use double quotes for base folder and folders, to allow spaces (note single quoted does not work)
-                command = f'{python_exe} {self._server_py_code} -protocol={self._protocol} -host={self._host} -port={self._port} -base_folder="{self._base_folder}" -folders="{self._folders}" -parent_id="{os.getpid()}" -clean="folders"'
-                sub.Popen(command, shell=True)
-                logger().debug(f"FilesServerManagement::startServer start sub process command: {command}")
-            else:
-                # must use double quotes for base folder and folders, to allow spaces (note single quoted does not work)
-                command = f'start /min /wait {python_exe} {self._server_py_code} -protocol={self._protocol} -host={self._host} -port={self._port} -base_folder="{self._base_folder}" -folders="{self._folders}" -parent_id="{os.getpid()}" -clean="folders"'
-                sub.Popen(command, shell=True)
-                logger().debug(f"FilesServerManagement::startServer start sub process command: {command}")
+
+            # must use double quotes for base folder and folders, to allow spaces (note single quoted does not work)
+            command_params = f'-protocol={self._protocol} -host={self._host} -port={self._port} -base_folder="{self._base_folder}" -folders="{self._folders}" -parent_id="{os.getpid()}" -parent_kernel_id="{self._kernel_id}" -clean="folders"'
+            command_head = "start /min /wait" if show_window else ""
+
+            command = f"{command_head} {python_exe} {self._server_py_code} {command_params}"
+            sub.Popen(command, shell=True)
+            logger().debug(f"FilesServerManagement::startServer start sub process command: {command}")
 
             self._is_started = True
 
         if not self._is_registered:
-            Display._register_to_ipython_atexit(FilesServerManagement._abortServer, self._server_url, self._kernel_id)
+            IPythonAPI.try_register_to_ipython_atexit(FilesServerManagement._abortServer, self._server_url, self._kernel_id)
             self._is_registered = True
-            logger().debug(f"FilesServerManagement::startServer _register_to_ipython_atexit: _abortServer({self._server_url}, {self._kernel_id})")
+            logger().debug(f"FilesServerManagement::startServer try_register_to_ipython_atexit: _abortServer({self._server_url}, {self._kernel_id})")
 
 
     def pingServer(self):

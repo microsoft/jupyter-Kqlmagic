@@ -5,7 +5,12 @@
 # --------------------------------------------------------------------------
 
 import six
-import seaborn as sns
+import warnings
+
+# to suppress 'pandas.util.testing is depreciated' warnig for some combinations of pandas with seaborn
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import seaborn as sns
 
 
 class Color(object):

@@ -255,7 +255,7 @@ class Display(object):
 
 
     @staticmethod
-    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, **options):
+    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, content=None, options={}):
         html_str = None
         mode = options.get("popup_interaction", "auto")
         if mode == "auto":
@@ -274,7 +274,7 @@ class Display(object):
             html_str = Display._getInfoMessageHtmlStr(f"opened popup window: '{window_name}', see it in your browser", **options)
 
         elif mode == "button":
-            html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, close_window_timeout_in_secs=close_window_timeout_in_secs, options=options)
+            html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, close_window_timeout_in_secs=close_window_timeout_in_secs, content=content, options=options)
 
         elif mode in ["reference", "reference_popup"]:
             html_str = Display._get_window_ref_html(mode == "reference_popup", window_name, file_path, button_text, isText=isText, palette=palette, before_text=before_text, after_text=after_text, close_window_timeout_in_secs=close_window_timeout_in_secs, options=options)
@@ -341,20 +341,22 @@ class Display(object):
             </div>
             </body></html>"""
         )
+
         return html_str
 
 
     @staticmethod
-    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, display_handler_name=None, close_window_timeout_in_secs=None, **options):
-        html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, close_window_timeout_in_secs=close_window_timeout_in_secs, **options)
+    def show_window(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, display_handler_name=None, close_window_timeout_in_secs=None, content=None, **options):
+        html_obj = Display.get_show_window_html_obj(window_name, file_path, button_text=button_text, onclick_visibility=onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, close_window_timeout_in_secs=close_window_timeout_in_secs, content=content, options=options)
         if html_obj is not None:
             Display.show_html_obj(html_obj, display_handler_name=display_handler_name, **options)
 
 
     @staticmethod
-    def to_styled_class(item, **options):
-        if options.get("json_display") != "raw" and (isinstance(item, list) or isinstance(item, dict) or type(item).__name__ == "KqlRow"):
-            if options.get("json_display") == "formatted": # or options.get("notebook_app") not in ["jupyterlab", "nteract"]:
+    def to_json_styled_class(item, style=None, options={}):
+        json_display_style = style or options.get("json_display")
+        if json_display_style != "raw" and (isinstance(item, list) or isinstance(item, dict) or type(item).__name__ == "KqlRow"):
+            if json_display_style == "formatted":
                 return _getitem_FormattedJson(item)
             else:
                 return _getitem_JSON(item)
@@ -424,7 +426,7 @@ class Display(object):
         return html_str
 
     @staticmethod
-    def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, close_itself_timeout_in_secs=None, options={}):
+    def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, close_itself_timeout_in_secs=None, content=None, options={}):
         # if isText is True, file_path is the text
         host_or_text = 'text' if isText else (options.get("notebook_service_address") or "")
         onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
@@ -443,9 +445,15 @@ class Display(object):
             close_itself_timeout_in_secs =  -1
         elif close_window_timeout_in_secs >= 0:
             close_itself_timeout_in_secs = max(close_itself_timeout_in_secs - close_window_timeout_in_secs, 0)
+
         if not isText and Display.showfiles_url_base_path.startswith("http"):
             file_path = Display._get_file_path_url(file_path, options=options)
 
+            if options.get("temp_files_server_address") is not None and content == "schema" and options.get("notebook_app") in ["nteract"]:
+                import urllib.parse
+                indirect_url = f'{options.get("temp_files_server_address")}/webbrowser?url={urllib.parse.quote(file_path)}&kernelid={options.get("kernel_id")}'
+                file_path = indirect_url
+                
         html_str = (
             f"""<!DOCTYPE html>
             <html><body>
@@ -544,7 +552,6 @@ class Display(object):
 
             </body></html>"""
         )
-        # print(f">>> html_str: {html_str}")
         return html_str
 
     @staticmethod

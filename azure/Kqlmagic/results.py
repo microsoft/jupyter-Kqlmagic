@@ -401,22 +401,22 @@ class ResultSet(list, ColumnGuesserMixin):
 
     @property
     def raw_json(self):
-        return Display.to_styled_class(self._json_response, **self.options)
+        return Display.to_json_styled_class(self._json_response, options=self.options)
 
 
     @property
     def completion_query_info(self):
-        return Display.to_styled_class(self._completion_query_info, **self.options)
+        return Display.to_json_styled_class(self._completion_query_info, options=self.options)
 
 
     @property
     def completion_query_resource_consumption(self):
-        return Display.to_styled_class(self._completion_query_resource_consumption, **self.options)
+        return Display.to_json_styled_class(self._completion_query_resource_consumption, options=self.options)
 
 
     @property
     def dataSetCompletion(self):
-        return Display.to_styled_class(self._dataSetCompletion, **self.options)
+        return Display.to_json_styled_class(self._dataSetCompletion, options=self.options)
 
 
     # IPython html presentation of the object
@@ -526,8 +526,8 @@ class ResultSet(list, ColumnGuesserMixin):
         pandas__repr_data_resource_ = None
         pandas_display_html_table_schema = None
         pandas__repr_data_resource_patched = False
-        if len(self) == 1 and len(self[0]) == 1  and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
-            content = Display.to_styled_class(self[0][0])
+        if not options.get("popup_window") and len(self) == 1 and len(self[0]) == 1  and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
+            content = Display.to_json_styled_class(self[0][0], options=options)
         else:
             if options.get("table_package", "").lower() in ["pandas", "pandas_html_table_schema"]:
                 import pandas as pd
@@ -570,8 +570,8 @@ class ResultSet(list, ColumnGuesserMixin):
                 t = self._getTableHtml()
                 content = Display.toHtml(**t, title='table')
 
-            if options.get("popup_window") and not options.get("button_text"):
-                options["button_text"] = f'popup table{((" - " + self.title) if self.title else "")} '
+        if options.get("popup_window") and not options.get("button_text"):
+            options["button_text"] = f'popup table{((" - " + self.title) if self.title else "")} '
 
         Display.show(content, display_handler_name=display_handler_name, **options)
 
@@ -672,7 +672,7 @@ class ResultSet(list, ColumnGuesserMixin):
             elif len(item) == 0:
                 return item
 
-        return Display.to_styled_class(item, **self.options)
+        return Display.to_json_styled_class(item, options=self.options)
 
 
     def to_dict(self):

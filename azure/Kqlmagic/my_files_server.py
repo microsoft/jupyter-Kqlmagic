@@ -211,6 +211,7 @@ def after_request_func(response):
         response.headers["Expires"] = 0
         response.headers["Pragma"] = "no-cache"
 
+
     except Exception as ex:
         error_message = f"after_request_func failed. error: {ex}"
         logger.error(f"{error_message}.")

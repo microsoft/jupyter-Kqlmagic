@@ -241,6 +241,14 @@ class Kqlmagic(Magics, Configurable):
         Abbreviation: 'jd'"""
     )
 
+    schema_json_display = Enum(
+        ["auto", "raw", "formatted"], 
+        default_value="auto", 
+        config=True, 
+        help="""Set schema json/dict display format.\n
+        Abbreviation: 'sjd'"""
+    )
+
     palette_name = Unicode(
         default_value=Palettes.DEFAULT_NAME, 
         config=True, 

@@ -109,7 +109,7 @@ class Kqlmagic_core(object):
         return MarkdownString("sso db was cleared.", title="sso cleared")
 
 
-    def execute_schema_command(self, connection_string: str, user_ns: dict, **options) -> dict:
+    def execute_schema_command(self, connection_string:str, user_ns:dict, **options) -> dict:
         """ execute the schema command.
         command return the schema of the connection in json format, so that it can be used programattically
 
@@ -120,22 +120,23 @@ class Kqlmagic_core(object):
         """
 
         # removing query and con is required to avoid multiple parameter values error
-        options.pop("query", None)
-        connection_string = options.pop("conn", None) or connection_string
+        _options = {**options}
+        _options.pop("query", None)
+        connection_string = _options.pop("conn", None) or connection_string
         connection_string = None if connection_string == "None" else connection_string
 
-        conn = Connection.get_connection(connection_string, user_ns, **options)
+        conn = Connection.get_connection(connection_string, user_ns, **_options)
 
-        if options.get("popup_window"):
-            schema_file_path  = Database_html.get_schema_file_path(conn, **options)
+        if _options.get("popup_window"):
+            schema_file_path  = Database_html.get_schema_file_path(conn, **_options)
             conn_name = conn.kql_engine.get_conn_name() if isinstance(conn, CacheEngine) else conn.get_conn_name()
             button_text = f"popup schema {conn_name}"
             window_name = f"_{conn_name.replace('@', '_at_')}_schema"
-            html_obj = Display.get_show_window_html_obj(window_name, schema_file_path, button_text=button_text, onclick_visibility="visible", **options)
+            html_obj = Display.get_show_window_html_obj(window_name, schema_file_path, button_text=button_text, onclick_visibility="visible", content="schema", options=_options)
             return html_obj
         else:
-            schema_tree = Database_html.get_schema_tree(conn, **options)
-            return Display.to_styled_class(schema_tree, **options)
+            schema_tree = Database_html.get_schema_tree(conn, **_options)
+            return Display.to_json_styled_class(schema_tree, style=options.get("schema_json_display"), options=_options)
 
     # [KUSTO]
     # Driver          = Easysoft ODBC-SQL Server
@@ -736,6 +737,7 @@ class Kqlmagic_core(object):
                         popup_text = ' '
                     else:
                         raise ValueError(f"command {command} not implemented")
+
                     if isinstance(result, UrlReference):
                         file_path = result.url
                         if result.is_raw:
@@ -743,8 +745,9 @@ class Kqlmagic_core(object):
                             html_str = data.read().decode('utf-8')
                             if html_str is not None:
                                 file_path = Display._html_to_file_path(html_str, result.name, **options)
-                        html_obj = Display.get_show_window_html_obj(result.name, file_path, result.button_text, onclick_visibility="visible", **options)
+                        html_obj = Display.get_show_window_html_obj(result.name, file_path, result.button_text, onclick_visibility="visible", options=options)
                         return html_obj
+
                     if options.get("popup_window"):
                         _repr_html_ = getattr(result, "_repr_html_", None)
                         if _repr_html_ is not None and callable(_repr_html_):
@@ -758,8 +761,9 @@ class Kqlmagic_core(object):
                                 if popup_text:
                                     button_text += f" {popup_text}"
                                 file_path = Display._html_to_file_path(html_str, file_name, **options)
-                                html_obj = Display.get_show_window_html_obj(file_name, file_path, button_text=button_text, onclick_visibility="visible", **options)
+                                html_obj = Display.get_show_window_html_obj(file_name, file_path, button_text=button_text, onclick_visibility="visible", options=options)
                                 return html_obj
+
             return result
         except Exception as e:
             logger().error(f"execute_config_command - param: {param}")

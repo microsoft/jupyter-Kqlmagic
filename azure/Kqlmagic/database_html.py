@@ -21,7 +21,7 @@ class Database_html(object):
     """
     """
 
-    database_metadata_css = """.just-padding {
+    _database_metadata_css = """.just-padding {
       height: 100%;
       width: 100%;
       padding: 15px;
@@ -53,7 +53,7 @@ class Database_html(object):
       padding-left: 60px;
     }"""
 
-    database_metadata_scripts = """
+    _database_metadata_scripts = """
         <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" type="text/css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js" type="text/javascript"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" type="text/javascript"></script>
@@ -80,7 +80,7 @@ class Database_html(object):
         </script>
     """
 
-    database_metadata_html = """<html><head>
+    _database_metadata_html = """<html><head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>{0}</title>
@@ -100,23 +100,23 @@ class Database_html(object):
         </div></div></body></html>"""
 
 
-    @staticmethod
-    def convert_database_metadata_to_html(database_metadata_tree, connectionName, **kwargs):
+    @classmethod
+    def _convert_database_metadata_to_html(cls, database_metadata_tree, connectionName, **kwargs):
         item = ""
         for table in database_metadata_tree.keys():
             table_metadata_tree = database_metadata_tree.get(table)
-            item += Database_html._convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs)
+            item += cls._convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs)
         header = connectionName
         title = f"{Constants.MAGIC_PACKAGE_NAME} - {connectionName.replace('@', '_at_')} schema"
-        result = Database_html.database_metadata_html.format(
-            title, Database_html.database_metadata_scripts, Database_html.database_metadata_css, header, item
+        result = cls._database_metadata_html.format(
+            title, cls._database_metadata_scripts, cls._database_metadata_css, header, item
         )
         # print(f">>> result: {result}")
         return result
 
 
-    @staticmethod
-    def _create_database_metadata_tree(rows, databaseName, **kwargs):
+    @classmethod
+    def _create_database_metadata_tree(cls, rows, databaseName, **kwargs):
         database_metadata_tree = {}
         for row in rows:
             database_name = row["DatabaseName"]
@@ -132,8 +132,8 @@ class Database_html(object):
         return database_metadata_tree
 
 
-    @staticmethod
-    def _create_database_draft_metadata_tree(rows, **kwargs):
+    @classmethod
+    def _create_database_draft_metadata_tree(cls, rows, **kwargs):
         database_metadata_tree = {}
         for row in rows:
             table_name = row["name"]
@@ -147,14 +147,14 @@ class Database_html(object):
         return database_metadata_tree
 
 
-    @staticmethod
-    def _convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs):
+    @classmethod
+    def _convert_table_metadata_tree_to_item(cls, table, table_metadata_tree, **kwargs):
         metadata_items = []
         for column_name in table_metadata_tree.keys():
             column_type = table_metadata_tree.get(column_name)
             if column_type.startswith("System."):
                 column_type = column_type[7:]
-            metadata_item = Database_html._convert_column_metadata_to_item(column_name, column_type, **kwargs)
+            metadata_item = cls._convert_column_metadata_to_item(column_name, column_type, **kwargs)
             metadata_items.append(metadata_item)
             
         item = (
@@ -165,14 +165,14 @@ class Database_html(object):
         return item
 
 
-    @staticmethod
-    def _convert_column_metadata_to_item(column_name, column_type, **kwargs):
+    @classmethod
+    def _convert_column_metadata_to_item(cls, column_name, column_type, **kwargs):
         item = f"<b>{column_name}</b> : {column_type}"
         return f"""<a href="#" class="list-group-item">{item}</a>"""
 
 
-    @staticmethod
-    def get_schema_tree(connection, **options) :
+    @classmethod
+    def get_schema_tree(cls, connection, **options) :
         engine_type = (
             KustoEngine
             if isinstance(connection, KustoEngine) or (isinstance(connection, CacheEngine) and isinstance(connection.kql_engine, KustoEngine))
@@ -190,10 +190,10 @@ class Database_html(object):
                 database_name = connection.get_database()
 
             if engine_type == KustoEngine:
-                show_schema_query = f".show database ['{Database_html.adjustToKustoEntityNameRules(database_name)}'] schema"
+                show_schema_query = f".show database ['{cls._adjustToKustoEntityNameRules(database_name)}'] schema"
                 raw_query_result = connection.execute(show_schema_query, **options)
                 raw_schema_table = raw_query_result.tables[0]
-                database_metadata_tree = Database_html._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
+                database_metadata_tree = cls._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
                 if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
                     CacheClient(**options).save(raw_query_result, connection, show_schema_query, **options)
                 return database_metadata_tree
@@ -202,42 +202,41 @@ class Database_html(object):
                 show_schema_query = ".show schema"
                 metadata_result = connection.client_execute(show_schema_query, **options)
                 metadata_schema_table = metadata_result.table
-                database_metadata_tree = Database_html._create_database_draft_metadata_tree(metadata_schema_table)
+                database_metadata_tree = cls._create_database_draft_metadata_tree(metadata_schema_table)
                 if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
                     CacheClient(**options).save(metadata_result, connection, show_schema_query, **options)
                 return database_metadata_tree
         return None
 
 
-    @staticmethod
-    def adjustToKustoEntityNameRules(name: str) -> str:
+    @classmethod
+    def _adjustToKustoEntityNameRules(cls, name: str) -> str:
         if isinstance(name, str):
             name = re.sub(r'[\s\n\r\f\t]+', ' ', name.strip())
             name = re.sub(r'[^0-9a-zA-Z._\s-]+', ' ', name)
         return name
 
 
-    @staticmethod
-    def get_schema_file_path(connection, **options):
-        database_metadata_tree = Database_html.get_schema_tree(connection, **options)
+    @classmethod
+    def get_schema_file_path(cls, connection, **options):
+        database_metadata_tree = cls.get_schema_tree(connection, **options)
         if database_metadata_tree is not None:
             if isinstance(connection, CacheEngine):
                 conn_name = connection.kql_engine.get_conn_name()
             else:
                 conn_name = connection.get_conn_name()
-
-            html_str = Database_html.convert_database_metadata_to_html(database_metadata_tree, conn_name)
+            html_str = cls._convert_database_metadata_to_html(database_metadata_tree, conn_name)
             window_name = f"_{conn_name.replace('@', '_at_')}_schema"
             return Display._html_to_file_path(html_str, window_name, **options)
         else:
             return None
 
 
-    @staticmethod
-    def popup_schema(file_path, connection, **options):
+    @classmethod
+    def popup_schema(cls, file_path, connection, **options):
         if file_path:
             conn_name = connection.kql_engine.get_conn_name() if isinstance(connection, CacheEngine) else connection.get_conn_name()
             button_text = f"popup schema {conn_name}"
             window_name = f"_{conn_name.replace('@', '_at_')}_schema"
-            Display.show_window(window_name, file_path, button_text=button_text, onclick_visibility="visible", **options)
+            Display.show_window(window_name, file_path, button_text=button_text, onclick_visibility="visible", content="schema", **options)
 

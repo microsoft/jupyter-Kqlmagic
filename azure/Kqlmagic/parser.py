@@ -388,6 +388,8 @@ class Parser(object):
         "autopopupschema": {"flag": "auto_popup_schema", "type": "bool", "config": "config.auto_popup_schema"},
         "jd": {"abbreviation": "jsondisplay"},
         "jsondisplay": {"flag": "json_display", "type": "str", "config": "config.json_display"},
+        "sjd": {"abbreviation": "schemajsondisplay"},
+        "schemajsondisplay": {"flag": "schema_json_display", "type": "str", "config": "config.schema_json_display"},
         "pd": {"abbreviation": "palettedesaturation"},
         "palettedesaturation": {"flag": "palette_desaturation", "type": "float", "config": "config.palette_desaturation"},
         "pn": {"abbreviation": "palettename"},

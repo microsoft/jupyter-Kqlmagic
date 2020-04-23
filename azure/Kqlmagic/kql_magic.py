@@ -126,6 +126,19 @@ class Kqlmagic(Magics, Configurable):
         If enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME_UPPER}_SSO_ENCRYPTION_KEYS is set properly."""
     )
 
+    try_azcli_login = Bool(
+        default_value=False, 
+        config = True, 
+        help=f"""Try to get token from Azure Cli.."""
+    )
+
+    try_azcli_login_subscription = Unicode(
+        default_value=None, 
+        allow_none=True,
+        config = True, 
+        help=f"""Try first to get token from Azure Cli, for the specified subscription."""
+    )
+
     sso_db_gc_interval = Int(
         default_value=168, 
         config=True,

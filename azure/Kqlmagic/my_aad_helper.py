@@ -118,9 +118,10 @@ class _MyAadHelper(object):
             if not aad_login_url:
                 raise KqlEngineError(f"AAD is not known for this cloud {cloud}, please use aadurl property in connection string.")
 
-        authority = kcsb.authority_id or "common"
+        self._authority = kcsb.authority_id
+        _authority_id = self._authority or "common"
 
-        authority_key= f"{aad_login_url}/{authority}"
+        authority_key= f"{aad_login_url}/{_authority_id}"
 
         self._adal_context = adal_context
         if self._adal_context is None:
@@ -163,6 +164,16 @@ class _MyAadHelper(object):
         """Acquire tokens from AAD."""
 
         token = None
+        if options.get("try_azcli_login_subscription") is not None:
+            token = self._get_azcli_token(subscription=options.get("try_azcli_login_subscription"))
+            if token is not None:
+                return self._get_header(token)
+
+        if options.get("try_azcli_login") is not None:
+            token = self._get_azcli_token()
+            if token is not None:
+                return self._get_header(token)
+
         if self._adal_context_sso:
             adal_context = self._adal_context_sso
             token = adal_context.acquire_token(self._resource, self._username, self._client_id)
@@ -373,12 +384,32 @@ class _MyAadHelper(object):
     #         server.sendmail(sender_email, receiver_email, "\n"+message)
 
 
-    def _get_header(self, token):
+    def _get_header(self, token:str)->str:
         return f"{token[TokenResponseFields.TOKEN_TYPE]} {token[TokenResponseFields.ACCESS_TOKEN]}"
 
 
-    def _get_username_from_token(self, token):
+    def _get_username_from_token(self, token:str)->str:
         claims = jwt.decode(token.get('accessToken'), verify=False)
         username = claims.get('upn') or claims.get('email') or claims.get('sub')
         return username
+
+
+    def _get_azcli_token(self, subscription:str=None)->str:
+        token = None
+        try:
+            # requires azure-cli-core to be installed
+            # from azure.cli.core._profile import _CLIENT_ID as AZCLI_CLIENT_ID
+            from azure.common.credentials import get_cli_profile 
+            _authority = self._authority if subscription is None else None
+            logger().debug(f"_MyAadHelper::_get_azcli_token - resource: '{self._resource}', subscription: '{subscription}', tenant: '{_authority}'")
+
+            profile = get_cli_profile()
+            credential, _, _ = profile.get_raw_token(resource=self._resource, subscription=subscription, tenant=_authority)
+            _, _, token = credential
+
+        except ImportError:
+            raise AuthenticationError("Azure CLI authentication requires 'azure-cli-core' to be installed.")
+        else:
+            pass
+        return token
 

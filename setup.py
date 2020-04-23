@@ -61,6 +61,7 @@ INSTALL_REQUIRES    = [
                         'pyjwt>=1.7.1',
                         'flask>=1.1.1',
                         'pyperclip>=1.7.0',
+                        'azure-cli-core>=2.4.0',
 ]
 
 TEST_REQUIRE        = [

@@ -415,6 +415,9 @@ class Parser(object):
         "enablesso": {"flag": "enable_sso", "type": "bool", "config": "config.enable_sso"},
         "ssodbgcinterval": {"flag": "sso_db_gc_interval", "type": "int", "config": "config.sso_db_gc_interval"},
 
+        "tryazclilogin": {"flag": "try_azcli_login", "type": "bool", "config": "config.try_azcli_login"},
+        "tryazcliloginsubscription": {"flag": "try_azcli_login_subscription", "type": "str", "config": "config.try_azcli_login_subscription"},
+
         "idtag": {"abbreviation": "requestidtag"},
         "requestidtag": {"flag": "request_id_tag", "type": "str", "config": "config.request_id_tag"},
 
@@ -790,8 +793,8 @@ class Parser(object):
             #
             _type = obj.get("type")
             if _type == "str":
-                value_str = "'" + value.replace("'", "\\'") + "'"
-                saved_value_str = "'" + saved_value.replace("'", "\\'") + "'"
+                value_str = "'" + value.replace("'", "\\'") + "'" if value is not None else None
+                saved_value_str = ("'" + saved_value.replace("'", "\\'") + "'") if saved_value is not None else None
             else:
                 value_str = f"{value}"
                 saved_value_str = f"{saved_value}"

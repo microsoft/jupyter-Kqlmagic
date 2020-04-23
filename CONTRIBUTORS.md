@@ -1,6 +1,10 @@
 Kqlmagic contributors
 ============================================
 
+* **[Will Brown](https://github.com/wpbrown)**
+
+  * azcli_login
+
 * **[Avital Friedland](https://github.com/avitalfriedland)**
 
   * Single Sign On

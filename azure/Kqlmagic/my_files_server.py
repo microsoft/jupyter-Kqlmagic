@@ -66,8 +66,8 @@ def init_logger(kernel_id, log_level=None, log_file=None, log_file_prefix=None, 
                 logger.info("\n\n----------------------------------------------------------------------\n\n")
 
             now = datetime.now()
-            logger.info("start date %s", now.isoformat())
-            logger.info("logger level %s\n", log_level)
+            logger.info(f"start date {now.isoformat()}")
+            logger.info(f"logger level {log_level}\n")
 
     except Exception as e:
         create_file_logger_error_message = f"failed to create file log handler. log_level: {log_level}, log_file: {log_file}, log_file_prefix: {log_file_prefix}, log_file_mode: {log_file_mode}, error: {e}" 

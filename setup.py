@@ -62,6 +62,7 @@ INSTALL_REQUIRES    = [
                         'flask>=1.1.1',
                         'pyperclip>=1.7.0',
                         'azure-cli-core>=2.4.0',
+                        'msrestazure>=0.6.0',
 ]
 
 TEST_REQUIRE        = [

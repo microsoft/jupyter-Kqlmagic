@@ -49,8 +49,8 @@ def initialize(log_level=None, log_file=None, log_file_prefix=None, log_file_mod
             logger().debug("\n\n----------------------------------------------------------------------")
         now = datetime.datetime.now()
 
-        logger().debug("start date %s\n", now.isoformat())
-        logger().debug("logger level %s\n", log_level)
+        logger().debug(f"start date {now.isoformat()}\n")
+        logger().debug(f"logger level {log_level}\n")
         logger().debug("logger init done")
 
 

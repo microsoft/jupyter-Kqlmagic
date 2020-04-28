@@ -61,17 +61,18 @@ class Palette(list):
 
 
     def _to_html(self, add_details_to_name=True):
-        name = self.name + ("[{0}:{1}]".format(self.range_start, self.range_start + len(self)) if self.range_start is not None else "")
+        name = self.name
+        if self.range_start is not None:
+            name = f"{name}[{self.range_start}:{self.range_start + len(self)}]"
         if add_details_to_name:
-            desaturation_details = (
-                f", desaturation {self.desaturation}"
-                if self.desaturation is not None and self.desaturation > 0 and self.desaturation < 1.0
-                else ""
-            )
-            name += f" ({self.n_colors} colors{desaturation_details})"
+            desaturation_details = ""
+            if self.desaturation is not None and self.desaturation > 0 and self.desaturation < 1.0:
+                desaturation_details = f", desaturation {self.desaturation}"
+            name = f"{name} ({self.n_colors} colors{desaturation_details})"
         s_s = ""
         for color in self:
-            s_s += f'<div style="background-color:{color};height:20px;width:20px;display:inline-block;"></div>'
+            s_s = f'{s_s}<div style="background-color:{color};height:20px;width:20px;display:inline-block;"></div>'
+            
         return f'<div style="display:inline-block;padding:10px;"><div>{name}</div>{s_s}</div>'
 
 

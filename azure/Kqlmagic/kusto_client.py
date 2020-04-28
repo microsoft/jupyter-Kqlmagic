@@ -191,7 +191,7 @@ class Kusto_Client(object):
         if user_tag is not None:
             request_headers["x-ms-user"] = user_tag
         if self._aad_helper is not None:
-            request_headers["Authorization"] = self._aad_helper.acquire_token(**options)
+            request_headers["Authorization"] = self._aad_helper.acquire_token()
             request_headers["Fed"] = "True"
         # print("endpoint: ", endpoint)
         # print("headers: ", request_headers)
@@ -203,11 +203,11 @@ class Kusto_Client(object):
             log_request_headers = request_headers.copy()
             log_request_headers["Authorization"] = "..."  
 
-        logger().debug("Kusto_Client::execute - POST request - url: %s, headers: %s, payload: %s, timeout: %s", endpoint, log_request_headers, request_payload, options.get("timeout"))
+        logger().debug(f"Kusto_Client::execute - POST request - url: {endpoint}, headers: {log_request_headers}, payload: {request_payload}, timeout: options.get('timeout')")
 
         response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
 
-        logger().debug("Kusto_Client::execute - response - status: %s, headers: %s, payload: %s", response.status_code, response.headers, response.text)
+        logger().debug(f"Kusto_Client::execute - response - status: {response.status_code}, headers: {response.headers}, payload: {response.text}")
 
         # print("response status code: ", response.status_code)
         # print("response", response)

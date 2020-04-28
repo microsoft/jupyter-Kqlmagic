@@ -97,7 +97,6 @@ class Kqlmagic(Magics, Configurable):
         ["list", "current", "None"],
         default_value="current",
         config=True,
-        allow_none=True,
         help="""Show connection info, either current, the whole list, or None.\n
         Abbreviation: 'sci'"""
     )
@@ -137,6 +136,28 @@ class Kqlmagic(Magics, Configurable):
         allow_none=True,
         config = True, 
         help=f"""Try first to get token from Azure Cli, for the specified subscription."""
+    )
+
+    try_token = Dict(
+        default_value=None,
+        config=True, 
+        allow_none=True, 
+        help=f"""When specified and is not None, will be used as the token for the connection string.
+        Should be a dictionary with at least this keys: tokenType/token_type, accessToken/access_token"""
+    )
+
+    try_msi = Dict(
+        default_value=None,
+        config=True, 
+        allow_none=True, 
+        help=f"""Try first to get MSI token from MSI endpoint.
+        Should be a dictionary with the optional MSI params: resource, client_id/object_id/mis_res_id, cloud_environment, , timeout"""  
+        # - timeout: If provided, must be in seconds and indicates the maximum time we'll try to get a token before raising MSIAuthenticationTimeout
+        # - client_id: Identifies, by Azure AD client id, a specific explicit identity to use when authenticating to Azure AD. Mutually exclusive with object_id and msi_res_id.
+        # - object_id: Identifies, by Azure AD object id, a specific explicit identity to use when authenticating to Azure AD. Mutually exclusive with client_id and msi_res_id.
+        # - msi_res_id: Identifies, by ARM resource id, a specific explicit identity to use when authenticating to Azure AD. Mutually exclusive with client_id and object_id.
+        # - cloud_environment (msrestazure.azure_cloud.Cloud): A targeted cloud environment
+        # - resource (str): Alternative authentication resource, default is 'https://management.core.windows.net/'.      
     )
 
     sso_db_gc_interval = Int(
@@ -464,6 +485,13 @@ class Kqlmagic(Magics, Configurable):
         Abbreviation: 'pl'"""        
     )
 
+    auth_token_warnings = Bool(
+        default_value=False, 
+        config=True, 
+        help=f"""When set, will display auth token warning when token different from connection string params.\n
+        Abbreviation: 'atw'"""
+    )
+
   
     logger().debug("Kqlmagic:: - define class code")
 
@@ -534,10 +562,9 @@ class Kqlmagic(Magics, Configurable):
     @validate("temp_files_server")
     def _valid_value_temp_files_server(self, proposal):
         try:
-            if (proposal["value"]) != self.temp_files_server:
+            if proposal["value"] != self.temp_files_server:
                 if self.temp_files_server == "disabled":
                     raise ValueError("feature is 'disabled', due to missing 'flask' module")
-
         except (AttributeError , ValueError) as e:
             message = f"The 'temp_files_server' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
@@ -551,6 +578,42 @@ class Kqlmagic(Magics, Configurable):
                 raise ValueError("cannot be set, it is readonly, set internally")
         except (AttributeError , ValueError) as e:
             message = f"The 'kernel_id' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
+            raise TraitError(message)
+        return proposal["value"]
+
+
+    @validate("try_msi")
+    def _valid_value_try_msi(self, proposal):
+        try:
+            msi_params = proposal["value"]
+            if msi_params is not None:
+                valid_params = ["port", "timeout", "client_id", "object_id", "msi_res_id", "cloud_environment", "resource"]
+                for key in msi_params:
+                    if key not in valid_params:
+                        raise ValueError(f"unknown param '{key}'. Supported params: {valid_params}")
+                exclusive_pcount = 0
+                for key in ["client_id", "object_id", "msi_res_id"]:
+                    if msi_params.get(key) is not None:
+                        exclusive_pcount += 1
+                if exclusive_pcount > 1:
+                    raise ValueError("the following parameters are mutually exclusive and can not be provided at the same time: user_uid, object_id, msi_res_id")
+        except (AttributeError , ValueError) as e:
+            message = f"The 'try_msi' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
+            raise TraitError(message)
+        return proposal["value"]
+
+
+    @validate("try_token")
+    def _valid_value_try_token(self, proposal):
+        try:
+            token = proposal["value"]
+            if token is not None:
+                mandatory_properties = [["tokenType", "token_type"], ["accessToken", "access_token"]]
+                for pair in mandatory_properties:
+                    if token.get(pair[0]) is None and token.get(pair[1]) is None:
+                        raise ValueError(f"one of '{pair}' property is mandatory and is not set in token. mandatory properties are: {mandatory_properties}")                
+        except (AttributeError , ValueError) as e:
+            message = f"The 'try_token' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 

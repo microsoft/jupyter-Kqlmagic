@@ -155,11 +155,9 @@ class Connection(object):
     def get_connection_list_formatted(cls):
         result = []
         for key in Connection.connection_list():
-            if cls.connections[key] == cls.current:
-                template = " * {}"
-            else:
-                template = "   {}"
-            result.append(template.format(key))
+            asterics_current = '*' if cls.connections[key] == cls.current else ' '
+            conn_str = f" {asterics_current} {key}"
+            result.append(conn_str)
         return result
 
 

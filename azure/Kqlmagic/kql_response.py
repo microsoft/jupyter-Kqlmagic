@@ -80,19 +80,27 @@ class KqlResponseTable(six.Iterator):
 
     @staticmethod
     def to_datetime(value):
+        """Converts a string/int to a datetime."""
         if value is None:
             return None
-        return dateutil.parser.parse(value)
+
+        if isinstance(value, int):
+            return dateutil.parser.parse(value)
+
+        return dateutil.parser.isoparse(value)
 
 
     @staticmethod
     def to_timedelta(value):
-        """Converts a string to a timedelta."""
+        """Converts a string/int/float to a timedelta."""
         if value is None:
             return None
-        if isinstance(value, (six.integer_types, float)):
+
+        if isinstance(value, (int, float)):
             return timedelta(microseconds=(float(value) / 10))
+
         match = _TIMESPAN_PATTERN.match(value)
+
         if match:
             if match.group(1) == "-":
                 factor = -1

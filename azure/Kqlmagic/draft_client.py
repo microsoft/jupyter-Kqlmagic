@@ -173,7 +173,7 @@ class DraftClient(object):
             request_headers["x-ms-user"] = user_tag
 
         if self._aad_helper is not None:
-            request_headers["Authorization"] = self._aad_helper.acquire_token(**options)
+            request_headers["Authorization"] = self._aad_helper.acquire_token()
         elif self._appkey is not None:
             request_headers["x-api-key"] = self._appkey
 
@@ -189,14 +189,14 @@ class DraftClient(object):
             log_request_headers["Authorization"] = "..." 
 
         if is_metadata:
-            logger().debug("DraftClient::execute - GET request - url: %s, headers: %s, timeout: %s", api_url, log_request_headers, options.get("timeout"))
+            logger().debug(f"DraftClient::execute - GET request - url: {api_url}, headers: {log_request_headers}, timeout: {options.get('timeout')}")
             response = requests.get(api_url, headers=request_headers)
         else:
             request_payload = {"query": query}
-            logger().debug("DraftClient::execute - POST request - url: %s, headers: %s, payload: %s, timeout: %s", api_url, log_request_headers, request_payload, options.get("timeout"))
+            logger().debug(f"DraftClient::execute - POST request - url: {api_url}, headers: {log_request_headers}, payload: {request_payload}, timeout: {options.get('timeout')}")
             response = requests.post(api_url, headers=request_headers, json=request_payload)
 
-        logger().debug("DraftClient::execute - response - status: %s, headers: %s, payload: %s", response.status_code, response.headers, response.text)
+        logger().debug(f"DraftClient::execute - response - status: {response.status_code}, headers: {response.headers}, payload: {response.text}")
         #
         # handle response
         #

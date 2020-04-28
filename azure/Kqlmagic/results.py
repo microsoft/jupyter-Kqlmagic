@@ -133,7 +133,8 @@ class FileResultDescriptor(bytes):
 
 
     def _file_location_message(self):
-        return "%s at %s" % (self.message, os.path.join(os.path.abspath("."), self.file_or_image))
+        file_location = os.path.join(os.path.abspath("."), self.file_or_image)
+        return f"{self.message} at {file_location}"
 
 
     # Printable unambiguous presentation of the object
@@ -151,7 +152,8 @@ class FileResultDescriptor(bytes):
         if self.show and self.format == "html":
             return self._get_data()
         if not self.show and not self.is_image:
-            return '<a href="%s" download>%s</a>' % (os.path.join(".", "files", self.file_or_image), self.message)
+            href = os.path.join(".", "files", self.file_or_image)
+            return f'<a href="{href}" download>{self.message}</a>'
 
 
     def _repr_png_(self):
@@ -193,7 +195,7 @@ def _nonbreaking_spaces(match_obj):
     with nonbreaking speaces.
     """
     spaces = "&nbsp;" * len(match_obj.group(2))
-    return "%s%s" % (match_obj.group(1), spaces)
+    return f"{match_obj.group(1)}{spaces}"
 
 
 class ResultSet(list, ColumnGuesserMixin):
@@ -508,11 +510,7 @@ class ResultSet(list, ColumnGuesserMixin):
             result = _cell_with_spaces_pattern.sub(_nonbreaking_spaces, result)
             display_limit = 0 if not self.options.get("display_limit") else self.options.get("display_limit")
             if display_limit > 0 and len(self) > display_limit:
-                result = '%s\n<span style="font-style:italic;text-align:center;">%d rows, truncated to display_limit of %d</span>' % (
-                    result,
-                    len(self),
-                    display_limit,
-                )
+                result = f'{result}\n<span style="font-style:italic;text-align:center;">{len(self)} rows, truncated to display_limit of {display_limit}</span>'
             return {"body": result}
         else:
             return {}
@@ -663,7 +661,7 @@ class ResultSet(list, ColumnGuesserMixin):
             if not result or len(result) == 0:
                 raise KeyError(key)
             if len(result) > 1:
-                raise KeyError('%d results for "%s"' % (len(result), key))
+                raise KeyError(f"{len(result)} results for '{key}'")
             item = result[0]
 
         if isinstance(key, slice):

@@ -366,12 +366,12 @@ class Parser(object):
         "pw": {"abbreviation": "popupwindow"},
         "popupwindow": {"flag": "popup_window", "type": "bool", "init": "False"},
         "al": {"abbreviation": "autolimit"},
-        "autolimit": {"flag": "auto_limit", "type": "int", "config": "config.auto_limit"},
+        "autolimit": {"flag": "auto_limit", "type": "int", "allow_none": True, "config": "config.auto_limit"},
         "dl": {"abbreviation": "displaylimit"},
-        "displaylimit": {"flag": "display_limit", "type": "int", "config": "config.display_limit"},
+        "displaylimit": {"flag": "display_limit", "type": "int", "allow_none": True, "config": "config.display_limit"},
         "wait": {"abbreviation": "timeout"},
         "to": {"abbreviation": "timeout"},
-        "timeout": {"flag": "timeout", "type": "int", "config": "config.timeout"},
+        "timeout": {"flag": "timeout", "type": "int", "allow_none": True, "config": "config.timeout"},
         "ptst": {"abbreviation": "prettytablestyle"},
         "prettytablestyle": {"flag": "prettytable_style", "type": "str", "config": "config.prettytable_style"},
         "var": {"abbreviation": "lastrawresultvar"},
@@ -381,7 +381,7 @@ class Parser(object):
         "pp": {"abbreviation": "plotpackage"},
         "plotpackage": {"flag": "plot_package", "type": "str", "config": "config.plot_package"},
         "df": {"abbreviation": "dsnfilename"},
-        "dsnfilename": {"flag": "dsn_filename", "type": "str", "config": "config.dsn_filename"},
+        "dsnfilename": {"flag": "dsn_filename", "type": "str", "allow_none": True, "config": "config.dsn_filename"},
         "vc": {"abbreviation": "validateconnectionstring"},
         "validateconnectionstring": {"flag": "validate_connection_string", "type": "bool", "config": "config.validate_connection_string"},
         "aps": {"abbreviation": "autopopupschema"},
@@ -395,37 +395,39 @@ class Parser(object):
         "pn": {"abbreviation": "palettename"},
         "paramsdict": {"flag": "params_dict", "type": "dict", "init": "None"},
         "palettename": {"flag": "palette_name", "type": "str", "config": "config.palette_name"},
-        "cache": {"flag": "cache", "readonly": "True", "type": "str", "config": "config.cache"},
-        "usecache": {"flag": "use_cache", "readonly": "True", "type": "str", "config": "config.use_cache"},
+        "cache": {"flag": "cache", "readonly": True, "type": "str", "allow_none": True, "config": "config.cache"},
+        "usecache": {"flag": "use_cache", "readonly": True, "type": "str", "allow_none": True, "config": "config.use_cache"},
         
-        "tempfoldername": {"flag": "temp_folder_name", "readonly": "True", "type": "str", "config": "config.temp_folder_name"},
-        "cachefoldername": {"flag": "cache_folder_name", "readonly": "True", "type": "str", "config": "config.cache_folder_name"},
-        "exportfoldername": {"flag": "export_folder_name", "readonly": "True", "type": "str", "config": "config.export_folder_name"},
-        "addkqlreftohelp": {"flag": "add_kql_ref_to_help", "readonly": "True", "type": "bool", "config": "config.add_kql_ref_to_help"},
-        "addschematohelp": {"flag": "add_schema_to_help", "readonly": "True", "type": "bool", "config": "config.add_schema_to_help"},
-        "notebookapp": {"flag": "notebook_app", "readonly": "True", "type": "str", "config": "config.notebook_app"},
+        "tempfoldername": {"flag": "temp_folder_name", "readonly": True, "type": "str", "config": "config.temp_folder_name"},
+        "cachefoldername": {"flag": "cache_folder_name", "readonly": True, "type": "str", "config": "config.cache_folder_name"},
+        "exportfoldername": {"flag": "export_folder_name", "readonly": True, "type": "str", "config": "config.export_folder_name"},
+        "addkqlreftohelp": {"flag": "add_kql_ref_to_help", "readonly": True, "type": "bool", "config": "config.add_kql_ref_to_help"},
+        "addschematohelp": {"flag": "add_schema_to_help", "readonly": True, "type": "bool", "config": "config.add_schema_to_help"},
+        "notebookapp": {"flag": "notebook_app", "readonly": True, "type": "str", "config": "config.notebook_app"},
 
-        "checkmagicversion": {"flag": "check_magic_version", "readonly": "True", "type": "bool", "config": "config.check_magic_version"},
-        "showwhatnew": {"flag": "show_what_new", "readonly": "True", "type": "bool", "config": "config.show_what_new"},
-        "showinitbanner": {"flag": "show_init_banner", "readonly": "True", "type": "bool", "config": "config.show_init_banner"},
+        "checkmagicversion": {"flag": "check_magic_version", "readonly": True, "type": "bool", "config": "config.check_magic_version"},
+        "showwhatnew": {"flag": "show_what_new", "readonly": True, "type": "bool", "config": "config.show_what_new"},
+        "showinitbanner": {"flag": "show_init_banner", "readonly": True, "type": "bool", "config": "config.show_init_banner"},
         
-        "testnotebookapp": {"flag": "test_notebook_app", "readonly": "True", "type": "str", "config": "config.test_notebook_app"},
+        "testnotebookapp": {"flag": "test_notebook_app", "readonly": True, "type": "str", "config": "config.test_notebook_app"},
 
         "cloud": {"flag": "cloud", "type": "str", "config": "config.cloud"},
         "enablesso": {"flag": "enable_sso", "type": "bool", "config": "config.enable_sso"},
         "ssodbgcinterval": {"flag": "sso_db_gc_interval", "type": "int", "config": "config.sso_db_gc_interval"},
 
         "tryazclilogin": {"flag": "try_azcli_login", "type": "bool", "config": "config.try_azcli_login"},
-        "tryazcliloginsubscription": {"flag": "try_azcli_login_subscription", "type": "str", "config": "config.try_azcli_login_subscription"},
+        "tryazcliloginsubscription": {"flag": "try_azcli_login_subscription", "type": "str", "allow_none": True, "config": "config.try_azcli_login_subscription"},
+        "trytoken": {"flag": "try_token", "type": "dict", "allow_none": True, "config": "config.try_token"},
+        "trymsi": {"flag": "try_msi", "type": "dict", "allow_none": True, "config": "config.try_msi"},
 
         "idtag": {"abbreviation": "requestidtag"},
-        "requestidtag": {"flag": "request_id_tag", "type": "str", "config": "config.request_id_tag"},
+        "requestidtag": {"flag": "request_id_tag", "type": "str", "allow_none": True, "config": "config.request_id_tag"},
 
         "apptag": {"abbreviation": "requestapptag"},
-        "requestapptag": {"flag": "request_app_tag", "type": "str", "config": "config.request_app_tag"},
+        "requestapptag": {"flag": "request_app_tag", "type": "str", "allow_none": True, "config": "config.request_app_tag"},
 
         "usertag": {"abbreviation": "requestusertag"},
-        "requestusertag": {"flag": "request_user_tag", "type": "str", "config": "config.request_user_tag"},
+        "requestusertag": {"flag": "request_user_tag", "type": "str", "allow_none": True, "config": "config.request_user_tag"},
 
         "dcln": {"abbreviation": "devicecodeloginnotification"},
         "devicecodeloginnotification": {"flag": "device_code_login_notification", "type": "str", "config": "config.device_code_login_notification"},
@@ -453,29 +455,28 @@ class Parser(object):
 
         "pi": {"abbreviation": "popupinteraction"},        
         "popupinteraction": {"flag": "popup_interaction", "type": "str", "config": "config.popup_interaction"},
-        "tempfilesserver": {"flag": "temp_files_server", "readonly": "True", "type": "str", "config": "config.temp_files_server"},
-        "tempfilesserveraddress": {"flag": "temp_files_server_address", "readonly": "True", "type": "str", "config": "config.temp_files_server_address"},
+        "tempfilesserver": {"flag": "temp_files_server", "readonly": True, "type": "str", "config": "config.temp_files_server"},
+        "tempfilesserveraddress": {"flag": "temp_files_server_address", "readonly": True, "type": "str", "allow_none": True, "config": "config.temp_files_server_address"},
         
-        "kernellocation": {"flag": "kernel_location", "readonly": "True", "type": "str", "config": "config.kernel_location"},
-        "kernelid": {"flag": "kernel_id", "readonly": "True", "type": "str", "config": "config.kernel_id"},
+        "kernellocation": {"flag": "kernel_location", "readonly": True, "type": "str", "config": "config.kernel_location"},
+        "kernelid": {"flag": "kernel_id", "readonly": True, "type": "str", "allow_none": True, "config": "config.kernel_id"},
 
-        "notebookserviceaddress": {"flag": "notebook_service_address", "readonly": "True", "type": "str", "config": "config.notebook_service_address"},
+        "notebookserviceaddress": {"flag": "notebook_service_address", "readonly": True, "type": "str", "allow_none": True, "config": "config.notebook_service_address"},
 
         "dtd": {"abbreviation": "dynamictodataframe"},
         "dynamictodataframe": {"flag": "dynamic_to_dataframe", "type": "str", "config": "config.dynamic_to_dataframe"},
 
-        "tempfolderlocation": {"flag": "temp_folder_location", "readonly": "True", "type": "str", "config": "config.temp_folder_location"},
+        "tempfolderlocation": {"flag": "temp_folder_location", "readonly": True, "type": "str", "config": "config.temp_folder_location"},
 
         "pl": {"abbreviation": "plotlylayout"},
-        "plotlylayout": {"flag": "plotly_layout", "type": "dict", "config": "config.plotly_layout"},
+        "plotlylayout": {"flag": "plotly_layout", "type": "dict", "allow_none": True, "config": "config.plotly_layout"},
+
+        "atw": {"abbreviation": "authtokenwarnings"},
+        "authtokenwarnings": {"flag": "auth_token_warnings", "type": "bool", "config": "config.auth_token_warnings"},
         
+
     }
 
-    reserved_list = [
-        "format", "scale", "width", "height", "filename","show"
-        "encoding",
-        "button_text"
-    ]
 
 
     @classmethod
@@ -506,23 +507,27 @@ class Parser(object):
         lookup_key = key.lower().replace("-", "").replace("_", "")
         lookup_table = lookup or cls._OPTIONS_TABLE
         obj = lookup_table.get(lookup_key)
-        if obj is not None:
-            if obj.get("abbreviation"):
-                obj = lookup_table.get(obj.get("abbreviation"))
-            if obj.get("type") == "str" and val == "":
-                value = ""
-            else:
-                try:
-                    eval_value = eval(val)
-                except NameError as e:
-                    if obj.get("type") == "str":
-                        eval_value = val
-                    else:
-                        raise e
-                value = cls._convert(name, obj, key, eval_value)
-            if config is not None:
-                cls._validate_config_trait(name, obj, key, value, config)
-            return obj.get("flag", key), value
+        if obj is None:
+            raise ValueError(f"unknown option '{key}' in {name}")
+
+        if obj.get("abbreviation"):
+            obj = lookup_table.get(obj.get("abbreviation"))
+        if obj.get("type") == "str" and val == "":
+            value = ""
+        else:
+            try:
+                eval_value = eval(val)
+            except NameError as e:
+                if obj.get("type") == "str":
+                    eval_value = val
+                else:
+                    raise e
+            value = cls._convert(name, obj, key, eval_value)
+        if config is not None:
+            cls._validate_config_trait(name, obj, key, value, config)
+
+        return obj.get("flag", key), value
+
 
     @classmethod
     def parse_option_key(cls, name:str, key:str, config:dict):
@@ -561,6 +566,7 @@ class Parser(object):
             trimmed_kql = trimmed_kql[trimmed_kql.find("<<") + 2 :]
             first_word += 2
 
+        opt_key = None
         key_state = True
         is_option = True
         is_property = False
@@ -627,7 +633,7 @@ class Parser(object):
                 cls._validate_config_trait("options", obj, key, options[opt_key], config)
             
         if not key_state:
-            raise ValueError("last option is missing parameter")
+            raise ValueError(f"option '-{opt_key}' must have a value")
 
         if (options["query_properties"]):
             properties.update(options["query_properties"])
@@ -725,6 +731,7 @@ class Parser(object):
         if value == "" and _type == "str":
             return value
 
+        val = None
         if value.startswith('$'):
             val = os.getenv(value[1:])
         else:
@@ -734,12 +741,19 @@ class Parser(object):
         try:
             return cls._convert(name, obj, key, val)
         except:
-            return cls._convert(name, obj, key, eval(val))
-
+            if value.startswith('$'):
+                return cls._convert(name, obj, key, eval(val))
+            else:
+                raise
 
 
     @classmethod
     def _convert(cls, name, obj, key, value):
+        if value is None:
+            if obj.get("allow_none"):
+                return None
+            else:
+                raise ValueError(f"option '{key}' doesn't allow None value.")
         try:
             _type = obj.get("type")
             if _type == "int":
@@ -807,8 +821,8 @@ class Parser(object):
             exception = None
             try:
                 exec(set_value_statement)
-            except:
-                exception = ValueError(f"failed to set option '{key}' in {name}, due to invalid value '{value}'.")
+            except Exception as e:
+                exception = ValueError(f"failed to set option '{key}' in {name}, due to invalid value '{value}'. Exception: {e}")
 
             #
             # restore value

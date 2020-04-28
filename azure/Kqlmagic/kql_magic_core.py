@@ -313,7 +313,6 @@ class Kqlmagic_core(object):
             logger().debug(f"Kqlmagic_core::_init_options - set default option 'temp_folder_location' to: {temp_folder_location}")
 
         parsed_queries = Parser.parse(f"dummy_query\n", self.default_options, _ENGINES, {})
-        # parsed_queries = Parser.parse("%s\n%s" % ("dummy_query", ""), self.default_options, _ENGINES, {})
         options = parsed_queries[0]["options"]
 
         return options
@@ -642,6 +641,8 @@ class Kqlmagic_core(object):
             # Note set current (default) cluster to kusto.
         """
 
+        command = None
+        param = None
         logger().debug(f"Kqlmagic_core::execute - input: \n\rline: {line}\n\rcell:\n\r{cell}")
         try:
 
@@ -654,7 +655,7 @@ class Kqlmagic_core(object):
                 user_ns.update(local_ns)
 
             parsed = None
-            parsed_queries = Parser.parse("%s\n%s" % (line, cell), self.default_options, _ENGINES, user_ns)
+            parsed_queries = Parser.parse(f"{line}\n{cell}", self.default_options, _ENGINES, user_ns)
             logger().debug(f"Kqlmagic_core::execute - parsed_queries: {parsed_queries}")
             result = None
             for parsed in parsed_queries:
@@ -766,7 +767,7 @@ class Kqlmagic_core(object):
 
             return result
         except Exception as e:
-            logger().error(f"execute_config_command - param: {param}")
+            logger().debug(f"Kqlmagic_core::execute - failed - command: {command} param: {param}")
             if parsed:
                 if parsed["options"].get("short_errors"):
                     Display.showDangerMessage(str(e))

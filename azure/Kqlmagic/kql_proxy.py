@@ -5,10 +5,12 @@
 # --------------------------------------------------------------------------
 
 import json
-
+from datetime import datetime
 
 import six
 import pandas
+from dateutil import parser
+
 
 
 
@@ -179,20 +181,30 @@ class KqlTableResponse(object):
 
         for (idx, col_name) in enumerate(self.data_table.columns_name):
             col_type = self.data_table.columns_type[idx].lower()
+
             if col_type == "timespan":
                 frame[col_name] = pandas.to_timedelta(
-                    frame[col_name].apply(lambda t: t.replace(".", " days ") if t and "." in t.split(":")[0] else t)
+                    frame[col_name].apply(lambda t: t.replace(".", " days ") if type(t) is str and "." in t.split(":")[0] else t)
                 )
+
+            elif col_type == "datetime":
+                    # max diff in seconds from 9223372036 from 1970-01-01 00:00:00
+                    MAX_DIFF_FROM_EPOCH_IN_SECS = 9223372036 # 2**63/1000000000
+                    START_EPOCH_DATETIME = parser.isoparse('1970-01-01 00:00:00')
+                    frame[col_name] = pandas.to_datetime(
+                        frame[col_name].apply(lambda d: d if isinstance(d, datetime) and abs((d - START_EPOCH_DATETIME).total_seconds()) < MAX_DIFF_FROM_EPOCH_IN_SECS else None)
+                    )
+
             elif col_type == "string":
                 # frame[col_name] = frame[col_name].apply(lambda x: json.dumps(x) if type(x) == str else x)
                 pass
+
             elif col_type == "dynamic":
                 if options.get("dynamic_to_dataframe") == "str":
                     frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_str(x))
                 else:
                     frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_object(x))
 
-                
             elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
                 pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
                 # NA type promotion

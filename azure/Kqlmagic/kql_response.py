@@ -9,10 +9,8 @@ import re
 import json
 
 
-import adal
 import dateutil.parser
 import six
-import requests
 
 
 # Regex for TimeSpan

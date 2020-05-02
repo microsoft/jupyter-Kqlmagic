@@ -97,6 +97,7 @@ class Kqlmagic(Magics, Configurable):
         ["list", "current", "None"],
         default_value="current",
         config=True,
+        allow_none=True,
         help="""Show connection info, either current, the whole list, or None.\n
         Abbreviation: 'sci'"""
     )

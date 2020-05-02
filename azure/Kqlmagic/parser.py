@@ -347,7 +347,7 @@ class Parser(object):
         "f": {"abbreviation": "feedback"},
         "feedback": {"flag": "feedback", "type": "bool", "config": "config.feedback"},
         "sci": {"abbreviation": "showconninfo"},
-        "showconninfo": {"flag": "show_conn_info", "type": "str", "config": "config.show_conn_info"},
+        "showconninfo": {"flag": "show_conn_info", "type": "str", "allow_none": True, "config": "config.show_conn_info"},
         "c2lv": {"abbreviation": "columnstolocalvars"},
         "columnstolocalvars": {"flag": "columns_to_local_vars", "type": "bool", "config": "config.columns_to_local_vars"},
         "sqt": {"abbreviation": "showquerytime"},

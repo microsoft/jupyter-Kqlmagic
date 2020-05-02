@@ -188,12 +188,9 @@ class KqlTableResponse(object):
                 )
 
             elif col_type == "datetime":
-                    # max diff in seconds from 9223372036 from 1970-01-01 00:00:00
-                    MAX_DIFF_FROM_EPOCH_IN_SECS = 9223372036 # 2**63/1000000000
-                    START_EPOCH_DATETIME = parser.isoparse('1970-01-01 00:00:00')
-                    frame[col_name] = pandas.to_datetime(
-                        frame[col_name].apply(lambda d: d if isinstance(d, datetime) and abs((d - START_EPOCH_DATETIME).total_seconds()) < MAX_DIFF_FROM_EPOCH_IN_SECS else None)
-                    )
+                frame[col_name] = pandas.to_datetime(
+                    frame[col_name].apply(lambda d: d if self._is_valid_datetime(d) else None)
+                )
 
             elif col_type == "string":
                 # frame[col_name] = frame[col_name].apply(lambda x: json.dumps(x) if type(x) == str else x)
@@ -220,6 +217,18 @@ class KqlTableResponse(object):
                             break
                 frame[col_name] = frame[col_name].astype(pandas_type, errors="raise" if raise_errors else "ignore")
         return frame
+
+
+    def _is_valid_datetime(self, d:str)->bool:
+        # max diff in seconds from 9223372036 from 1970-01-01T00:00:00Z
+        MAX_DIFF_FROM_EPOCH_IN_SECS = 9223372036 # 2**63/1000000000
+        START_EPOCH_DATETIME = parser.isoparse('1970-01-01T00:00:00Z')
+        try:
+            d = parser.isoparse(d) if type(d) == str else d
+            return isinstance(d, datetime) and abs((d - START_EPOCH_DATETIME).total_seconds()) < MAX_DIFF_FROM_EPOCH_IN_SECS
+
+        except:
+            return False
 
 
     @staticmethod

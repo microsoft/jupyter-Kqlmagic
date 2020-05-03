@@ -7,6 +7,7 @@
 from datetime import timedelta, datetime
 import re
 import json
+from decimal import Decimal
 
 
 import dateutil.parser
@@ -64,6 +65,7 @@ class KqlResponseTable(six.Iterator):
         self.converters_lambda_mappings = {
             "datetime": self.to_datetime,
             "timespan": self.to_timedelta,
+            "decimal": self.to_decimal,
             "dynamic": self.to_object,
         }
 
@@ -83,9 +85,18 @@ class KqlResponseTable(six.Iterator):
             return None
 
         if isinstance(value, int):
-            return dateutil.parser.parse(value)
+            return dateutil.parser.parse(str(value))
 
         return dateutil.parser.isoparse(value)
+
+    @staticmethod
+    def to_decimal(value):
+        """Converts a decimal string to Decimal."""
+
+        if value is None:
+            return None
+
+        return Decimal(value)
 
 
     @staticmethod

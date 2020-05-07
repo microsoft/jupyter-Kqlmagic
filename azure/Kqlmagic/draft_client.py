@@ -67,6 +67,7 @@ class DraftClient(object):
 
     def __init__(self, conn_kv: dict, domain: str, data_source: str, schema: str, **options):
         self._domain = domain
+        self.resources_name = "workspaces" if schema == Schema.LOG_ANALYTICS else "applications"
 
         if conn_kv.get(ConnStrKeys.DATA_SOURCE_URL):
             self._data_source =  conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)  
@@ -192,7 +193,21 @@ class DraftClient(object):
             logger().debug(f"DraftClient::execute - GET request - url: {api_url}, headers: {log_request_headers}, timeout: {options.get('timeout')}")
             response = requests.get(api_url, headers=request_headers)
         else:
-            request_payload = {"query": query}
+            request_payload = {
+                "query": query
+            }
+
+            # Implicit Cross Workspace Queries: https://dev.loganalytics.io/oms/documentation/3-Using-the-API/CrossResourceQuery
+            # workspaces - string[] - A list of workspaces that are included in the query.
+            if type(options.get("query_properties")) == dict:
+                resources = options.get("query_properties").get(self.resources_name)
+                if type(resources) == list and len(resources) > 0:
+                    request_payload[self.resources_name] = resources
+
+                timespan = options.get("query_properties").get("timespan")
+                if type(timespan) == str and len(timespan) > 0:
+                    request_payload["timespan"] = timespan
+
             logger().debug(f"DraftClient::execute - POST request - url: {api_url}, headers: {log_request_headers}, payload: {request_payload}, timeout: {options.get('timeout')}")
             response = requests.post(api_url, headers=request_headers, json=request_payload)
 

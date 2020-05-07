@@ -50,6 +50,7 @@ INSTALL_REQUIRES    = [
                         'seaborn>=0.9.0',
                         'requests>=2.21.0',
                         'python-dateutil>=2.7.5',
+                        'isodate>=0.6.0',
                         'traitlets>=4.3.2',
                         'psutil>=5.4.7',
                         'six>=1.11.0',

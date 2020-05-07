@@ -16,6 +16,7 @@ from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
 
 
 from .log import Logger, logger
+from .constants import Schema
 from .my_utils import split_lex, adjust_path
 
 
@@ -185,156 +186,179 @@ class Parser(object):
 
         return (trimmed_code.strip(), {"command": obj.get("flag"), "param": param})
 
+    @classmethod
+    def validate_query_properties(cls, schema: str, properties:dict):
+        if type(properties) == dict:
+            usupported_properties = []
+            for p in properties:
+                prop:dict = cls._QUERY_PROPERTIES_TABLE[p]
+                prop_schema_list = prop.get("schema")
+                if type(prop_schema_list) == list and schema not in prop_schema_list and len(prop_schema_list) > 0 and schema is not None:
+                    usupported_properties.append(p)
+                if len(usupported_properties) > 0:
+                    raise ValueError(f"query properties {usupported_properties} are not supported by current connection")
 
     _QUERY_PROPERTIES_TABLE = {
         # (OptionBlockSplittingEnabled): Enables splitting of sequence blocks after aggregation operator. [Boolean]
-        "block_splitting_enabled": {"type": "bool"},
+        "block_splitting_enabled": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         # (OptionDatabasePattern): Database pattern overrides database name and picks the 1st database that matches the pattern. '*' means any database that user has access to. [String]
-        "database_pattern": {"type": "str"},
+        "database_pattern": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         # (OptionDeferPartialQueryFailures): If true, disables reporting partial query failures as part of the result set. [Boolean]
-        "deferpartialqueryfailures": {"type": "bool"},
+        "deferpartialqueryfailures": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         # (OptionMaxMemoryConsumptionPerQueryPerNode): Overrides the default maximum amount of memory a whole query may allocate per node. [UInt64]
-        "max_memory_consumption_per_query_per_node": {"type": "uint"},
+        "max_memory_consumption_per_query_per_node": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         # (OptionMaxMemoryConsumptionPerIterator): Overrides the default maximum amount of memory a query operator may allocate. [UInt64]
-        "maxmemoryconsumptionperiterator": {"type": "uint"},
+        "maxmemoryconsumptionperiterator": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         # (OptionMaxOutputColumns): Overrides the default maximum number of columns a query is allowed to produce. [Long]
-        "maxoutputcolumns": {"type": "uint"},
+        "maxoutputcolumns": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         # (OptionNoRequestTimeout): Enables setting the request timeout to its maximum value. [Boolean]
-        "norequesttimeout": {"type": "bool"},
+        "norequesttimeout": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         # (OptionNoTruncation): Enables suppressing truncation of the query results returned to the caller. [Boolean]
-        "notruncation": {"type": "bool"},
+        "notruncation": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         # (OptionPushSelectionThroughAggregation): If true, push simple selection through aggregation [Boolean]
-        "push_selection_through_aggregation": {"type": "bool"},
+        "push_selection_through_aggregation": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         # (OptionAdminSuperSlackerMode): If true, delegate execution of the query to another node [Boolean]
-        "query_admin_super_slacker_mode": {"type": "bool"},
+        "query_admin_super_slacker_mode": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (QueryBinAutoAt): When evaluating the bin_auto() function, the start value to use. [LiteralExpression]
-        "query_bin_auto_at": {"type": "str"},
+        "query_bin_auto_at": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         # (QueryBinAutoSize): When evaluating the bin_auto() function, the bin size value to use. [LiteralExpression]
-        "query_bin_auto_size": {"type": "str"},
+        "query_bin_auto_size": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         #  (OptionQueryCursorAfterDefault): The default parameter value of the cursor_after() function when called without parameters. [string]
-        "query_cursor_after_default": {"type": "str"},
+        "query_cursor_after_default": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         #  (OptionQueryCursorAllowReferencingStreamingIngestionTables): Enable usage of cursor functions over databases which have streaming ingestion enabled. [boolean]
-        "query_cursor_allow_referencing_streaming_ingestion_tables": {"type": "bool"},
+        "query_cursor_allow_referencing_streaming_ingestion_tables": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (OptionQueryCursorBeforeOrAtDefault): The default parameter value of the cursor_before_or_at() function when called without parameters. [string]
-        "query_cursor_before_or_at_default": {"type": "str"},
+        "query_cursor_before_or_at_default": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         # (OptionQueryCursorCurrent): Overrides the cursor value returned by the cursor_current() or current_cursor() functions. [string]
-        "query_cursor_current": {"type": "str"},
+        "query_cursor_current": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         #  (OptionQueryCursorScopedTables): List of table names that should be scoped to cursor_after_default .. cursor_before_or_at_default (upper bound is optional). [dynamic]
-        "query_cursor_scoped_tables": {"type": "dict"},
+        "query_cursor_scoped_tables": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "dict"},
 
         #  (OptionQueryDataScope): Controls the query's datascope -- whether the query applies to all data or just part of it. ['default', 'all', or 'hotcache']
-        "query_datascope": {"type": "enum", "values": ['default', 'all', 'hotcache']},
+        "query_datascope": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "enum", "values": ['default', 'all', 'hotcache']},
 
         #  (OptionQueryDateTimeScopeColumn): Controls the column name for the query's datetime scope (query_datetimescope_to / query_datetimescope_from). [String]
-        "query_datetimescope_column": {"type": "str"},
+        "query_datetimescope_column": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         #  (OptionQueryDateTimeScopeFrom): Controls the query's datetime scope (earliest) -- used as auto-applied filter on query_datetimescope_column only (if defined). [DateTime]
-        "query_datetimescope_from": {"type": "str"},
+        "query_datetimescope_from": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         # (OptionQueryDateTimeScopeTo): Controls the query's datetime scope (latest) -- used as auto-applied filter on query_datetimescope_column only (if defined). [DateTime]
-        "query_datetimescope_to": {"type": "str"},
+        "query_datetimescope_to": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         #  (OptionQueryDistributionNodesSpanSize): If set, controls the way sub-query merge behaves: the executing node will introduce an additional level in the query hierarchy for each sub-group of nodes; the size of the sub-group is set by this option. [Int]
-        "query_distribution_nodes_span": {"type": "int"},
+        "query_distribution_nodes_span": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "int"},
 
         #  (OptionQueryFanoutNodesPercent): The percentage of nodes to fanour execution to. [Int]
-        "query_fanout_nodes_percent": {"type": "uint"},
+        "query_fanout_nodes_percent": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (OptionQueryFanoutThreadsPercent): The percentage of threads to fanout execution to. [Int]
-        "query_fanout_threads_percent": {"type": "uint"},
+        "query_fanout_threads_percent": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (OptionQueryLanguage): Controls how the query text is to be interpreted. ['csl','kql' or 'sql']
-        "query_language": {"type": "enum", "values": ['csl', 'kql', 'sql']},
+        "query_language": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "enum", "values": ['csl', 'kql', 'sql']},
 
         #  (RemoteMaterializeOperatorInCrossCluster): Enables remoting materialize operator in cross cluster query.
-        "query_materialize_remote_subquery": {"type": "bool"},
+        "query_materialize_remote_subquery": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         # (OptionMaxEntitiesToUnion): Overrides the default maximum number of columns a query is allowed to produce. [Long]
-        "query_max_entities_in_union": {"type": "uint"},
+        "query_max_entities_in_union": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         # (OptionQueryNow): Overrides the datetime value returned by the now(0s) function. [DateTime]
         # note: cannot be relative to now()
-        "query_now": {"type": "str"},
+        "query_now": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         #  (CostBasedOptimizerBroadcastJoinBuildMax): Max Rows count for build in broadcast join.
-        "query_optimization_broadcast_build_maxSize": {"type": "uint"},
+        "query_optimization_broadcast_build_maxSize": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (CostBasedOptimizerBroadcastJoinProbeMin): Min Rows count for probe in broadcast join.
-        "query_optimization_broadcast_probe_minSize": {"type": "uint"},
+        "query_optimization_broadcast_probe_minSize": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (CostBasedOptimizer): Enables automatic optimizations.
-        "query_optimization_costbased_enabled": {"type": "bool"},
+        "query_optimization_costbased_enabled": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (OptionOptimizeInOperator): Optimizes in operands serialization.
-        "query_optimization_in_operator": {"type": "bool"},
+        "query_optimization_in_operator": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (CostBasedOptimizerShufflingCardinalityThreshold): Shuffling Cardinality Threshold.
-        "query_optimization_shuffling_cardinality": {"type": "uint"},
+        "query_optimization_shuffling_cardinality": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (OptionQueryRemoteEntitiesDisabled): If set, queries cannot access remote databases / clusters. [Boolean]
-        "query_remote_entities_disabled": {"type": "bool"},
+        "query_remote_entities_disabled": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (RemoteInOperandsInQuery): Enables remoting in operands.
-        "query_remote_in_operands": {"type": "bool"},
+        "query_remote_in_operands": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (OptionProgressiveQueryMinRowCountPerUpdate): Hint for Kusto as to how many records to send in each update (Takes effect only if OptionProgressiveQueryIsProgressive is set)
-        "query_results_progressive_row_count": {"type": "uint"},
+        "query_results_progressive_row_count": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (OptionProgressiveProgressReportPeriod): Hint for Kusto as to how often to send progress frames (Takes effect only if OptionProgressiveQueryIsProgressive is set)
-        "query_results_progressive_update_period": {"type": "uint"},
+        "query_results_progressive_update_period": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (OptionTakeMaxRecords): Enables limiting query results to this number of records. [Long]
-        "query_take_max_records": {"type": "uint"},
+        "query_take_max_records": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (OptionQueryConsistency): Controls query consistency. ['strongconsistency' or 'normalconsistency' or 'weakconsistency']
-        "queryconsistency": {"type": "enum", "values": ['strongconsistency', 'normalconsistency', 'weakconsistency']},
+        "queryconsistency": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "enum", "values": ['strongconsistency', 'normalconsistency', 'weakconsistency']},
 
         #  (OptionRequestCalloutDisabled): If set, callouts to external services are blocked. [Boolean]
-        "request_callout_disabled": {"type": "bool"},
+        "request_callout_disabled": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (OptionRequestReadOnly): If specified, indicates that the request must not be able to write anything. [Boolean]
-        "request_readonly": {"type": "bool"},
+        "request_readonly": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (OptionResponseDynamicSerialization): Controls the serialization of 'dynamic' values in result sets. ['string', 'json']
-        "response_dynamic_serialization": {"type": "enum", "values": ['string', 'json']},
+        "response_dynamic_serialization": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "enum", "values": ['string', 'json']},
 
         #  (OptionResponseDynamicSerialization_2): Controls the serialization of 'dynamic' string and null values in result sets. ['legacy', 'current']
-        "response_dynamic_serialization_2": {"type": "enum", "values": ['legacy', 'current']},
+        "response_dynamic_serialization_2": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "enum", "values": ['legacy', 'current']},
 
         #  (OptionResultsProgressiveEnabled): If set, enables the progressive query stream
-        "results_progressive_enabled": {"type": "bool"},
+        "results_progressive_enabled": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (OptionSandboxedExecutionDisabled): If set, using sandboxes as part of query execution is disabled. [Boolean]
-        "sandboxed_execution_disabled": {"type": "bool"},
+        "sandboxed_execution_disabled": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
 
         #  (OptionServerTimeout): Overrides the default request timeout. [TimeSpan]
         # is capped by 1hour
-        "servertimeout": {"type": "str"},
+        "servertimeout": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "str"},
 
         #  (OptionTruncationMaxRecords): Overrides the default maximum number of records a query is allowed to return to the caller (truncation). [Long]
-        "truncationmaxrecords": {"type": "uint"},
+        "truncationmaxrecords": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (OptionTruncationMaxSize): Overrides the dfefault maximum data size a query is allowed to return to the caller (truncation). [Long]
-        "truncationmaxsize": {"type": "uint"},
+        "truncationmaxsize": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "uint"},
 
         #  (OptionValidatePermissions): Validates user's permissions to perform the query and doesn't run the query itself. [Boolean]
-        "validate_permissions": {"type": "bool"},
+        "validate_permissions": {"schema": [Schema.AZURE_DATA_EXPLORER], "type": "bool"},
+
+        # For either implicit or explicit cross-application queries, specify resources you will be accessing
+        # see https://dev.loganalytics.io/documentation/Using-the-API/Cross-Resource-Queries
+        "workspaces": {"schema": [Schema.LOG_ANALYTICS], "type": "list"},
+
+        # For either implicit or explicit cross-application queries, specify resources you will be accessing
+        # see: https://dev.applicationinsights.io/documentation/Using-the-API/Cross-Resource-Queries
+        "applications": {"schema": [Schema.APPLICATION_INSIGHTS], "type": "list"},
+
+        # The timespan over which to query data. This is an ISO8601 time period value. This timespan is applied in addition to any that are specified in the query expression.
+        # see: https://docs.microsoft.com/en-us/rest/api/application-insights/query/get
+        "timespan": {"schema": [Schema.APPLICATION_INSIGHTS, Schema.LOG_ANALYTICS], "type": "iso8601_duration"},
     }
 
 
@@ -574,11 +598,12 @@ class Parser(object):
             if key_state:
                 is_option = word[0].startswith("-")
                 is_property = word[0].startswith("+")
+                option_type = "option" if is_option else "query property"
                 if not is_option and not is_property:
                     break
                 # validate it is not a command
                 if is_option and word[0].startswith("--"):
-                    raise ValueError(f"invalid option {word[0]}, cannot start with a bouble hyphen-minus")
+                    raise ValueError(f"invalid {option_type} {word[0]}, cannot start with a bouble hyphen-minus")
 
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
                 word = word[1:]
@@ -604,10 +629,10 @@ class Parser(object):
                     table = properties 
 
                 if obj is not None:
-                    if obj.get("abbreviation"):
+                    if obj.get("abbreviation") is not None:
                         obj = cls._OPTIONS_TABLE.get(obj.get("abbreviation"))
                     if obj.get("readonly"):
-                        raise ValueError(f"option {key} is readony, cannot be set")
+                        raise ValueError(f"{option_type} {key} is readony, cannot be set")
 
                     _type = obj.get("type")
                     opt_key = obj.get("flag") or lookup_key
@@ -615,13 +640,13 @@ class Parser(object):
                         table[opt_key] = bool_value
                     else:
                         if not bool_value:
-                            raise ValueError(f"option {key} cannot be negated")
+                            raise ValueError(f"{option_type} {key} cannot be negated")
                         if value is not None:
-                            table[opt_key] = cls.parse_value("options", obj, key, value, user_ns)
+                            table[opt_key] = cls.parse_value("options" if is_option else "query properties", obj, key, value, user_ns)
                         else:
                             key_state = False
                 else:
-                    raise ValueError("unknown option")
+                    raise ValueError(f"unknown {option_type} '{key}'")
             else:
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
                 table[opt_key] = cls.parse_value("options", obj, key, word, user_ns)
@@ -629,15 +654,15 @@ class Parser(object):
             first_word += 1
 
             # validate using config traits
-            if key_state:
-                cls._validate_config_trait("options", obj, key, options[opt_key], config)
+            if key_state and is_option:
+                cls._validate_config_trait("options", obj, key, options.get(opt_key), config)
             
         if not key_state:
-            raise ValueError(f"option '-{opt_key}' must have a value")
+            raise ValueError(f"{option_type} '{opt_key}' must have a value")
 
-        if (options["query_properties"]):
+        if options.get("query_properties"):
             properties.update(options["query_properties"])
-        options["query_properties"] = properties 
+        options["query_properties"] = properties
         if num_words - first_word > 0:
             last_word = words[-1].strip()
             if last_word.endswith(";"):
@@ -768,9 +793,9 @@ class Parser(object):
                 return float(value)
             elif _type == "bool":
                 if type(value) == str:
-                    if value == 'True':
+                    if value.lower() == 'true':
                         return True
-                    elif value == 'False':
+                    elif value.lower() == 'false':
                         return False
                     else:
                         raise ValueError
@@ -779,17 +804,33 @@ class Parser(object):
                 return bool(value)
             elif _type == "dict":
                 return dict(value)
+            elif _type == "list":
+                if type(value) == str:
+                    value = [value]                     
+                return list(value)
             elif _type == "enum":
                 enum_values = obj.get("values", [])
                 if enum_values.index(value) >= 0:
-                    pass
+                    return value
                 else:
                     raise ValueError
+            elif _type == "iso8601_duration":
+                # There are four ways to express a time interval:
+                # Start and end, such as "2007-03-01T13:00:00Z/2008-05-11T15:30:00Z"
+                # Start and duration, such as "2007-03-01T13:00:00Z/P1Y2M10DT2H30M"
+                # Duration and end, such as "P1Y2M10DT2H30M/2008-05-11T15:30:00Z"
+                # Duration only, such as "P1Y2M10DT2H30M", with additional context information
+                from datetime import timedelta
+                import isodate
+                value_list = [value] if type(value) != list else list(value)[:2]
+                value_list = [v if type(v) == str else (isodate.duration_isoformat(v) if isinstance(v, timedelta) else isodate.datetime_isoformat(v, format='%Y-%m-%dT%H:%M:%S%ZZ')) for v in value_list]
+                return "/".join(value_list)
             else:
                 return str(value)
 
         except:
-            raise ValueError(f"failed to set option '{key}' in {name}, due to invalid '{_type}' of value '{value}'.")
+            option_type = "property" if name == "query properties" else "option"
+            raise ValueError(f"failed to set {option_type} '{key}' in {name}, due to invalid '{_type}' of value '{value}'.")
 
 
     @classmethod

@@ -171,7 +171,7 @@ class Kusto_Client(object):
             app = f"{app};{app_tag}"
 
         query_properties: dict = options.get("query_properties")
-        if query_properties and len(query_properties):
+        if query_properties is not None and len(query_properties) > 0:
             properties = {
                 "Options": query_properties,
                 "Parameters": {},

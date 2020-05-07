@@ -67,7 +67,7 @@ class LoganalyticsEngine(KqlEngine):
     # ----------------
 
     def __init__(self, conn_str, user_ns: dict, current=None, **options):
-        super().__init__()
+        super(LoganalyticsEngine, self).__init__()
         self._parsed_conn = self._parse_common_connection_str(
             conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns
         )

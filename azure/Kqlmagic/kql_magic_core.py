@@ -967,7 +967,7 @@ class Kqlmagic_core(object):
             # submit query
             #
             start_time = time.time()
-
+            Parser.validate_query_properties(conn._URI_SCHEMA_NAME, options.get("query_properties"))
             parametrized_query_obj = result_set.parametrized_query_obj if result_set is not None else Parameterizer(query)
             params_vars = parametrized_query_obj.parameters if result_set is not None else options.get("params_dict") or user_ns
             parametrized_query_obj.apply(params_vars, override_vars=override_vars)
@@ -1097,7 +1097,8 @@ class Kqlmagic_core(object):
                 self._show_connection_info(**options)
 
             if options.get("short_errors"):
-                Display.showDangerMessage(e)
+                msg = f"{type(e).__name__}: {e}"
+                Display.showDangerMessage(msg)
                 return None
             else:
                 raise e

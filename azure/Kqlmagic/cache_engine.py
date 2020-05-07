@@ -29,7 +29,7 @@ class CacheEngine(KqlEngine):
 
     # Object constructor
     def __init__(self, conn_str_or_engine, user_ns: dict, current=None, cache_name=None, **options):
-        super().__init__()
+        super(CacheEngine, self).__init__()
         self._parsed_conn = {}
         self.kql_engine = None
         if isinstance(conn_str_or_engine, KqlEngine):

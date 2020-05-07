@@ -69,7 +69,7 @@ class KustoEngine(KqlEngine):
     # ----------------
 
     def __init__(self, conn_str, user_ns: dict, current=None, conn_class=None,  **options):
-        super().__init__()
+        super(KustoEngine, self).__init__()
         if isinstance(conn_str, dict):
             self.conn_class = conn_class
             self.database_name = conn_str.get(ConnStrKeys.DATABASE)

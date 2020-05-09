@@ -6,7 +6,6 @@
 
 import uuid
 from datetime import timedelta, datetime
-import json
 
 
 import six
@@ -15,6 +14,7 @@ import dateutil.parser
 import requests
 
 
+from .my_utils import json_dumps 
 from .constants import Constants, ConnStrKeys, Cloud, Schema
 from .kql_response import KqlQueryResponse, KqlSchemaResponse, KqlError
 from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
@@ -228,7 +228,7 @@ class DraftClient(object):
 
         if kql_response.has_exceptions() and not accept_partial_results:
             try:
-                error_message = json.dumps(kql_response.get_exceptions())
+                error_message = json_dumps(kql_response.get_exceptions())
             except:
                 error_message = str(kql_response.get_exceptions())
             raise KqlError(error_message, response, kql_response)

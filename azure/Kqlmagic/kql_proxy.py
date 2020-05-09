@@ -193,7 +193,7 @@ class KqlTableResponse(object):
                 )
 
             elif col_type == "string":
-                # frame[col_name] = frame[col_name].apply(lambda x: json.dumps(x) if type(x) == str else x)
+                # frame[col_name] = frame[col_name].apply(lambda x: json_dumps(x) if type(x) == str else x)
                 pass
 
             elif col_type == "dynamic":

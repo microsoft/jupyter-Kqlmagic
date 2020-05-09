@@ -35,7 +35,7 @@ from .sso_storage import get_sso_store
 from .version import VERSION, get_pypi_latest_version, compare_version, execute_version_command, validate_required_python_version_running
 from .help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
 from .constants import Constants, Cloud
-from .my_utils import adjust_path, adjust_path_to_uri
+from .my_utils import adjust_path, adjust_path_to_uri, json_dumps
 
 from .results import ResultSet
 from .connection import Connection
@@ -968,9 +968,10 @@ class Kqlmagic_core(object):
             #
             start_time = time.time()
             Parser.validate_query_properties(conn._URI_SCHEMA_NAME, options.get("query_properties"))
+
             parametrized_query_obj = result_set.parametrized_query_obj if result_set is not None else Parameterizer(query)
             params_vars = parametrized_query_obj.parameters if result_set is not None else options.get("params_dict") or user_ns
-            parametrized_query_obj.apply(params_vars, override_vars=override_vars)
+            parametrized_query_obj.apply(params_vars, override_vars=override_vars,  **options)
             parametrized_query = parametrized_query_obj.query
             try:
                 # print(f">>> parametrized_query: {parametrized_query}")
@@ -978,7 +979,7 @@ class Kqlmagic_core(object):
             except KqlError as err:
                 try:
                     parsed_error = json.loads(err.message)
-                    message = f"query execution error:\n{json.dumps(parsed_error, indent=4, sort_keys=True)}" 
+                    message = f"query execution error:\n{json_dumps(parsed_error, indent=4, sort_keys=True)}" 
                 except:
                     message = err.message
                 Display.showDangerMessage(message)

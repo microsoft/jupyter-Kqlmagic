@@ -493,7 +493,15 @@ class Kqlmagic(Magics, Configurable):
         Abbreviation: 'atw'"""
     )
 
-  
+    enable_curly_brackets_params = Bool(
+        default_value=False, 
+        config=True, 
+        help=f"""when set, strings within curly brackets will be evaluated as a python expression, and if evaluation succeeds result will replace the string (including the curly brackets).\n
+        If evaluation fails it will stay as is, including the curly brackets.\n
+        To escape Curly brackets the must be doubled {{{{something}}}}\n
+        Abbreviation: 'ecbp'"""
+    )
+
     logger().debug("Kqlmagic:: - define class code")
 
 
@@ -646,6 +654,13 @@ class Kqlmagic(Magics, Configurable):
         override_query_properties:dict=None, 
         override_connection:str=None, 
         override_result_set=None):
+
+        # Known issue:
+        #
+        # first line of magic is auto expanded by shell, before it reaches magic code !!!
+        # ask users to avoid using curly brackets in line magics, and in fisrt line of cell magic
+        # if required put double brackets
+        #
 
         result = kql_core_obj.execute(
             line=line, 

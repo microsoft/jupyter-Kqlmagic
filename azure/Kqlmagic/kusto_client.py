@@ -6,7 +6,6 @@
 
 import re
 import uuid
-import json
 
 
 import requests
@@ -18,6 +17,7 @@ from .constants import Constants, ConnStrKeys, Cloud
 from .version import VERSION
 from .log import logger
 from .kql_engine import KqlEngineError
+from .my_utils import json_dumps 
 
 
 class Kusto_Client(object):
@@ -177,7 +177,7 @@ class Kusto_Client(object):
                 "Parameters": {},
                 "ClientRequestId": client_request_id
             }
-            request_payload["properties"] = json.dumps(properties)
+            request_payload["properties"] = json_dumps(properties)
 
         request_headers = {
             "Accept": "application/json",
@@ -220,7 +220,7 @@ class Kusto_Client(object):
 
         if kql_response.has_exceptions() and not accept_partial_results:
             try:
-                error_message = json.dumps(kql_response.get_exceptions())
+                error_message = json_dumps(kql_response.get_exceptions())
             except:
                 error_message = str(kql_response.get_exceptions())
             raise KqlError(error_message, response, kql_response)

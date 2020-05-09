@@ -9,10 +9,13 @@ import os
 import re
 import json
 import configparser as CP
+from datetime import timedelta
+
 
 
 import six
 from traitlets import Bool, Int, Unicode, Enum, Float, TraitError
+import isodate
 
 
 from .log import Logger, logger
@@ -107,6 +110,7 @@ class Parser(object):
         queries = []
         queryLines = []
         for line in code.splitlines(True):
+            # note: splitlines don't remove the \n suffix, each line endswith \n 
             if line.isspace():
                 if len(queryLines) > 0:
                     queries.append("".join(queryLines))
@@ -159,32 +163,51 @@ class Parser(object):
 
     @classmethod
     def _parse_kql_command(cls, code: str, user_ns: dict) -> (str, dict):
-        if not code.strip().startswith("--"):
-            return (code.strip(), {})
-        words = code.split()
-        word = words[0][2:]
-        if word.startswith("-"):
-            raise ValueError(f"unknown command {words[0]}, commands' prefix is a double hyphen-minus, not a triple hyphen-minus")
-        lookup_key = word.lower().replace("_", "").replace("-", "")
-        obj = cls._COMMANDS_TABLE.get(lookup_key)
-        if obj is None:
-            raise ValueError(f"unknown command {words[0]}")
-
         trimmed_code = code
-        trimmed_code = trimmed_code[trimmed_code.find(words[0]) + len(words[0]) :]
+        coment_words_count = 0
+        command = None
+        param = None
+        default_param = None
+        words = code.split()
+        more_words_count = len(words)
+        for word in words:
+            more_words_count -= 1
+            coment_words_count = cls._parse_comment(word, trimmed_code, coment_words_count)
+            trimmed_code = trimmed_code[trimmed_code.find(word) + len(word) :]
+            if coment_words_count > 0:
+                pass
+            elif command is None:
+                if not word.strip().startswith("--"):
+                    break
+                word = word[2:]
+                if word.startswith("-"):
+                    raise ValueError(f"unknown command {word}, commands' prefix is a double hyphen-minus, not a triple hyphen-minus")
+                lookup_key = word.lower().replace("_", "").replace("-", "")
+                obj = cls._COMMANDS_TABLE.get(lookup_key)
+                if obj is None:
+                    raise ValueError(f"unknown command '{word}'")
+                command = obj.get("flag")
 
-        _type = obj.get("type")
-        if _type == "bool":
-            param = True 
-        elif len(words) >= 2 and not words[1].startswith("-"):
-            param = cls.parse_value("command", obj, words[0], words[1], user_ns)
-            trimmed_code = trimmed_code[trimmed_code.find(words[1]) + len(words[1]) :]
-        elif obj.get("default") is not None:
-            param = obj.get("default")
-        else:
-            raise ValueError(f"command {word[0]} is missing parameter")
+                default_param = obj.get("default")
 
-        return (trimmed_code.strip(), {"command": obj.get("flag"), "param": param})
+                if obj.get("type") == "bool":
+                    param = True
+                    break
+            else:
+                param = cls.parse_value("command", obj, command, word, user_ns)
+                break
+
+        if command is None:
+            return (code.strip(), {})
+
+        if param is None:
+            if default_param is not None:
+                param = default_param
+            else:
+                raise ValueError(f"command {command} is missing parameter")
+
+        return (trimmed_code.strip(), {"command": command, "param": param})
+
 
     @classmethod
     def validate_query_properties(cls, schema: str, properties:dict):
@@ -497,8 +520,10 @@ class Parser(object):
 
         "atw": {"abbreviation": "authtokenwarnings"},
         "authtokenwarnings": {"flag": "auth_token_warnings", "type": "bool", "config": "config.auth_token_warnings"},
-        
 
+        
+        "ecbp": {"abbreviation": "enablecurlybracketsparams"},
+        "enablecurlybracketsparams": {"flag": "enable_curly_brackets_params", "type": "bool", "config": "config.enable_curly_brackets_params"},
     }
 
 
@@ -594,16 +619,23 @@ class Parser(object):
         key_state = True
         is_option = True
         is_property = False
+        coment_words_count = 0
         for word in words[first_word:]:
             if key_state:
-                is_option = word[0].startswith("-")
-                is_property = word[0].startswith("+")
+
+                coment_words_count = cls._parse_comment(word, trimmed_kql, coment_words_count)
+                if coment_words_count > 0:
+                    trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
+                    continue
+
+                is_option = word.startswith("-")
+                is_property = word.startswith("+")
                 option_type = "option" if is_option else "query property"
                 if not is_option and not is_property:
                     break
                 # validate it is not a command
-                if is_option and word[0].startswith("--"):
-                    raise ValueError(f"invalid {option_type} {word[0]}, cannot start with a bouble hyphen-minus")
+                if is_option and word.startswith("--"):
+                    raise ValueError(f"invalid {option_type} '{word}', cannot start with a bouble hyphen-minus")
 
                 trimmed_kql = trimmed_kql[trimmed_kql.find(word) + len(word) :]
                 word = word[1:]
@@ -669,6 +701,26 @@ class Parser(object):
                 options["suppress_results"] = True
                 trimmed_kql = trimmed_kql[: trimmed_kql.rfind(";")]
         return (trimmed_kql.strip(), options)
+
+    @classmethod
+    def _parse_comment(cls, word, _str, coment_words_count)->int:
+        if coment_words_count > 0:
+            coment_words_count -= 1
+            if coment_words_count > 0:
+                return coment_words_count
+
+        if word.startswith("//"):
+            idx_start = _str.find(word)
+            idx_end = _str[idx_start:].find("\n")
+            if idx_end > 0:
+                idx_end = idx_start + idx_end
+                comment = _str[idx_start : idx_end]
+            else:
+                comment = _str[idx_start :]
+            comment_words = comment.split()
+            coment_words_count = len(comment_words)
+
+        return coment_words_count
 
 
     @classmethod
@@ -820,8 +872,7 @@ class Parser(object):
                 # Start and duration, such as "2007-03-01T13:00:00Z/P1Y2M10DT2H30M"
                 # Duration and end, such as "P1Y2M10DT2H30M/2008-05-11T15:30:00Z"
                 # Duration only, such as "P1Y2M10DT2H30M", with additional context information
-                from datetime import timedelta
-                import isodate
+
                 value_list = [value] if type(value) != list else list(value)[:2]
                 value_list = [v if type(v) == str else (isodate.duration_isoformat(v) if isinstance(v, timedelta) else isodate.datetime_isoformat(v, format='%Y-%m-%dT%H:%M:%S%ZZ')) for v in value_list]
                 return "/".join(value_list)

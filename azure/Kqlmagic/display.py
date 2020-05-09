@@ -20,21 +20,9 @@ from pygments.formatters.terminal import TerminalFormatter
 
 from .ipython_api import display, HTML, Javascript, JSON
 from .ipython_api import IPythonAPI
-from .my_utils import adjust_path, adjust_path_to_uri, get_valid_filename_with_spaces
+from .my_utils import adjust_path, adjust_path_to_uri, get_valid_filename_with_spaces, json_dumps
 from .constants import Constants
 
-
-class DateTimeEncoder(json.JSONEncoder):
-
-    def default(self, obj):  # pylint: disable=E0202
-        if isinstance(obj, datetime.datetime):
-            return obj.isoformat()
-        elif isinstance(obj, datetime.date):
-            return obj.isoformat()
-        elif isinstance(obj, datetime.timedelta):
-            return (datetime.datetime.min + obj).time().isoformat()
-        else:
-            return super(DateTimeEncoder, self).default(obj)
 
 
 class FormattedJsonDict(dict):
@@ -50,7 +38,7 @@ class FormattedJsonDict(dict):
         _dict = self
         if len(item) == 1 and isinstance(self.get(" "), list):
             _dict = self.get(" ")
-        formatted_json = json.dumps(_dict, indent=4, sort_keys=True, cls=DateTimeEncoder)
+        formatted_json = json_dumps(_dict, indent=4, sort_keys=True)
         self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
 
 
@@ -78,7 +66,7 @@ class FormattedJsonList(list):
         self.extend(item)
         self.item = item
         self.key = key or " "
-        # formatted_json = json.dumps(self.item, indent=4, sort_keys=True, cls=DateTimeEncoder)
+        # formatted_json = json_dumps(self.item, indent=4, sort_keys=True)
         # self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
 
 

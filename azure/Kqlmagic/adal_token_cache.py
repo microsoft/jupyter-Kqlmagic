@@ -14,6 +14,7 @@ import threading
 from adal.constants import TokenResponseFields
 
 
+from .my_utils import json_dumps
 from .sso_storage import SsoStorage, get_sso_store
 from .log import logger
 
@@ -147,7 +148,7 @@ class AdalTokenCache(object):
                 "cache_values": list(self._cache.values()),
             }
             # print(f">>> --##-- serialize cache --##--")
-            return json.dumps(state_obj)
+            return json_dumps(state_obj)
 
 
     def deserialize(self, state: str):

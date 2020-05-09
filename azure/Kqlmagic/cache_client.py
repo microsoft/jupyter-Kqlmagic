@@ -10,7 +10,7 @@ import os
 
 
 from .constants import Constants
-from .my_utils import get_valid_filename_with_spaces, adjust_path, convert_to_common_path_obj
+from .my_utils import get_valid_filename_with_spaces, adjust_path, convert_to_common_path_obj, json_dumps 
 from .kql_response import KqlQueryResponse, KqlSchemaResponse
 from .ipython_api import IPythonAPI
 
@@ -148,7 +148,7 @@ class CacheClient(object):
             cluster_friendly_name = conn.get_cluster_friendly_name()
             file_path = self._get_file_path(query, f"{database_friendly_name}_at_{cluster_friendly_name}", cache_folder=options.get("cache"))
         outfile = open(file_path, "w")
-        outfile.write(json.dumps(result.json_response))
+        outfile.write(json_dumps(result.json_response))
         outfile.flush()
         outfile.close()
         return file_path

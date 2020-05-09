@@ -9,6 +9,16 @@
 
 import re
 import os
+import json
+from decimal import Decimal
+import datetime
+
+
+import isodate
+
+
+from .constants import Constants
+
 
 
 #
@@ -144,4 +154,48 @@ def quote_spaced_items_in_path(_path: str) -> str:
     # path = os.path.normpath(path)
     return path
 
-    
+
+def json_defaults(obj):
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+    elif isinstance(obj, datetime.date):
+        return obj.isoformat()
+    elif isinstance(obj, datetime.timedelta):
+        return timedelta_to_timespan(obj, minimal=True)
+        # return isodate.duration_isoformat(obj)
+        # return (datetime.datetime.min + obj).time().isoformat()
+    elif isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, bytes):
+        return obj.decode("utf-8")
+    raise TypeError
+
+
+def json_dumps(_dict:dict, **kwargs)->str:
+    return json.dumps(_dict, default=json_defaults, **kwargs)
+
+
+def timedelta_to_timespan(_timedelta:datetime.timedelta, minimal:bool=None)->str:
+    total_seconds = _timedelta.total_seconds()
+    days = total_seconds // Constants.DAY_SECS
+    rest_secs = total_seconds - (days * Constants.DAY_SECS)
+
+    hours = rest_secs // Constants.HOUR_SECS
+    rest_secs = rest_secs - (hours * Constants.HOUR_SECS)
+
+    minutes = rest_secs // Constants.MINUTE_SECS
+    rest_secs = rest_secs - (minutes * Constants.MINUTE_SECS)
+
+    seconds = rest_secs // 1
+    rest_secs = rest_secs - seconds
+
+    ticks = rest_secs * Constants.TICK_TO_INT_FACTOR
+    if minimal == True:
+        result = "{0:02}:{1:02}:{2:02}".format(int(hours), int(minutes), int(seconds))
+        if days > 0:
+            result = "{0:01}.{1}".format(int(days), result)
+        if ticks > 0:
+            result = "{0}.{1:07}",format(result, int(ticks))
+    else:
+        result = "{0:01}.{1:02}:{2:02}:{3:02}.{4:07}".format(int(days), int(hours), int(minutes), int(seconds), int(ticks))
+    return result

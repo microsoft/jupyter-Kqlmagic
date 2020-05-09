@@ -8,13 +8,13 @@
 
 """Module containing bug report helper(s)."""
 
-import json
 import platform
 import sys
 import ssl
 
 
 from .version import VERSION as kqlmagic_version
+from .my_utils import json_dumps 
 
 
 def _implementation_info() -> dict:
@@ -93,5 +93,5 @@ def bug_report():
 
     # TODO: provide email address or forum for the bug report
     # this print is not for debug
-    print(json.dumps(bug_info(), sort_keys=True, indent=4))
+    print(json_dumps(bug_info(), sort_keys=True, indent=4))
 

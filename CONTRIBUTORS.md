@@ -4,6 +4,7 @@ Kqlmagic contributors
 * **[Will Brown](https://github.com/wpbrown)**
 
   * azcli_login
+  * Fix decimal type values
 
 * **[Avital Friedland](https://github.com/avitalfriedland)**
 

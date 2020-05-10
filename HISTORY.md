@@ -11,45 +11,46 @@
     - to escape curly brackets they must be doubled {{something}}.
     - Abbreviation: 'ecbp'
     - type mapping from python to KQL types is as follows:
-      - int -> long
-      - float -> real
-      - str -> string
-      - bool -> bool
-      - datetime -> datetime
-      - timedelta -> timespan
-      - dict, list, set, tuple -> dynamic (only if can be serialized to json)
-      - pandas dataframe -> view table
-      - None -> null
-      - unknown, str(value) == 'nan' -> real(null)
-      - unknown, str(value) == 'NaT' -> datetime(null)
-      - unknown str(value) == 'nat' -> time(null)
-      - other -> string
+        - int -> long
+        - float -> real
+        - str -> string
+        - bool -> bool
+        - datetime -> datetime
+        - timedelta -> timespan
+        - dict, list, set, tuple -> dynamic (only if can be serialized to json)
+        - pandas dataframe -> view table
+        - None -> null
+        - unknown, str(value) == 'nan' -> real(null)
+        - unknown, str(value) == 'NaT' -> datetime(null)
+        - unknown str(value) == 'nat' -> time(null)
+        - other -> string
     - for example:
-      - count = 10
-      - interval = timedelta(days=5, hours=3)
-      - %kql -ecbp requests | where timestamp > ago({interval}) | limit {count+5}
+        - count = 10
+        - interval = timedelta(days=5, hours=3)
+        - %kql -ecbp requests | where timestamp > ago({interval}) | limit {count+5}
 
-      - p_dict = {'p_limit':20, 'p_not_state':'IOWA'}
-      - %%kql
-        - -ecbp -params_dict=p_dict
-        - StormEvents
-        - | where State != {p_not_state}
-        - | summarize count() by State
-        - | sort by count_
-        - | limit {p_limit}
+        - p_dict = {'p_limit':20, 'p_not_state':'IOWA'}
+        - %%kql
+            - -ecbp -params_dict=p_dict
+            - StormEvents
+            - | where State != {p_not_state}
+            - | summarize count() by State
+            - | sort by count_
+            - | limit {p_limit}
 
 
   - ### New Feature: enable KQL style // comments in commands and options
 
     - comments can be used within all lines of Kqlmagic, not only in query part
     - for example:
-      - %kql azureDataExplorer://code;cluster='help';database='Samples' // -try_azcli_login
-      - %%kql
-        - //-show_query
-        - requests 
-        - | where timestamp > ago({interval}) 
-        - | limit {count+5}
-      - %kql // --version
+        - %kql azureDataExplorer://code;cluster='help';database='Samples' // -try_azcli_login
+        - %%kql
+            - //-show_query
+            - requests 
+            - | where timestamp > ago({interval}) 
+            - | limit {count+5}
+  
+        - %kql // --version
 
   - ### New Feature +timespan query property
 
@@ -57,13 +58,13 @@
     - The timespan over which to query data. This is an ISO8601 time period value. This timespan is applied in addition to any that are specified in the query expression.
     - see: https://docs.microsoft.com/en-us/rest/api/application-insights/query/get
     - for example:
-      - %kql +timespan="P1Y2M10DT2H30M/2008-05-11T15:30:00Z" ...your-query...
-      - %kql +timespan="2007-03-01T13:00:00Z/P1Y2M10DT2H30M" ...your-query...
-      - %kql +timespan="2007-03-01T13:00:00Z/2008-05-11T15:30:00Z" ...your-query...
-      - %kql +timespan=timedelta(days=5,minutes=22,seconds=2) ...your-query...
-      - %kql +timespan=[timedelta(days=5,minutes=22,seconds=2),datetime.now()] ...your-query...
-      - %kql +timespan=["P1Y2M10DT2H30M",datetime.now()] ...your-query...
-      - %kql +timespan=[ten_years_ago,"P1Y2M10DT2H30M"] ...your-query...
+        - %kql +timespan="P1Y2M10DT2H30M/2008-05-11T15:30:00Z" ...your-query...
+        - %kql +timespan="2007-03-01T13:00:00Z/P1Y2M10DT2H30M" ...your-query...
+        - %kql +timespan="2007-03-01T13:00:00Z/2008-05-11T15:30:00Z" ...your-query...
+        - %kql +timespan=timedelta(days=5,minutes=22,seconds=2) ...your-query...
+        - %kql +timespan=[timedelta(days=5,minutes=22,seconds=2),datetime.now()] ...your-query...
+        - %kql +timespan=["P1Y2M10DT2H30M",datetime.now()] ...your-query...
+        - %kql +timespan=[ten_years_ago,"P1Y2M10DT2H30M"] ...your-query...
 
 
   - ### New Feature +workspaces query property
@@ -72,8 +73,8 @@
     - For either implicit or explicit cross-application queries, specify resources you will be accessing
     - see https://dev.loganalytics.io/documentation/Using-the-API/Cross-Resource-Queries
     - for example:
-      - %kql +workspaces=["AIFabrikamDemo1", "AIFabrikamDemo2"] ...your-query...
-      - %kql +workspaces='3cc2e581-5032-4ccf-ac05-844b2867ee15' ...your-query...
+        - %kql +workspaces=["AIFabrikamDemo1", "AIFabrikamDemo2"] ...your-query...
+        - %kql +workspaces='3cc2e581-5032-4ccf-ac05-844b2867ee15' ...your-query...
 
 
   - ### New Feature +applications query property
@@ -82,39 +83,39 @@
     - For either implicit or explicit cross-application queries, specify resources you will be accessing
     - see: https://dev.applicationinsights.io/documentation/Using-the-API/Cross-Resource-Queries
     - for example:
-      - %kql +applications=["AIFabrikamDemo"] ...your-query...
-      - %kql +applications='3cc2e581-5032-4ccf-ac05-844b2867ee15' ...your-query...
+        - %kql +applications=["AIFabrikamDemo"] ...your-query...
+        - %kql +applications='3cc2e581-5032-4ccf-ac05-844b2867ee15' ...your-query...
 
 
   - ### New Feature -try_azcli_login option
 
     - Before authenticating with the specified connection string, try first to get token from Azure CLI.
-      - It will use the connection string tenant id (if specified) as a parameter to Azcli
-      - if socket not found use the connection string to authenticate
-      - for example:
+    - It will use the connection string tenant id (if specified) as a parameter to Azcli
+    - if socket not found use the connection string to authenticate
+    - for example:
         - %kql azureDataExplorer://code;cluster='help';database='Samples' -try_azcli_login
 
   - ### New Feature -try_azcli_login_subscription option
 
     - Before authenticating with the specified connection string, try first to get token from Azure CLI using the subscription as a parameter to get the right token.
-      - if socket not found use the connection string to authenticate
-      - for example:
-        - %kql azureDataExplorer://code;cluster='help';database='Samples' -try_azcli_login_subscription='49998620-4d47-4ab8-88d1-d92ea58902e9'
+        - if socket not found use the connection string to authenticate
+        - for example:
+            - %kql azureDataExplorer://code;cluster='help';database='Samples' -try_azcli_login_subscription='49998620-4d47-4ab8-88d1-d92ea58902e9'
 
   - ### New Feature -plotly_layout option
 
     - enables to specify plotly layout properties, when set they override the defualt layout properties (see plotly documentation on the layout properties)
     - Abbreviation: 'pl'
     - for example:
-      - %kql -pl={"width":900"} ...your-query... 
+        - %kql -pl={"width":900"} ...your-query... 
 
   - ### New Feature -dynamic_to_dataframe option
   
     - controls to what dataframe type should an kql dynamic value be translated. 
     - Either 'object' or 'str'
     - for example:
-      - %kql --config 'dynamic_to_dataframe=str'
-      - %kql -dynamic_to_dataframe='str' ...your-query...
+        - %kql --config 'dynamic_to_dataframe=str'
+        - %kql -dynamic_to_dataframe='str' ...your-query...
 
   - ### New Feature -temp_folder_location option
   
@@ -122,14 +123,14 @@
     - value values are: ["auto", "starting_dir", "user_dir"]
     - if set to 'auto' (default), location will be based on the notebook application
     - for example:
-      - %env KQLMAGIC_CONFIGURATION='temp_folder_location=starting_dir'
+        - %env KQLMAGIC_CONFIGURATION='temp_folder_location=starting_dir'
 
   - ### Enhancements
 
     - support ymin and ymax KQL render operator attributes
     - added to table_package: "auto" and "pandas_html_table_schema"
-      - when set to 'auto' (default) table package will be based on the notebook application
-      - 'pandas_html_table_schema' is an interactive object supported by only some by some to the applications (i.e nteract, azure data studio) (see pandas documentation)
+        - when set to 'auto' (default) table package will be based on the notebook application
+        - 'pandas_html_table_schema' is an interactive object supported by only some by some to the applications (i.e nteract, azure data studio) (see pandas documentation)
     - added title to all popup windows
 
   - ### Improvements

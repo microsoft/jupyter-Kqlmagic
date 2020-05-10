@@ -121,6 +121,8 @@
   
     - Set the location of the temp_folder, either within starting working directory or user workspace directory.
     - value values are: ["auto", "starting_dir", "user_dir"]
+        - starting_dir - is the location from where jupyter was launched
+        - user_dir - is  user's home location
     - if set to 'auto' (default), location will be based on the notebook application
     - for example:
         - %env KQLMAGIC_CONFIGURATION='temp_folder_location=starting_dir'
@@ -141,7 +143,7 @@
     - logs
     - error messages
 
-  - ### Fix (thanks to making Kqlmagic work on Azure Data Studio, many bugs were discoverd)
+  - ### Fix
 
     - open 'what's new' popup window in Azure Data Studio, Visual Studio Code and nteract
     - deep linking to Kusto.Explorer and Kusto.Webexplorer in Azure Data Studio, Visual Studio Code and nteract

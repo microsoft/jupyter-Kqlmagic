@@ -692,7 +692,7 @@ class ResultSet(list, ColumnGuesserMixin):
     def to_dataframe(self):
         "Returns a Pandas DataFrame instance built from the result set."
         if self._dataframe is None:
-            self._dataframe = self._queryResult.tables[self.fork_table_id].to_dataframe(options=self.options)
+            self._dataframe = self._queryResult.tables[self.fork_table_id].to_dataframe()
 
             # import pandas as pd
             # frame = pd.DataFrame(self, columns=(self and self.columns_name) or [])

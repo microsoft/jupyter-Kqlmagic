@@ -1087,7 +1087,10 @@ class Kqlmagic_core(object):
             self.shell_user_ns.update({options.get("last_raw_result_var"): saved_result})
 
 
-            if result == saved_result:
+            if isinstance(result, pandas.DataFrame):
+                if result.equals(saved_result.to_dataframe()):
+                    result = saved_result.fork_result(fork_table_id).to_dataframe()
+            elif result == saved_result:
                 result = saved_result.fork_result(fork_table_id)
 
             return result

@@ -9,27 +9,33 @@ import logging
 import datetime
 import uuid
 import traceback
-from ipykernel import (get_connection_info)
-from Kqlmagic.constants import Constants
 
-def _get_kql_magic_log_level():
-    log_level = os.getenv("{0}_LOG_LEVEL".format(Constants.MAGIC_CLASS_NAME.upper()))
-    if log_level:
-        log_level = log_level.strip().upper().replace("_", "").replace("-", "")
-        if log_level.startswith("'") or log_level.startswith('"'):
-            log_level = log_level[1:-1].strip()
-    return log_level
 
-def initialize():
-    log_level = _get_kql_magic_log_level()
-    log_file = os.getenv("{0}_LOG_FILE".format(Constants.MAGIC_CLASS_NAME.upper()))
-    log_file_prefix = os.getenv("{0}_LOG_FILE_PREFIX".format(Constants.MAGIC_CLASS_NAME.upper()))
-    log_file_mode = os.getenv("{0}_LOG_FILE_MODE".format(Constants.MAGIC_CLASS_NAME.upper()))
+from .constants import Constants
+from .ipython_api import IPythonAPI
+
+
+def _get_env_var(var_name:str)->str:
+    value = os.getenv(var_name)
+    if value:
+        # value = value.strip().upper().replace("_", "").replace("-", "")
+        if value.startswith("'") or value.startswith('"'):
+            value = value[1:-1].strip()
+    return value
+
+
+def initialize(log_level=None, log_file=None, log_file_prefix=None, log_file_mode=None):
+    log_level = log_level or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL")
+    log_file = log_file or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE")
+    log_file_prefix = log_file_prefix or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX")
+    log_file_mode = log_file_mode or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE")
     if log_level or log_file or log_file_mode or log_file_prefix:
-        connection_info = get_connection_info(unpack=True)
-        key = connection_info.get("key").decode(encoding="utf-8")
+        kernel_id = IPythonAPI.get_notebook_kernel_id() or "kernel_id"
+
+
         log_level = log_level or logging.DEBUG
-        log_file = log_file or ((log_file_prefix or 'Kqlmagic') + '-' + key + '.log')
+        log_file = log_file or f"{log_file_prefix or 'kqlmagic'}-{kernel_id}.log"
+        # handler's default mode is 'a' (append)
         log_file_mode = (log_file_mode or "w").lower()[:1]
         log_handler = logging.FileHandler(log_file, mode=log_file_mode)
     else:
@@ -43,9 +49,10 @@ def initialize():
             logger().debug("\n\n----------------------------------------------------------------------")
         now = datetime.datetime.now()
 
-        logger().debug("start date %s\n", now.isoformat())
-        logger().debug("logger level %s\n", log_level)
+        logger().debug(f"start date {now.isoformat()}\n")
+        logger().debug(f"logger level {log_level}\n")
         logger().debug("logger init done")
+
 
 def create_log_context(correlation_id=None):
     return {"correlation_id": correlation_id or str(uuid.uuid4())}
@@ -98,48 +105,55 @@ class Logger(object):
         self.log_context = log_context
         self._logging = logging.getLogger(Constants.LOGGER_NAME)
 
+
     def _log_message(self, msg, log_stack_trace=None):
         formatted = ""
 
         if self.log_context:
             correlation_id = self.log_context.get("correlation_id")
             if correlation_id:
-                formatted = "{} - ".format(correlation_id)
+                formatted = f"{correlation_id} - "
 
         if self._component_name:
-            formatted += "{}:".format(self._component_name)
+            formatted += f"{self._component_name}:"
 
         formatted += msg
 
         if log_stack_trace:
-            formatted += "\nStack:\n{}".format(traceback.format_stack())
+            formatted += f"\nStack:\n{traceback.format_stack()}"
 
         return formatted
+
 
     def critical(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.critical(msg, *args, **kwargs)
 
+
     def error(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.error(msg, *args, **kwargs)
+
 
     def warn(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.warning(msg, *args, **kwargs)
 
+
     def info(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.info(msg, *args, **kwargs)
 
+
     def debug(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.debug(msg, *args, **kwargs)
+
 
     def exception(self, msg, *args, **kwargs):
         log_stack_trace = kwargs.pop("log_stack_trace", None)
@@ -147,8 +161,9 @@ class Logger(object):
         self._logging.exception(msg, *args, **kwargs)
 
 
+current_logger = None
+
 def logger():
-    global current_logger
     return current_logger
 
 
@@ -156,5 +171,6 @@ def set_logger(new_logger):
     global current_logger
     current_logger = new_logger
     return current_logger
+
 
 initialize()

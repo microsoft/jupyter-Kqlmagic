@@ -5,18 +5,22 @@
 # --------------------------------------------------------------------------
 
 import uuid
-import six
 from datetime import timedelta, datetime
-import json
+
+
+import six
 import adal
 import dateutil.parser
 import requests
 
-from Kqlmagic.constants import Constants, ConnStrKeys
-from Kqlmagic.kql_client import KqlQueryResponse, KqlSchemaResponse, KqlError
-from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
-from Kqlmagic.version import VERSION
-from Kqlmagic.log import logger
+
+from .my_utils import json_dumps 
+from .constants import Constants, ConnStrKeys, Cloud, Schema
+from .kql_response import KqlQueryResponse, KqlSchemaResponse, KqlError
+from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
+from .version import VERSION
+from .log import logger
+from .kql_engine import KqlEngineError
 
 
 class DraftClient(object):
@@ -42,60 +46,57 @@ class DraftClient(object):
     _GET_SCHEMA_QUERY = ".show schema"
 
     _CLOUD_AAD_URLS_APPINSIGHTS={
-    "public": "https://api.applicationinsights.io",
-    "mooncake":"https://api.applicationinsights.azure.cn",
-    "fairfax":"https://api.applicationinsights.us",
-    "blackforest":"https://api.applicationinsights.de",
-}
-    _CLOUD_AAD_URLS_LOGANALYTICS={
-        "public": "https://api.loganalytics.io",
-        "mooncake":"https://api.loganalytics.azure.cn",
-        "fairfax":"https://api.loganalytics.us",
-        "blackforest":"https://api.loganalytics.de",
+        Cloud.PUBLIC:      "https://api.applicationinsights.io",
+        Cloud.MOONCAKE:    "https://api.applicationinsights.azure.cn",
+        Cloud.FAIRFAX:     "https://api.applicationinsights.us",
+        Cloud.BLACKFOREST: "https://api.applicationinsights.de",
     }
 
+    _CLOUD_AAD_URLS_LOGANALYTICS={
+        Cloud.PUBLIC:      "https://api.loganalytics.io",
+        Cloud.MOONCAKE:    "https://api.loganalytics.azure.cn",
+        Cloud.FAIRFAX:     "https://api.loganalytics.us",
+        Cloud.BLACKFOREST: "https://api.loganalytics.de",
+    }
 
     _CLOUD_AAD_URLS = {
-        "applicationinsights" : _CLOUD_AAD_URLS_APPINSIGHTS,
-        "loganalytics" : _CLOUD_AAD_URLS_LOGANALYTICS
+        Schema.APPLICATION_INSIGHTS : _CLOUD_AAD_URLS_APPINSIGHTS,
+        Schema.LOG_ANALYTICS : _CLOUD_AAD_URLS_LOGANALYTICS
     }
 
-    def __init__(self, conn_kv: dict, domain: str, data_source: str, **options):
-        self._domain = domain
 
+    def __init__(self, conn_kv: dict, domain: str, data_source: str, schema: str, **options):
+        self._domain = domain
+        self.resources_name = "workspaces" if schema == Schema.LOG_ANALYTICS else "applications"
 
         if conn_kv.get(ConnStrKeys.DATA_SOURCE_URL):
             self._data_source =  conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)  
-            logger().debug("draft_client.py :: __init__ :  self._data_source from conn_kv[\"datasourceurl\"]: {0}".format(self._data_source))
+            logger().debug(f"draft_client.py :: __init__ :  self._data_source from conn_kv[\"datasourceurl\"]: {self._data_source}")
 
         else:
             cloud = options.get("cloud")
-            if data_source.find("loganalytics") >= 0:
-                service = "loganalytics"
-
-            elif data_source.find("applicationinsights") >= 0:
-                service = "applicationinsights"
-                logger().debug("draft_client.py :: __init__ :  self._data_source from conn_kv[\"datasourceurl\"]: {0}".format(self._data_source))
-
-            else:
-                raise KqlError("the service  is unknown")
-            self._data_source = self._CLOUD_AAD_URLS.get(service).get(cloud)
+            self._data_source = self._CLOUD_AAD_URLS.get(schema).get(cloud)
                 
             if not self._data_source:
-                raise KqlError("the service {0} is not supported in cloud {1}".format(service, cloud))
+                raise KqlEngineError(f"the service {schema} is not supported in cloud {cloud}")
 
-
-        logger().debug("draft_client.py :: __init__ :  conn_kv[\"datasourceurl\"]: {0}".format(conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)))
+        logger().debug(f"draft_client.py :: __init__ :  conn_kv[\"datasourceurl\"]: {conn_kv.get(ConnStrKeys.DATA_SOURCE_URL)}")
 
         self._appkey = conn_kv.get(ConnStrKeys.APPKEY)
-        logger().debug("draft_client.py :: __init__ :  self._appkey: {0}".format(self._appkey))
+        logger().debug(f"draft_client.py :: __init__ :  self._appkey: {self._appkey}")
 
 
         if self._appkey is None and conn_kv.get(ConnStrKeys.ANONYMOUS) is None:
             self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID, **options)
         else:
             self._aad_helper = None
-        logger().debug("""draft_client.py :: __init__ :  self._aad_helper: {0} ;""".format(self._aad_helper ))
+        logger().debug(f"draft_client.py :: __init__ :  self._aad_helper: {self._aad_helper} ;")
+
+
+    @property
+    def data_source(self):
+        return self._data_source
+
 
     def execute(self, id: str, query: str, accept_partial_results: bool = False, **options) -> object:
         """ Execute a simple query or a metadata query
@@ -131,7 +132,7 @@ class DraftClient(object):
         #
 
         is_metadata = query == self._GET_SCHEMA_QUERY
-        api_url = "{0}/{1}/{2}/{3}/{4}".format(self._data_source, self._API_VERSION, self._domain, id, "metadata" if is_metadata else "query")
+        api_url = f"{self._data_source}/{self._API_VERSION}/{self._domain}/{id}/{'metadata' if is_metadata else 'query'}"
 
         #
         # create Prefer header
@@ -143,18 +144,37 @@ class DraftClient(object):
         
         timeout = options.get("timeout")
         if timeout is not None:
-            prefer_list.append("wait={0}".format(timeout))
+            prefer_list.append(f"wait={timeout}")
 
         #
         # create headers
         #
+        
+        client_version = f"{Constants.MAGIC_CLASS_NAME}.Python.Client:{self._WEB_CLIENT_VERSION}"        
+
+        client_request_id = f"{Constants.MAGIC_CLASS_NAME}.execute"
+        client_request_id_tag = options.get("request_id_tag")
+        if client_request_id_tag is not None:
+            client_request_id = f"{client_request_id};{client_request_id_tag};{str(uuid.uuid4())}"
+        else:
+            client_request_id = f"{client_request_id};{str(uuid.uuid4())}"
+
+        app = f'{Constants.MAGIC_CLASS_NAME};{options.get("notebook_app")}'
+        app_tag = options.get("request_app_tag")
+        if app_tag is not None:
+            app = f"{app};{app_tag}"
 
         request_headers = {
-            "x-ms-client-version": "{0}.Python.Client:{1}".format(Constants.MAGIC_CLASS_NAME, self._WEB_CLIENT_VERSION),
-            "x-ms-client-request-id": "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4())),
+            "x-ms-client-version": client_version,
+            "x-ms-client-request-id": client_request_id,
+            "x-ms-app": app
         }
+        user_tag = options.get("request_user_tag")
+        if user_tag is not None:
+            request_headers["x-ms-user"] = user_tag
+
         if self._aad_helper is not None:
-            request_headers["Authorization"] = self._aad_helper.acquire_token(**options)
+            request_headers["Authorization"] = self._aad_helper.acquire_token()
         elif self._appkey is not None:
             request_headers["x-api-key"] = self._appkey
 
@@ -170,20 +190,34 @@ class DraftClient(object):
             log_request_headers["Authorization"] = "..." 
 
         if is_metadata:
-            logger().debug("DraftClient::execute - GET request - url: %s, headers: %s, timeout: %s", api_url, log_request_headers, options.get("timeout"))
+            logger().debug(f"DraftClient::execute - GET request - url: {api_url}, headers: {log_request_headers}, timeout: {options.get('timeout')}")
             response = requests.get(api_url, headers=request_headers)
         else:
-            request_payload = {"query": query}
-            logger().debug("DraftClient::execute - POST request - url: %s, headers: %s, payload: %s, timeout: %s", api_url, log_request_headers, request_payload, options.get("timeout"))
+            request_payload = {
+                "query": query
+            }
+
+            # Implicit Cross Workspace Queries: https://dev.loganalytics.io/oms/documentation/3-Using-the-API/CrossResourceQuery
+            # workspaces - string[] - A list of workspaces that are included in the query.
+            if type(options.get("query_properties")) == dict:
+                resources = options.get("query_properties").get(self.resources_name)
+                if type(resources) == list and len(resources) > 0:
+                    request_payload[self.resources_name] = resources
+
+                timespan = options.get("query_properties").get("timespan")
+                if type(timespan) == str and len(timespan) > 0:
+                    request_payload["timespan"] = timespan
+
+            logger().debug(f"DraftClient::execute - POST request - url: {api_url}, headers: {log_request_headers}, payload: {request_payload}, timeout: {options.get('timeout')}")
             response = requests.post(api_url, headers=request_headers, json=request_payload)
 
-        logger().debug("DraftClient::execute - response - status: %s, headers: %s, payload: %s", response.status_code, response.headers, response.text)
+        logger().debug(f"DraftClient::execute - response - status: {response.status_code}, headers: {response.headers}, payload: {response.text}")
         #
         # handle response
         #
 
         if response.status_code != requests.codes.ok:  # pylint: disable=E1101
-            raise KqlError([response.text], response)
+            raise KqlError(response.text, response)
 
         json_response = response.json()
 
@@ -193,6 +227,11 @@ class DraftClient(object):
             kql_response = KqlQueryResponse(json_response)
 
         if kql_response.has_exceptions() and not accept_partial_results:
-            raise KqlError(kql_response.get_exceptions(), response, kql_response)
+            try:
+                error_message = json_dumps(kql_response.get_exceptions())
+            except:
+                error_message = str(kql_response.get_exceptions())
+            raise KqlError(error_message, response, kql_response)
 
         return kql_response
+

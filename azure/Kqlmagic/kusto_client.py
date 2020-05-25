@@ -6,72 +6,52 @@
 
 import re
 import uuid
-import six
-from datetime import timedelta, datetime
-import json
-import adal
-import dateutil.parser
+
+
 import requests
 
-from Kqlmagic.my_aad_helper import _MyAadHelper, ConnKeysKCSB
 
-from Kqlmagic.kql_client import KqlQueryResponse, KqlError
-from Kqlmagic.constants import Constants, ConnStrKeys
-from Kqlmagic.version import VERSION
-from Kqlmagic.log import logger
+from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
+from .kql_response import KqlQueryResponse, KqlError
+from .constants import Constants, ConnStrKeys, Cloud
+from .version import VERSION
+from .log import logger
+from .kql_engine import KqlEngineError
+from .my_utils import json_dumps 
 
 
 class Kusto_Client(object):
     """
-    Kusto client wrapper for Python.
-
-    KustoClient works with both 2.x and 3.x flavors of Python. All primitive types are supported.
-    KustoClient takes care of ADAL authentication, parsing response and giving you typed result set,
-    and offers familiar Python DB API.
-
-    Test are run using nose.
-
-    Examples
-    --------
-    To use KustoClient, you can choose betwen two ways of authentication.
-     
-    For the first option, you'll need to have your own AAD application and know your client credentials (client_id and client_secret).
-    >>> kusto_cluster = 'https://help.kusto.windows.net'
-    >>> kusto_client = KustoClient(kusto_cluster, client_id, client_secret='your_app_secret')
-
-    For the second option, you can use KustoClient's client id and authenticate using your username and password.
-    >>> kusto_cluster = 'https://help.kusto.windows.net'
-    >>> client_id = 'e07cf1fb-c6a6-4668-b21a-f74731afa19a'
-    >>> kusto_client = KustoClient(kusto_cluster, client_id, username='your_username', password='your_password')"""
-
+    Kusto client wrapper for Python."""
+ 
     _DEFAULT_CLIENTID = "db662dc1-0cfe-4e1c-a843-19a68e65be58"  # kusto client app, (didn't find app name ?)
-    #    _DEFAULT_CLIENTID = "8430759c-5626-4577-b151-d0755f5355d8" # kusto client app, don't know app name
+
     _MGMT_ENDPOINT_VERSION = "v1"
     _QUERY_ENDPOINT_VERSION = "v2"
     _MGMT_ENDPOINT_TEMPLATE = "{0}/{1}/rest/mgmt"
     _QUERY_ENDPOINT_TEMPLATE = "{0}/{1}/rest/query"
 
-    _PUBLIC_CLOUD_DATA_SOURCE = "windows.net"
-    _MOONCAKE_CLOUD_DATA_SOURCE = "chinacloudapi.cn"
-    _BLACKFOREST_CLOUD_DATA_SOURCE = "cloudapi.de"
-    _FAIRFAX_CLOUD_DATA_SOURCE = "usgovcloudapi.net"
-    _USNAT_CLOUD_DATA_SOURCE = "core.eaglex.ic.gov"
-    _USSEC_CLOUD_DATA_SOURCE = "core.microsoft.scloud"
+
+    _PUBLIC_CLOUD_URL_SUFFIX =      "windows.net"
+    _MOONCAKE_CLOUD_URL_SUFFIX =    "chinacloudapi.cn"
+    _BLACKFOREST_CLOUD_URL_SUFFIX = "cloudapi.de"
+    _FAIRFAX_CLOUD_URL_SUFFIX =     "usgovcloudapi.net"
 
 
 
     _CLOUD_URLS = {
-        "public":_PUBLIC_CLOUD_DATA_SOURCE,
-        "mooncake":_MOONCAKE_CLOUD_DATA_SOURCE,
-        "fairfax":_FAIRFAX_CLOUD_DATA_SOURCE,
-        "blackforest":_BLACKFOREST_CLOUD_DATA_SOURCE,
-        "usnet":_USNAT_CLOUD_DATA_SOURCE,
-        "ussec":_USSEC_CLOUD_DATA_SOURCE
+        Cloud.PUBLIC:      _PUBLIC_CLOUD_URL_SUFFIX,
+        Cloud.MOONCAKE:    _MOONCAKE_CLOUD_URL_SUFFIX,
+        Cloud.FAIRFAX:     _FAIRFAX_CLOUD_URL_SUFFIX,
+        Cloud.BLACKFOREST: _BLACKFOREST_CLOUD_URL_SUFFIX
     }
 
     _DATA_SOURCE_TEMPLATE = "https://{0}.kusto.{1}"
 
     _WEB_CLIENT_VERSION = VERSION
+
+    _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.(io|cn|us|de).*$")
+
 
     def __init__(self, conn_kv:dict, **options):
         """
@@ -94,46 +74,57 @@ class Kusto_Client(object):
         authority : 'microsoft.com', optional
             In case your tenant is not microsoft please use this param.
         """
-        cloud = options.get("cloud")
-
+        self.cloud = options.get("cloud")
         cluster_name = conn_kv[ConnStrKeys.CLUSTER]
 
         if cluster_name.find("://") >= 0:
             data_source = cluster_name
         else:
-            cloud_url = self._CLOUD_URLS.get(cloud)
+            cloud_url = self._CLOUD_URLS.get(self.cloud)
             if not cloud_url:
-                raise KqlError("adx not supported in cloud {0}".format(cloud))
-            data_source = self._DATA_SOURCE_TEMPLATE.format(cluster_name,cloud_url)
+                raise KqlEngineError(f"adx not supported in cloud {self.cloud}")
+            data_source = self._DATA_SOURCE_TEMPLATE.format(cluster_name, cloud_url)
 
         self._mgmt_endpoint = self._MGMT_ENDPOINT_TEMPLATE.format(data_source, self._MGMT_ENDPOINT_VERSION)
         self._query_endpoint = self._QUERY_ENDPOINT_TEMPLATE.format(data_source, self._QUERY_ENDPOINT_VERSION)
-        _FQN_DRAFT_PROXY_CLUSTER_PATTERN = re.compile(r"http(s?)\:\/\/ade\.(int\.)?(applicationinsights|loganalytics)\.(io|cn|us|de).*$")
-        auth_resource = data_source
 
-        if _FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
-            auth_resource = "https://kusto.kusto.{0}".format(self._CLOUD_URLS.get(cloud))
-
+        if self._FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(data_source):
+            auth_resource = f"https://kusto.kusto.{self._CLOUD_URLS.get(self.cloud)}"
+        else:
+            auth_resource = data_source
+            
         self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), self._DEFAULT_CLIENTID, **options) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
+        self._data_source = data_source
 
 
-    def getCloudFromHTTP(self, http):
-        if http.find(self._PUBLIC_CLOUD_DATA_SOURCE)>=0:
-            return "public"
-        if http.find(self._MOONCAKE_CLOUD_DATA_SOURCE)>=0:
-            return "mooncake"
-        if http.find(self._FAIRFAX_CLOUD_DATA_SOURCE)>=0:
-            return "fairfax"
-        if http.find(self._BLACKFOREST_CLOUD_DATA_SOURCE)>=0:
-            return "blackforest"
-        if http.find(self._USNAT_CLOUD_DATA_SOURCE)>=0:
-            return "usnet"
-        if http.find(self._USSEC_CLOUD_DATA_SOURCE)>=0:
-            return "ussec"
-        return "public"
+    @property
+    def data_source(self):
+        return self._data_source
+
+
+    @property 
+    def deep_link_data_source(self):
+        if self._FQN_DRAFT_PROXY_CLUSTER_PATTERN.match(self.data_source):
+            return f"https://help.kusto.{self._CLOUD_URLS.get(self.cloud)}"
+        else:
+            return self._data_source
+
+
+    def getCloudFromHTTP(self, http: str):
+        if http.endswith(self._PUBLIC_CLOUD_URL_SUFFIX):
+            return Cloud.PUBLIC
+        if http.endswith(self._MOONCAKE_CLOUD_URL_SUFFIX):
+            return Cloud.MOONCAKE
+        if http.endswith(self._FAIRFAX_CLOUD_URL_SUFFIX):
+            return Cloud.FAIRFAX
+        if http.endswith(self._BLACKFOREST_CLOUD_URL_SUFFIX):
+            return Cloud.BLACKFOREST
+        return Cloud.PUBLIC
+
 
     def execute(self, kusto_database, kusto_query, accept_partial_results=False, **options):
-        """ Execute a simple query or management command
+        """ 
+        Execute a simple query or management command
 
         Parameters
         ----------
@@ -165,27 +156,42 @@ class Kusto_Client(object):
             "csl": kusto_query,
         }
 
-        client_request_id = "{0}.execute;{1}".format(Constants.MAGIC_CLASS_NAME, str(uuid.uuid4()))
+        client_version = f"{Constants.MAGIC_CLASS_NAME}.Python.Client:{self._WEB_CLIENT_VERSION}"
+
+        client_request_id = f"{Constants.MAGIC_CLASS_NAME}.execute"
+        client_request_id_tag = options.get("request_id_tag")
+        if client_request_id_tag is not None:
+            client_request_id = f"{client_request_id};{client_request_id_tag};{str(uuid.uuid4())}"
+        else:
+            client_request_id = f"{client_request_id};{str(uuid.uuid4())}"
+            
+        app = f'{Constants.MAGIC_CLASS_NAME};{options.get("notebook_app")}'
+        app_tag = options.get("request_app_tag")
+        if app_tag is not None:
+            app = f"{app};{app_tag}"
 
         query_properties: dict = options.get("query_properties")
-        if query_properties and len(query_properties):
+        if query_properties is not None and len(query_properties) > 0:
             properties = {
                 "Options": query_properties,
                 "Parameters": {},
                 "ClientRequestId": client_request_id
             }
-            request_payload["properties"] = json.dumps(properties)
+            request_payload["properties"] = json_dumps(properties)
 
         request_headers = {
             "Accept": "application/json",
             "Accept-Encoding": "gzip,deflate",
             "Content-Type": "application/json; charset=utf-8",
-            "x-ms-client-version": "{0}.Python.Client:{1}".format(Constants.MAGIC_CLASS_NAME, self._WEB_CLIENT_VERSION),
+            "x-ms-client-version": client_version,
             "x-ms-client-request-id": client_request_id,
-            "x-ms-app": Constants.MAGIC_CLASS_NAME
+            "x-ms-app": app
         }
+        user_tag = options.get("request_user_tag")
+        if user_tag is not None:
+            request_headers["x-ms-user"] = user_tag
         if self._aad_helper is not None:
-            request_headers["Authorization"] = self._aad_helper.acquire_token(**options)
+            request_headers["Authorization"] = self._aad_helper.acquire_token()
             request_headers["Fed"] = "True"
         # print("endpoint: ", endpoint)
         # print("headers: ", request_headers)
@@ -197,23 +203,27 @@ class Kusto_Client(object):
             log_request_headers = request_headers.copy()
             log_request_headers["Authorization"] = "..."  
 
-        logger().debug("Kusto_Client::execute - POST request - url: %s, headers: %s, payload: %s, timeout: %s", endpoint, log_request_headers, request_payload, options.get("timeout"))
+        logger().debug(f"Kusto_Client::execute - POST request - url: {endpoint}, headers: {log_request_headers}, payload: {request_payload}, timeout: options.get('timeout')")
 
         response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
 
-        logger().debug("Kusto_Client::execute - response - status: %s, headers: %s, payload: %s", response.status_code, response.headers, response.text)
+        logger().debug(f"Kusto_Client::execute - response - status: {response.status_code}, headers: {response.headers}, payload: {response.text}")
 
         # print("response status code: ", response.status_code)
         # print("response", response)
         # print("response text", response.text)
 
         if response.status_code != requests.codes.ok:  # pylint: disable=E1101
-            raise KqlError([response.text], response)
+            raise KqlError(response.text, response)
 
         kql_response = KqlQueryResponse(response.json(), endpoint_version)
 
         if kql_response.has_exceptions() and not accept_partial_results:
-            raise KqlError(kql_response.get_exceptions(), response, kql_response)
+            try:
+                error_message = json_dumps(kql_response.get_exceptions())
+            except:
+                error_message = str(kql_response.get_exceptions())
+            raise KqlError(error_message, response, kql_response)
 
         return kql_response
 

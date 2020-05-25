@@ -1,6 +1,10 @@
 Kqlmagic contributors
 ============================================
 
+* **[appsworld](https://github.com/appsworld)**
+
+  * Fix Kqlmagic failure (pandas exception) when auto_dataframe option is set to True
+
 * **[Will Brown](https://github.com/wpbrown)**
 
   * azcli_login

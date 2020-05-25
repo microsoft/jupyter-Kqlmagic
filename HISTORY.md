@@ -1,5 +1,12 @@
 # HISTORY
 
+## Version 0.1.113
+
+
+  - ### Fix
+  
+    - fix Kqlmagic failure (pandas exception) when auto_dataframe option is set to True
+
 
 ## Version 0.1.112
 

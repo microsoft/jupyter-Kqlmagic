@@ -101,9 +101,9 @@ import requests
 from .constants import Constants
 from .help import MarkdownString
 
-version_info = (0, 1, 112)
+version_info = (0, 1, 113)
 
-VERSION = '0.1.112'
+VERSION = '0.1.113'
 
 # cannot be used till code in setup is fixed
 # '.'.join(map(str, version_info))

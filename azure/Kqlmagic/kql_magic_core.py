@@ -1073,7 +1073,7 @@ class Kqlmagic_core(object):
                     saved_result.suppress_result = True
                 elif options.get("auto_dataframe"):
                     Display.showWarningMessage(saved_result.feedback_warning, **options)
-                    Display.showSuccessMessage(saved_result.feedback_info, **options)
+                    Display.showInfoMessage(saved_result.feedback_info, **options)
                 else:
                     saved_result.display_info = True
 
@@ -1086,8 +1086,7 @@ class Kqlmagic_core(object):
             self.last_raw_result = saved_result
             self.shell_user_ns.update({options.get("last_raw_result_var"): saved_result})
 
-
-            if result == saved_result:
+            if type(result).__name__ == "ResultSet":
                 result = saved_result.fork_result(fork_table_id)
 
             return result

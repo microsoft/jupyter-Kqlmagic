@@ -12,6 +12,7 @@ import json
 import logging
 import hashlib
 import urllib.request
+import pandas
 
 
 from .log import logger

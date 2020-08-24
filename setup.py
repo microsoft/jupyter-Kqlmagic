@@ -64,6 +64,7 @@ INSTALL_REQUIRES    = [
                         'pyperclip>=1.7.0',
                         'azure-cli-core>=2.4.0',
                         'msrestazure>=0.6.0',
+                        'azure-common>=1.1.25',
 ]
 
 TEST_REQUIRE        = [

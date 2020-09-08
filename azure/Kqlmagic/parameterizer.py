@@ -7,7 +7,7 @@
 from datetime import timedelta, datetime
 from decimal import Decimal
 
-
+import re
 import six
 from pandas import DataFrame, Series
 
@@ -62,6 +62,8 @@ class CurlyBracketsParamsDict(dict):
                 value = Parameterizer._object_to_kql(value)
         return value
 
+    def __contains__(self, key):
+        return key in self._override_vars or key in self._parameter_vars
 
     @property 
     def used_params_dict(self):
@@ -83,7 +85,15 @@ class Parameterizer(object):
 
         if options.get("enable_curly_brackets_params"):
             curly_brackets_params_dict = CurlyBracketsParamsDict(parameter_vars, override_vars)
-            curly_brackets_parametrized_query = self._query.format_map(curly_brackets_params_dict)
+            # Use lookahead to find all instances of {}
+            curly_brackets_parametrized_query = self._query
+            matches = re.finditer(r'(?={(.*?)})', curly_brackets_parametrized_query)
+            for candidate in [match.group(1) for match in matches if match.group(1).isidentifier()]:
+                if candidate in curly_brackets_params_dict:
+                    curly_brackets_parametrized_query = curly_brackets_parametrized_query.replace(
+                        "{" + candidate + "}",
+                        curly_brackets_params_dict[candidate]
+                    )
             used_params_dict = curly_brackets_params_dict.used_params_dict
         else:
             curly_brackets_parametrized_query = self._query

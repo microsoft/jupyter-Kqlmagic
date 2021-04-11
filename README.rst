@@ -20,7 +20,7 @@ Example
 .. code-block:: python
 
     Install latest version of package
-    In [1]: !pip Kqlmagic --no-cache-dir --upgrade
+    In [1]: !pip install Kqlmagic --no-cache-dir --upgrade
 
 .. code-block:: python
 

@@ -195,7 +195,7 @@ def timedelta_to_timespan(_timedelta:datetime.timedelta, minimal:bool=None)->str
         if days > 0:
             result = "{0:01}.{1}".format(int(days), result)
         if ticks > 0:
-            result = "{0}.{1:07}",format(result, int(ticks))
+            result = "{0}.{1:07}".format(result, int(ticks))
     else:
         result = "{0:01}.{1:02}:{2:02}:{3:02}.{4:07}".format(int(days), int(hours), int(minutes), int(seconds), int(ticks))
     return result

@@ -7,29 +7,31 @@
 """A module to acquire tokens from AAD.
 """
 
-import os
+import sys
 import time
 from datetime import timedelta, datetime
 from urllib.parse import urlparse
-import uuid
-import smtplib
 import webbrowser
+import json
+from base64 import urlsafe_b64decode
 
 
 import dateutil.parser
 from adal import AuthenticationContext
 from adal.constants import TokenResponseFields, OAuth2DeviceCodeResponseParameters
-import jwt
 
 
-from .constants import Constants, Cloud
+from .dependencies import Dependencies
+from .my_utils import single_quote
+from .constants import Cloud
 from .log import logger
 from .display import Display
 from .constants import ConnStrKeys
 from .adal_token_cache import AdalTokenCache
-from .kql_engine import KqlEngineError
+from .exceptions import KqlEngineError
 from .parser import Parser
 from .email_notification import EmailNotification
+from .aad_helper import AadHelper
 
 
 class AuthenticationError(Exception):
@@ -84,7 +86,7 @@ class AuthenticationMethod(object):
     aad_username_password = "aad_username_password"
     aad_application_key = "aad_application_key"
     aad_application_certificate = "aad_application_certificate"
-    aad_device_login = "aad_device_login"
+    aad_code_login = "aad_code_login"
 
     # external tokens
     azcli_login = "azcli_login"
@@ -94,21 +96,27 @@ class AuthenticationMethod(object):
 
 
 _CLOUD_AAD_URLS = {
-        Cloud.PUBLIC :     "https://login.microsoftonline.com",
-        Cloud.MOONCAKE:    "https://login.partner.microsoftonline.cn", # === 'login.chinacloudapi.cn'?
-        Cloud.FAIRFAX:     "https://login.microsoftonline.us",
-        Cloud.BLACKFOREST: "https://login.microsoftonline.de",
+    Cloud.PUBLIC:      "https://login.microsoftonline.com",
+    Cloud.MOONCAKE:    "https://login.partner.microsoftonline.cn",  # === 'login.chinacloudapi.cn'?
+    Cloud.FAIRFAX:     "https://login.microsoftonline.us",
+    Cloud.BLACKFOREST: "https://login.microsoftonline.de",
 }
+_CLOUD_AAD_URLS[Cloud.CHINA] = _CLOUD_AAD_URLS[Cloud.MOONCAKE]
+_CLOUD_AAD_URLS[Cloud.GOVERNMENT] = _CLOUD_AAD_URLS[Cloud.FAIRFAX]
+_CLOUD_AAD_URLS[Cloud.GERMANY] = _CLOUD_AAD_URLS[Cloud.BLACKFOREST]
 
 
 _CLOUD_DSTS_AAD_DOMAINS = {
-        # Define dSTS domains whitelist based on its Supported Environments & National Clouds list here
-        # https://microsoft.sharepoint.com/teams/AzureSecurityCompliance/Security/SitePages/dSTS%20Fundamentals.aspx
-        Cloud.PUBLIC :      'dsts.core.windows.net',
-        Cloud.MOONCAKE:     'dsts.core.chinacloudapi.cn',  
-        Cloud.BLACKFOREST:  'dsts.core.cloudapi.de', 
-        Cloud.FAIRFAX:      'dsts.core.usgovcloudapi.net'
+    # Define dSTS domains whitelist based on its Supported Environments & National Clouds list here
+    # https://microsoft.sharepoint.com/teams/AzureSecurityCompliance/Security/SitePages/dSTS%20Fundamentals.aspx
+    Cloud.PUBLIC:       'dsts.core.windows.net',
+    Cloud.MOONCAKE:     'dsts.core.chinacloudapi.cn',  
+    Cloud.BLACKFOREST:  'dsts.core.cloudapi.de', 
+    Cloud.FAIRFAX:      'dsts.core.usgovcloudapi.net'
 }
+_CLOUD_DSTS_AAD_DOMAINS[Cloud.CHINA] = _CLOUD_DSTS_AAD_DOMAINS[Cloud.MOONCAKE]
+_CLOUD_DSTS_AAD_DOMAINS[Cloud.GOVERNMENT] = _CLOUD_DSTS_AAD_DOMAINS[Cloud.FAIRFAX]
+_CLOUD_DSTS_AAD_DOMAINS[Cloud.GERMANY] = _CLOUD_DSTS_AAD_DOMAINS[Cloud.BLACKFOREST]
 
 
 # shared not cached context per authority
@@ -116,6 +124,7 @@ global_adal_context = {}
 
 # shared cached context per authority
 global_adal_context_sso = {}
+
 
 class OAuth2TokenFields(object):
     # taken from here: https://docs.microsoft.com/en-us/azure/app-service/overview-managed-identity?tabs=dotnet
@@ -129,13 +138,15 @@ class OAuth2TokenFields(object):
     # The timespan when the access token expires. The date is represented as the number of seconds from "1970-01-01T0:0:0Z UTC" (corresponds to the token's exp claim).
     EXPIRES_ON = 'expires_on'
 
-    # The timespan when the access token takes effect, and can be accepted. The date is represented as the number of seconds from "1970-01-01T0:0:0Z UTC" (corresponds to the token's nbf claim).
+    # The timespan when the access token takes effect, and can be accepted.
+    # The date is represented as the number of seconds from "1970-01-01T0:0:0Z UTC" (corresponds to the token's nbf claim).
     NOT_BEFORE = 'not_before'
 
     # The resource the access token was requested for, which matches the resource query string parameter of the request.
     RESOURCE = 'resource'
 
-    # Indicates the token type value. The only type that Azure AD supports is FBearer. For more information about bearer tokens, see The OAuth 2.0 Authorization Framework: Bearer Token Usage (RFC 6750).
+    # Indicates the token type value. The only type that Azure AD supports is FBearer. For more information about bearer tokens, 
+    # see The OAuth 2.0 Authorization Framework: Bearer Token Usage (RFC 6750).
     TOKEN_TYPE = 'token_type'
 
     # optional
@@ -143,12 +154,13 @@ class OAuth2TokenFields(object):
     REFRESH_TOKEN = 'refresh_token'
 
 
-class _MyAadHelper(object):
+class _MyAadHelper(AadHelper):
 
-    def __init__(self, kcsb, default_clientid, adal_context = None, adal_context_sso = None, **options):
+    def __init__(self, kcsb, default_clientid, adal_context=None, adal_context_sso=None, **options):
         global global_adal_context
         global global_adal_context_sso
 
+        super(_MyAadHelper, self).__init__(kcsb, default_clientid, adal_context, adal_context_sso, **options)
         # to provide stickiness, to avoid switching tokens when not required
         self._current_token = None
         self._current_adal_context = None
@@ -165,7 +177,7 @@ class _MyAadHelper(object):
         url = urlparse(kcsb.data_source)
         self._resource = f"{url.scheme}://{url.hostname}"
 
-        self._authority = kcsb.authority_id  or "common"
+        self._authority = kcsb.authority_id or "common"
 
         self._aad_login_url = self._get_aad_login_url(kcsb.conn_kv.get(ConnStrKeys.AAD_URL))
 
@@ -187,8 +199,42 @@ class _MyAadHelper(object):
             self._certificate = kcsb.application_certificate
             self._thumbprint = kcsb.application_certificate_thumbprint
         else:
-            self._authentication_method = AuthenticationMethod.aad_device_login
-            self._username = kcsb.aad_user_id # optional
+            self._authentication_method = AuthenticationMethod.aad_code_login
+            self._username = kcsb.aad_user_id  # optional
+
+
+    # collect this information, in case bug report will be generated
+    def get_details(self):
+        details = {
+            "resource": self._resource,
+            "authentication_method": self._current_authentication_method,
+            "authority_uri": self._authority_uri,
+            "client_id": self._client_id,
+            "aad_login_url": self._aad_login_url}
+        if (self._current_authentication_method == AuthenticationMethod.aad_username_password
+                or self._current_authentication_method == AuthenticationMethod.aad_code_login):
+            details["username"] = self._username
+
+        if self._current_token:
+            details["resource"] = self._get_token_resource(self._current_token) or self._get_resources_from_token(self._current_token) or details["resource"]
+            details["authority_uri"] = self._get_token_authority(self._current_token) or self._get_authority_from_token(self._current_token) or details["authority_uri"]
+            details["client_id"] = self._get_token_client_id(self._current_token) or self._get_client_id_from_token(self._current_token) or details["client_id"]
+            details["username"] = self._get_token_user_id(self._current_token) or self._get_username_from_token(self._current_token) or details["username"]
+
+        if self._current_authentication_method == AuthenticationMethod.azcli_login_subscription:
+            details["subscription"] = self._options.get("try_azcli_login_subscription")
+        elif self._current_authentication_method == AuthenticationMethod.azcli_login:
+            details["tenant"] = self._authority
+        elif self._current_authentication_method == AuthenticationMethod.managed_service_identity:
+            details["msi_params"] = self._options.get("try_msi")
+        elif self._current_authentication_method == AuthenticationMethod.aad_application_certificate:
+            details["thumbprint"] = self._thumbprint
+        elif self._current_authentication_method == AuthenticationMethod.aad_application_key:
+            details["client_secret"] = '*****' if self._client_secret else 'NOT-SET'
+        elif self._current_authentication_method == AuthenticationMethod.aad_username_password:
+            details["password"] = '*****' if self._password else 'NOT-SET'
+
+        return details
 
 
     def acquire_token(self):
@@ -249,7 +295,7 @@ class _MyAadHelper(object):
                     logger().debug(f"_MyAadHelper::acquire_token - aad/client-certificate - resource: '{self._resource}', client: '{self._client_id}', _certificate: '...', thumbprint: '{self._thumbprint}'")
                     token = self._current_adal_context.acquire_token_with_client_certificate(self._resource, self._client_id, self._certificate, self._thumbprint)                
 
-                elif self._authentication_method is AuthenticationMethod.aad_device_login:
+                elif self._authentication_method is AuthenticationMethod.aad_code_login:
                     logger().debug(f"_MyAadHelper::acquire_token - aad/code - resource: '{self._resource}', client: '{self._client_id}'")
                     code: dict = self._current_adal_context.acquire_user_code(self._resource, self._client_id)
                     url = code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]
@@ -277,12 +323,16 @@ class _MyAadHelper(object):
                         else:
                             device_code_login_notification = "button"
 
-                    if (self._options.get("kernel_location") == "local" or 
-                        device_code_login_notification in ["browser"] or 
-                        (device_code_login_notification == "popup_interaction" and self._options.get("popup_interaction") == "webbrowser_open_at_kernel")):
+                    if (self._options.get("kernel_location") == "local"
+                            or device_code_login_notification in ["browser"]
+                            or (device_code_login_notification == "popup_interaction" and self._options.get("popup_interaction") == "webbrowser_open_at_kernel")):
                         # copy code to local clipboard
-                        import pyperclip
-                        pyperclip.copy(device_code)
+                        try:
+                            pyperclip = Dependencies.get_module("pyperclip", dont_throw=True)
+                            if pyperclip is not None:
+                                pyperclip.copy(device_code)
+                        except:
+                            pass
 
                     # if  self._options.get("notebook_app")=="papermill" and self._options.get("login_code_destination") =="browser":
                     #     raise Exception("error: using papermill without an email specified is not supported")
@@ -290,8 +340,9 @@ class _MyAadHelper(object):
                         params = Parser.parse_and_get_kv_string(self._options.get('device_code_notification_email'), {})
                         email_notification = EmailNotification(**params)
                         subject = f"Kqlmagic device_code {device_code} authentication (context: {email_notification.context})"
-                        resource = self._resource.replace("://", ":// ") # just to make sure it won't be replace in email by safelinks
-                        email_message = f"Device_code: {device_code}\n\nYou are asked to authorize access to resource: {resource}\n\nOpen the page {url} and enter the code {device_code} to authenticate\n\nKqlmagic"
+                        resource = self._resource.replace("://", ":// ")  # just to make sure it won't be replace in email by safelinks
+                        email_message = f"Device_code: {device_code}\n\nYou are asked to authorize access to resource: " \
+                                        f"{resource}\n\nOpen the page {url} and enter the code {device_code} to authenticate\n\nKqlmagic"
                         email_notification.send_email(subject, email_message)
                         info_message =f"An email was sent to {email_notification.send_to} with device_code {device_code} to authenticate"
                         Display.showInfoMessage(info_message, display_handler_name='acquire_token', **self._options)
@@ -304,8 +355,13 @@ class _MyAadHelper(object):
                     elif device_code_login_notification == "terminal":
                         # this print is not for debug
                         print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
+                        sys.stdout.flush()  # Some terminal needs this to ensure the message is shown
 
-                    elif device_code_login_notification == "popup_interaction":
+                        # Ideally you should wait here, in order to save some unnecessary polling
+                        # TODO: add flag to prompt
+                        # input("Press Enter after signing in from another device to proceed, CTRL+C to abort.")
+
+                    elif device_code_login_notification == "popup_interaction" and self._options.get("popup_interaction") != "memory_button":
                         before_text = f"<b>{device_code}</b>"
                         button_text = "Copy code to clipboard and authenticate"
                         # before_text = f"Copy code: {device_code} to verification url: {url} and "
@@ -321,14 +377,14 @@ class _MyAadHelper(object):
                             **self._options
                         )
 
-                    else: # device_code_login_notification == "button":
+                    else:  # device_code_login_notification == "button":
                         html_str = (
                             f"""<!DOCTYPE html>
                             <html><body>
 
                             <!-- h1 id="user_code_p"><b>{device_code}</b><br></h1-->
 
-                            <input  id="kql_MagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size = '{str(len(device_code))}' value='{device_code}'>
+                            <input  id="kql_MagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size={single_quote(len(device_code))} value={single_quote(device_code)}>
 
                             <button id='kql_MagicCodeAuth_button', onclick="this.style.visibility='hidden';kql_MagicCodeAuthFunction()">Copy code to clipboard and authenticate</button>
 
@@ -401,40 +457,6 @@ class _MyAadHelper(object):
             raise AuthenticationError(e, **kwargs)
 
 
-    # def email_format(self, dest):
-    #     return re.match( r'[\w\.-]+@[\w\.-]+(\.[\w]+)+', dest)
-
-    # def check_email_params(self, port, smtp_server, sender_email, receiver_email, password):
-    #     if port and smtp_server and sender_email and receiver_email and password:
-    #         if self.email_format(sender_email) and self.email_format(receiver_email):
-    #             return True
-    #     return False
-    
-
-    # def send_email(self, message, key_vals):
-
-    #     port = key_vals.get("smtpport")  
-    #     smtp_server = key_vals.get("smtpendpoint")
-    #     sender_email = key_vals.get("sendfrom")
-
-    #     receiver_email = key_vals.get("sendto") 
-
-    #     password = key_vals.get("sendfrompassword")
-
-    #     if not self.check_email_params(port,smtp_server, sender_email, receiver_email, password):
-    #         raise ValueError("""
-    #             cannot send login code to email because of missing or invalid environmental parameters. 
-    #             Set KQLMAGIC_CODE_NOTIFICATION_EMAIL in the following way: SMTPEndPoint: \" email server\"; SMTPPort: \"email port\"; 
-    #             sendFrom: \"sender email address \"; sendFromPassword: \"email address password \"; sendTo:\" email address to send to\"""" )
-
-    #     # context = ssl.create_default_context()
-    #     # with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-
-    #     with smtplib.SMTP(smtp_server, port) as server:
-    #         server.starttls() 
-    #         server.login(sender_email, password)
-    #         server.sendmail(sender_email, receiver_email, "\n"+message)
-
     #
     # Assume OAuth2 format (e.g. MSI Token) too
     #
@@ -485,7 +507,7 @@ class _MyAadHelper(object):
 
 
     def _get_token_authority(self, token:dict, default_authority:str=None)->str:
-        return token.get(TokenResponseFields._AUTHORITY ) or default_authority
+        return token.get(TokenResponseFields._AUTHORITY) or default_authority
 
 
     def _create_authorization_header(self)->str:
@@ -501,28 +523,17 @@ class _MyAadHelper(object):
         return f"{token_type} {access_token}"
 
 
-    def _get_token_claims(self, token:str)->dict:
-        "get the claims from the token. To optimize it caches the last token/claims"
-        claims_token, claims = self._token_claims_cache
-        if token == claims_token:
-            return claims
-        claims = {}
-        try:
-            claims = jwt.decode(self._get_token_id_token(token) or self._get_token_access_token(token), verify=False)
-        except:
-            pass
-        self._token_claims_cache = (token, claims)
-        return claims
-
-
-    def _get_username_from_token(self, token:str)->str:
+    def _get_username_from_token(self, token:dict)->str:
         "retrieves username from in id token or access token claims"
-        claims = self._get_token_claims(self._get_token_id_token(token) or self._get_token_access_token(token))
-        username = claims.get("unique_name") or claims.get("upn") or claims.get("email") or claims.get("sub")
+
+        id_token_claims = self._get_token_claims(self._get_token_id_token(token))
+        access_token_claims = self._get_token_claims(self._get_token_access_token(token))
+        claims = {**access_token_claims, **id_token_claims}
+        username = claims.get("preferred_username") or claims.get("unique_name") or claims.get("upn") or claims.get("email") or claims.get("sub")
         return username
 
 
-    def _get_expires_on_from_token(self, token:str)->str:
+    def _get_expires_on_from_token(self, token:dict)->str:
         "retrieve expires_on from access token claims"
         expires_on = None
         claims = self._get_token_claims(self._get_token_access_token(token))
@@ -532,7 +543,7 @@ class _MyAadHelper(object):
         return expires_on
 
 
-    def _get_not_before_from_token(self, token:str)->str:
+    def _get_not_before_from_token(self, token:dict)->str:
         "retrieve not_before from access token claims"
         not_before = None
         claims = self._get_token_claims(self._get_token_access_token(token))
@@ -542,14 +553,14 @@ class _MyAadHelper(object):
         return not_before
 
 
-    def _get_client_id_from_token(self, token:str)->str:
+    def _get_client_id_from_token(self, token:dict)->str:
         "retrieve client_id from access token claims"
         claims = self._get_token_claims(self._get_token_access_token(token))
         client_id = claims.get("client_id") or claims.get("appid") or claims.get("azp")
         return client_id
 
     
-    def _get_resources_from_token(self, token:str)->list:
+    def _get_resources_from_token(self, token:dict)->list:
         "retrieve resource list from access token claims"
         resources = None
         claims = self._get_token_claims(self._get_token_access_token(token))
@@ -559,7 +570,7 @@ class _MyAadHelper(object):
         return resources
 
 
-    def _get_authority_from_token(self, token:str)->str:
+    def _get_authority_from_token(self, token:dict)->str:
         "retrieve authority_uri from access token claims"
         authority_uri = None
         try:
@@ -613,7 +624,7 @@ class _MyAadHelper(object):
         return token
 
 
-    def _get_aux_token(self, token:str)->str:
+    def _get_aux_token(self, token:dict)->str:
         "retrieve token from aux token"
         self._current_authentication_method = AuthenticationMethod.aux_token
         try:
@@ -632,15 +643,10 @@ class _MyAadHelper(object):
         try:
             # requires azure-cli-core to be installed
             # from azure.cli.core._profile import _CLIENT_ID as AZCLI_CLIENT_ID
-            from azure.common.credentials import get_cli_profile 
-            try:
-                profile = get_cli_profile()
-                credential, _subscription, _tenant = profile.get_raw_token(resource=self._resource, subscription=subscription, tenant=tenant)
-                token_type, access_token, token = credential
-            except:
-                pass
-        except [ImportError, ModuleNotFoundError]:
-            raise AuthenticationError("Azure CLI authentication requires 'azure-cli-core' to be installed.")
+            from azure.common.credentials import get_cli_profile  # pylint: disable=no-name-in-module, import-error
+            profile = get_cli_profile()
+            credential, _subscription, _tenant = profile.get_raw_token(resource=self._resource, subscription=subscription, tenant=tenant)
+            token_type, access_token, token = credential  # pylint: disable=unused-variable
         except:
             pass
         logger().debug(f"_MyAadHelper::_get_azcli_token {'failed' if token is None else 'succeeded'} to get token - subscription: '{subscription}', tenant: '{tenant}'")
@@ -653,21 +659,17 @@ class _MyAadHelper(object):
         self._current_authentication_method = AuthenticationMethod.managed_service_identity
         try:
             from msrestazure.azure_active_directory import MSIAuthentication
-            try:
-                # allow msi_params to overrite the connection string resource
-                credentials = MSIAuthentication(**{"resource":self._resource, **msi_params})
-                token = credentials.token
-            except:
-                pass
-        except [ImportError, ModuleNotFoundError]:
-            raise AuthenticationError("MSI authentication requires 'msrestazure' to be installed.")
+            # allow msi_params to overrite the connection string resource
+            credentials = MSIAuthentication(**{"resource":self._resource, **msi_params})
+            token = credentials.token
         except:
             pass
+
         logger().debug(f"_MyAadHelper::_get_msi_token {'failed' if token is None else 'succeeded'} to get token - msi_params: '{msi_params}'")
         return token
 
 
-    def _validate_and_refresh_token(self, token:str)->str:
+    def _validate_and_refresh_token(self, token:dict)->str:
         "validate token is valid to use now. Now is between not_before and expires_on. If exipred try to refresh"
         valid_token = None
         if token is not None:
@@ -791,7 +793,7 @@ class _MyAadHelper(object):
             kwargs = {"username": self._username, "client_id": self._client_id}
         elif self._current_authentication_method is AuthenticationMethod.aad_application_key:
             kwargs = {"client_id": self._client_id}
-        elif self._current_authentication_method is AuthenticationMethod.aad_device_login:
+        elif self._current_authentication_method is AuthenticationMethod.aad_code_login:
             kwargs = {"client_id": self._client_id}
         elif self._current_authentication_method is AuthenticationMethod.aad_application_certificate:
             kwargs = {"client_id": self._client_id, "thumbprint": self._thumbprint}
@@ -822,10 +824,6 @@ class _MyAadHelper(object):
         else:
             authority = authority or self._current_authentication_method
 
-        if self._current_adal_context is not None:
-            authority = self._current_adal_context.authority.url
-        elif self._current_token is not None:
-            authority = self._get_authority_from_token(self._current_token)
         if authority is None:
             if self._current_authentication_method in [AuthenticationMethod.managed_service_identity, AuthenticationMethod.azcli_login_subscription, AuthenticationMethod.aux_token]:
                 authority = self._current_authentication_method
@@ -837,4 +835,36 @@ class _MyAadHelper(object):
         kwargs["resource"] = self._resource
 
         return kwargs
+
+
+    def _get_token_claims(self, jwt_token:str)->dict:
+        "get the claims from the token. To optimize it caches the last token/claims"
         
+        claims_token, claims = self._token_claims_cache
+        if jwt_token == claims_token:
+            return claims
+        claims = {}
+        if jwt_token:
+            try:
+                base64_header, base64_claims, _ = jwt_token.split('.')  # pylint: disable=unused-variable
+                json_claims = self.base64url_decode(base64_claims)
+                claims = json.loads(json_claims)
+            except Exception as e:
+                # this print is not for debug
+                print(f"claims error: {e}")
+                pass
+            self._token_claims_cache = (jwt_token, claims)
+        return claims
+
+
+    def base64url_decode(self, url_str:str)->str:
+        size = len(url_str) % 4
+        if size != 0:
+            padding_size = 4 - size
+            if padding_size == 2:
+                url_str += '=='
+            elif padding_size == 1:
+                url_str += '='
+            else:
+                raise ValueError(f"Invalid base64 url string: {url_str}")
+        return urlsafe_b64decode(url_str.encode('utf-8')).decode('utf-8')        

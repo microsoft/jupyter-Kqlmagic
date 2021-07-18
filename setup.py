@@ -5,197 +5,234 @@
 # Licensed under the MIT License. See License.txt in the project root for
 # license information.
 #--------------------------------------------------------------------------
-
 """Setup for Kqlmagic"""
 
-# To use a consistent encoding
-import codecs
 import sys
-import re
-from os import path
+import os
+import io
 
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
 
 
-DESCRIPTION         = "Kqlmagic: Microsoft Azure Monitor magic extension to Jupyter notebook"
 
-NAME                = "Kqlmagic"
+#==============================================================================
+# _IS_CUSTOM_SETUP VALUE IS MODIFIED BY A SHELL PREPROCESSOR SCRIPT
+# TO FORK TWO PACKAGES:
+#      - Kqlmagic - INCLUDES ALL DEPENDENCIES
+#      - KqlmagicCustom - DEPENDENCIES NEED TO BE EXPLICITLY SPECIFIED
+#==============================================================================
+# NEXT CODE LINE SHOULD NOT BE TOUCHED/MODIFIED MANUALLY, MAKE SURE IT APPEARS ONLY ONCE
+_IS_CUSTOM_SETUP = True # MODIFIED BY A SHELL PREPROCESSOR SCRIPT
+#==============================================================================
+#
+#
 
-AUTHOR              = 'Michael Binshtock'
+_PACKAGE_DASHED_PATH   = 'azure-Kqlmagic'
 
-AUTHOR_EMAIL        = 'michabin@microsoft.com'
-
-MAINTAINER          = 'Michael Binshtock'
-
-MAINTAINER_EMAIL    = 'michabin@microsoft.com'
-
-URL                 = 'https://github.com/Microsoft/jupyter-Kqlmagic'
-
-LICENSE             = 'MIT License'
-
-KEYWORDS            = 'database ipython jupyter jupyterlab jupyter-notebook query language kql kusto loganalytics applicationinsights'
-
-INSTALL_REQUIRES    = [
-                        'ipython>=7.1.1',
-                        'ipykernel>=5.1.1',
-                        'plotly>=3.10.0',
-                        'prettytable>=0.7.2',
-                        'matplotlib>=3.0.0',
-                        'pandas>=0.23.4',
-                        'adal>=1.2.2',
-                        'Pygments>=2.2.0',
-                        'seaborn>=0.9.0',
-                        'requests>=2.21.0',
-                        'python-dateutil>=2.7.5',
-                        'isodate>=0.6.0',
-                        'traitlets>=4.3.2',
-                        'psutil>=5.4.7',
-                        'six>=1.11.0',
-                        'setuptools>=41.0.1',
-                        'Markdown>=3.0.1',
-                        'beautifulsoup4>=4.6.3',
-                        'lxml>=4.2.5',
-                        'pytz>=2019.1',
-                        'pyjwt>=1.7.1',
-                        'flask>=1.1.1',
-                        'pyperclip>=1.7.0',
-                        'azure-cli-core>=2.4.0',
-                        'msrestazure>=0.6.0',
-]
-
-TEST_REQUIRE        = [
-                        'pytest',
-                        'pytest-pep8',
-                        'pytest-docstyle',
-                        'pytest-flakes',
-                        'pytest-cov',
-
-                        'QtPy',
-                        'PyQt5'
-]
-
-EXTRAS_REQUIRE      = {
-                        'dev':  [
-                            'twine',
-                            'pip',
-                            'wheel',
-                            'black',
-                        ],
-                        'test': TEST_REQUIRE,
-                        'widgets':[
-                            'ipywidgets'
-                        ],
-                        'sso': [
-                            'cryptography>=2.7',
-                            'password-strength>=0.0.3',
-                        ]
-}
+_VERSION_CODE_FILENAME = '_version.py'
+_REQUIRE_CODE_FILENAME = '_require.py'
+_META_CODE_FILENAME    = '_meta.py'
+_TEST_CODE_FILENAME    = '_test.py'
 
 
-PROJECT_URLS        = {
-                        'Documentation': 'https://github.com/microsoft/jupyter-Kqlmagic/blob/master/README.md',
-                        'Source': 'https://github.com/microsoft/jupyter-Kqlmagic',
-}
+#
+# help functions
+#
 
-CURRENT_PATH = path.abspath(path.dirname(__file__))
-PACKAGE_PATH = 'azure-Kqlmagic'.replace('-', path.sep)
+# Union Without repetition  
+def list_union(*args): 
+    final_list = list(set().union(*args)) 
+    return final_list 
 
-with open(path.join(PACKAGE_PATH, 'version.py'), 'r') as fd:
-    VERSION = re.search(r'^VERSION\s*=\s*[\'"]([^\'"]*)[\'"]',
-                        fd.read(), re.MULTILINE).group(1)
+
+def read(relative_path, encoding='utf-8'):
+    path = os.path.join(os.path.dirname(__file__), relative_path)
+    with io.open(path, encoding=encoding) as fp:
+        return fp.read()
+
+
+def write(content, relative_path, encoding='utf-8'):
+    path = os.path.join(os.path.dirname(__file__), relative_path)
+    with io.open(path, mode="w", encoding=encoding) as fp:
+        return fp.write(content)
+
+
+def exec_py_code(filename):
+    """Get requires from _require.py file."""
+
+    code_relative_path = _PACKAGE_DASHED_PATH.replace('-', '/') + '/' + filename
+    try:
+        package_relative_path = _PACKAGE_DASHED_PATH.replace('-', os.path.sep)
+
+        code_relative_path = os.path.join(package_relative_path, filename)
+        py_code = read(code_relative_path)
+        user_ns = {}
+        exec(py_code, {}, user_ns)
+        return user_ns
+    except Exception as error:
+        raise RuntimeError("Failed to execute py code from file: {} due to error: {}".format(code_relative_path, error))
+
+
+#
+# get version
+#
+
+def get_version():
+    """Get version and devstatus from _version.py file."""
+    user_ns = exec_py_code(_VERSION_CODE_FILENAME)
+    # Get development Status for classifiers
+    version = user_ns["__version__"]
+    version_info = user_ns["__version_info__"]
+    devstatus = {
+        'dev':   '2 - Pre-Alpha',
+        'alpha': '3 - Alpha',
+        'beta':  '4 - Beta',
+        'rc':    '4 - Beta',
+        'final': '5 - Production/Stable'
+    }[version_info[3]]
+    return version, devstatus
+
+VERSION, _DEVSTATUS = get_version()
+
+
+#
+# get package metadata
+#
+
+def get_meta(is_custom_setup, devstatus):
+    """Get metadata from _meta.py file."""
+    meta = exec_py_code(_META_CODE_FILENAME)
+    if is_custom_setup:
+        meta["NAME"] = meta["NAME"] + "Custom"
+    meta["CLASSIFIERS"].insert(0, 'Development Status :: {}'.format(devstatus))
+    return meta
+
+meta = get_meta(_IS_CUSTOM_SETUP, _DEVSTATUS)
+
+DESCRIPTION         = meta["DESCRIPTION"]
+NAME                = meta['NAME']
+AUTHOR              = meta["AUTHOR"]
+AUTHOR_EMAIL        = meta["AUTHOR_EMAIL"]
+MAINTAINER          = meta["MAINTAINER"]
+MAINTAINER_EMAIL    = meta["MAINTAINER_EMAIL"]
+URL                 = meta["URL"]
+PROJECT_URLS        = meta["PROJECT_URLS"]
+LICENSE             = meta["LICENSE"]
+KEYWORDS            = meta["KEYWORDS"]
+CLASSIFIERS         = meta["CLASSIFIERS"]
+PYTHON_REQUIRES     = meta["PYTHON_REQUIRES"]
+
+
+#
+# check minimal sanity
+#
 
 #==============================================================================
 # Minimal Python version sanity check
 # Taken from the notebook setup.py -- Modified BSD License
 #==============================================================================
-v = sys.version_info
-if v[:2] < (3, 6):
-    pip_message = 'This may be due to an out of date pip. Make sure you have pip >= 9.0.1.'
-    try:
-        import pip
-        pip_version = tuple([int(x) for x in pip.__version__.split('.')[:3]])
-        if pip_version < (9, 0, 1) :
-            pip_message = 'Your pip version is out of date, please install pip >= 9.0.1. '\
-            'pip {} detected.'.format(pip.__version__)
-        else:
-            # pip is new enough - it must be something else
-            pip_message = ''
-    except Exception:
-        pass
+def minimal_sanity(python_requires, kqlmagic_name, kqlmagic_version):
 
-    error = """ERROR: Kqlmagic {ver} requires Python version 3.6 or above.
+    def get_version_tuple(item:str):
+        "parse package name from a package line that include version info"
+        ver_tuple = (3, 6)
+        item = item.strip().lower()
+        for i in range(len(item)):
+            if item[i].isdigit():
+                ver_tuple = [int(val) for val in item[i:].split(".")]
+                break
+        return ver_tuple
 
-    Python {py} detected.
-    {pip}
-    """.format(ver=VERSION, py=sys.version_info, pip=pip_message)
-    print(error, file=sys.stderr)
-    sys.exit(1)
-
-
-CURRENT_PATH = path.abspath(path.dirname(__file__))
-with codecs.open(path.join(CURRENT_PATH, 'README.rst'), encoding='utf-8') as f:
-    README = f.read()
-with codecs.open(path.join(CURRENT_PATH, 'NEWS.txt'), encoding='utf-8') as f:
-    NEWS = f.read()
-
-LONG_DESCRIPTION = (README + '\n\n' + NEWS).replace('\r','')
-LONG_DESCRIPTION_CONTENT_TYPE = 'text/x-rst'
-
-
-class PyTest(TestCommand):
-
-    user_options = [('pytest-args=', 'a', "Arguments to pass into py.test")]
-
-
-    def initialize_options(self):
-        TestCommand.initialize_options(self)
+    v = sys.version_info
+    min_python_required_ver = get_version_tuple(python_requires)
+    if list(v[:2]) < min_python_required_ver:
+        pip_message = 'This may be due to an out of date pip. Make sure you have pip >= 9.0.1.'
         try:
-            from multiprocessing import cpu_count
-            self.pytest_args = ['-n', str(cpu_count()), '--boxed']
-        except (ImportError, NotImplementedError):
-            self.pytest_args = ['-n', '1', '--boxed']
+            import pip
+            pip_version = tuple([int(x) for x in pip.__version__.split('.')[:3]])
+            if pip_version < (9, 0, 1) :
+                pip_message = 'Your pip version is out of date, please install pip >= 9.0.1. '\
+                'pip {} detected.'.format(pip.__version__)
+            else:
+                # pip is new enough - it must be something else
+                pip_message = ''
+        except Exception:
+            pass
+
+        error = """ERROR: {name} {ver} requires Python version 3.6 or above.
+
+        Python {py} detected.
+        {pip}
+        """.format(name=kqlmagic_name, ver=kqlmagic_version, py=sys.version_info, pip=pip_message)
+        print(error, file=sys.stderr)
+        sys.exit(1)
+
+minimal_sanity(PYTHON_REQUIRES, NAME, VERSION)
 
 
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
+#
+# get long description
+#
+
+def get_long_description():
+    """Get long description from REAM.RST and NEWS.txt."""
+    try:
+        readme_rst_content = read('README.rst')
+        long_description_content_type = 'text/x-rst' # long_description_content_type = 'text/markdown'
+        news_txt_content = read('NEWS.txt')
+        long_description =  (readme_rst_content + '\n\n' + news_txt_content).replace('\r','')
+        return long_description, long_description_content_type
+    except Exception as error:
+        raise RuntimeError("Unable to README.rst or NEWS.txt file, due to error: {}".format(error))
+
+LONG_DESCRIPTION, LONG_DESCRIPTION_CONTENT_TYPE = get_long_description()
 
 
-    def run_tests(self):
-        import pytest
-        errno = pytest.main(self.pytest_args)
-        sys.exit(errno)
+#
+# get required dependencies
+#
+
+def get_require():
+    user_ns = exec_py_code(_REQUIRE_CODE_FILENAME)
+    return user_ns["INSTALL_REQUIRES"], user_ns["EXTRAS_REQUIRE"], user_ns["DEV_REQUIRES"], user_ns["TESTS_REQUIRE"] # pylint: disable=no-member
+
+INSTALL_REQUIRES, EXTRAS_REQUIRE, DEV_REQUIRES, TESTS_REQUIRE = get_require()
+
+if _IS_CUSTOM_SETUP:
+    DESCRIPTION = DESCRIPTION + " (Custom Dependencies)"
+else:
+    INSTALL_REQUIRES = list_union(INSTALL_REQUIRES, EXTRAS_REQUIRE.get("default"))
+    EXTRAS_REQUIRE   = {}
+
+EXTRAS_REQUIRE["dev"] = DEV_REQUIRES
+EXTRAS_REQUIRE["tests"] = TESTS_REQUIRE
 
 
-setup(
+#
+# get test command class
+#
+
+def get_test_class():
+    user_ns = exec_py_code(_TEST_CODE_FILENAME)
+    return user_ns["TestClass"] # pylint: disable=no-member
+
+TEST_CLASS = get_test_class()
+
+
+def kwargs_params_to_dict(**kwargs):
+    import json
+    print(json.dumps(kwargs, default=lambda o: str(o), indent=4))
+    return kwargs
+
+setup_kwargs = kwargs_params_to_dict(
     name=NAME,
     version=VERSION,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     long_description_content_type=LONG_DESCRIPTION_CONTENT_TYPE,
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
-        'Intended Audience :: System Administrators',
-        'Intended Audience :: Customer Service',
-        'Intended Audience :: Information Technology',
-        'Intended Audience :: Science/Research',
-        'Environment :: Console',
-        'Environment :: Plugins',
-        'License :: OSI Approved :: MIT License',
-        'Natural Language :: English',
-        'Topic :: Database',
-        'Topic :: Database :: Front-Ends',
-        'Framework :: IPython',
-        'Framework :: Jupyter',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-    ],
+    classifiers=CLASSIFIERS,
     keywords=KEYWORDS,
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
@@ -203,7 +240,7 @@ setup(
     maintainer_email=MAINTAINER_EMAIL,
     url=URL,
     license=LICENSE,
-    python_requires='>=3.6',
+    python_requires=PYTHON_REQUIRES,
     packages=find_packages('azure'),
     package_dir={'': 'azure'},
     include_package_data=True,
@@ -211,6 +248,8 @@ setup(
     install_requires=INSTALL_REQUIRES,
     extras_require=EXTRAS_REQUIRE,
     project_urls=PROJECT_URLS,
-    # cmdclass={'test': PyTest},
-    # tests_require=TEST_REQUIRE,
+    cmdclass={'test': TEST_CLASS},
+    tests_require=TESTS_REQUIRE,
 )
+
+setup(**setup_kwargs)

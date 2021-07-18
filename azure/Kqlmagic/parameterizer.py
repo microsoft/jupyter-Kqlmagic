@@ -8,14 +8,19 @@ from datetime import timedelta, datetime
 from decimal import Decimal
 
 
-import six
-from pandas import DataFrame, Series
-
-
-from .constants import Constants
+from .dependencies import Dependencies
 from .my_utils import json_dumps, timedelta_to_timespan
 
 
+pandas = Dependencies.get_module("pandas", dont_throw=True)
+if pandas:
+    DataFrame = pandas.DataFrame
+    Series = pandas.Series
+else:
+    class DataFrame(object):
+        pass
+    class Series(object):
+        pass
 
 class CurlyBracketsParamsDict(dict):
     
@@ -29,6 +34,7 @@ class CurlyBracketsParamsDict(dict):
 
 
     def __getitem__(self, key):
+
         if key in self._override_vars:
             value = self._override_vars[key]
             if self._eval_off:
@@ -45,10 +51,12 @@ class CurlyBracketsParamsDict(dict):
             try:
                 self._eval_off = False
                 self._eval_params_dict = {}
+                # eval may cause it to become recursive, because it uses self as the namespace
                 value = eval(key, self)
                 for k in self._eval_params_dict:
                     self._used_params_dict[k] = self._eval_params_dict[k]
             except:
+                
                 value = f'{{{key}}}'
             finally:
                 self._eval_off = True
@@ -139,12 +147,12 @@ class Parameterizer(object):
                 if isinstance(v, bool)
                 else cls._timedelta_to_timespan(v)
                 if isinstance(v, timedelta)
-                else f"datetime({v.isoformat()})" # kql will assume utc time
+                else f"datetime({v.isoformat()})"  # kql will assume utc time
                 if isinstance(v, datetime)
                 else f"dynamic({json_dumps(dict(v))})"
                 if isinstance(v, dict)
                 else f"dynamic({json_dumps(list(v))})"
-                if isinstance(v, (list,Series))
+                if isinstance(v, (list, Series))
                 else f"dynamic({json_dumps(list(tuple(v)))})"
                 if isinstance(v, tuple)
                 else f"dynamic({json_dumps(list(set(v)))})"
@@ -154,9 +162,9 @@ class Parameterizer(object):
                 else "datetime(null)"
                 if str(v) == "NaT"
                 else "time(null)"
-                if str(v) == "nat" # does not exist
+                if str(v) == "nat"  # does not exist
                 else "real(null)"
-                if str(v) == "nan" # missing na for long(null)
+                if str(v) == "nan"  # missing na for long(null)
                 else f"'{v.decode('utf-8')}'"
                 if isinstance(v, bytes)
                 else f"long({v})"
@@ -241,9 +249,9 @@ class Parameterizer(object):
         if kql_type == "real": 
             return 'real(null)' if s == 'nan' else f"real({s})"
         if kql_type == "bool": 
-            return 'true' if val == True else 'false' if  val == False else 'bool(null)'
+            return 'true' if val is True else 'false' if val is False else 'bool(null)'
         if kql_type == "datetime":
-            return 'datetime(null)' if s == "NaT" else f"datetime({s})" # assume utc
+            return 'datetime(null)' if s == "NaT" else f"datetime({s})"  # assume utc
         if kql_type == "timespan":
             return 'time(null)' if s == "NaT" else cls._timedelta_to_timespan(val)
         if kql_type == "dynamic":
@@ -302,7 +310,7 @@ class Parameterizer(object):
         return new_pairs_type
 
     @classmethod
-    def _datatable(cls, df: DataFrame) -> str:
+    def _datatable(cls, df:DataFrame) -> str:
         t = {col: str(t).split(".")[-1].split("[",1)[0] for col, t in dict(df.dtypes).items()}
         d = df.to_dict("split")
         # i = d["index"]
@@ -322,20 +330,18 @@ class Parameterizer(object):
         parameters = []
         for statment in query_let_statments:
             kv = statment.split("=")
-            if len(kv) == 2:
+            if len(kv) == 2: 
                 param_name = kv[1].strip()
-                if (
-                    not param_name.startswith('"')
-                    and not param_name.startswith("'")
-                    and not "(" in param_name
-                    and not "[" in param_name
-                    and not "{" in param_name
-                    and not param_name[0] in [str(i) for i in range(10)]
-                    and not param_name == "true"
-                    and not param_name == "false"
-                    and not param_name in set_keys
-                    and (param_name in parameter_vars or param_name in override_vars)
-                ):
+                if (not param_name.startswith(('"', "'"))
+                        and "(" not in param_name
+                        and "[" not in param_name
+                        and "{" not in param_name
+                        and param_name[0] not in [str(i) for i in range(10)]
+                        and param_name != "true"
+                        and param_name != "false"
+                        and param_name not in set_keys
+                        and (param_name in parameter_vars or param_name in override_vars)):
+
                     parameters.append(param_name)
             key = kv[0].strip()
             set_keys.append(key)
@@ -357,4 +363,3 @@ class Parameterizer(object):
     def _timedelta_to_timespan(cls, _timedelta:timedelta):
 
         return f"time({timedelta_to_timespan(_timedelta)})"
-

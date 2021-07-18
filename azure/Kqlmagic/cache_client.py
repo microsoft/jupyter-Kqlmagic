@@ -4,22 +4,67 @@
 # license information.
 # --------------------------------------------------------------------------
 
+from typing import Any, Union, Dict, List
 import hashlib
 import json
 import os
+import shutil
 
 
 from .constants import Constants
 from .my_utils import get_valid_filename_with_spaces, adjust_path, convert_to_common_path_obj, json_dumps 
 from .kql_response import KqlQueryResponse, KqlSchemaResponse
 from .ipython_api import IPythonAPI
+from .kql_client import KqlClient
+from .kql_engine import KqlEngine
 
 
-class CacheClient(object):
+class CacheClient(KqlClient):
     """
     """
 
-    def __init__(self, **options):
+    @staticmethod
+    def abs_cache_folder(folder_name:str=None, **options)->str:
+        root_path = IPythonAPI.get_ipython_root_path(**options)
+        cache_folder_name = options.get("cache_folder_name")
+        cache_folder_name = f"{Constants.MAGIC_CLASS_NAME_LOWER}/{cache_folder_name}"
+        if options.get("temp_folder_location") == "user_dir":
+            # app that has a free/tree build server, are not supporting directories athat starts with a dot
+            cache_folder_name = f".{cache_folder_name}"
+        folder_name_path = f"/{folder_name}" if folder_name else ""
+        files_folder = adjust_path(f"{root_path}/{cache_folder_name}{folder_name_path}")
+        return files_folder
+
+
+    @staticmethod
+    def remove_cache(folder_name:str=None, **options)->bool:
+        cache_folder = CacheClient.abs_cache_folder(folder_name=folder_name, **options)
+        if os.path.exists(cache_folder):
+            shutil.rmtree(cache_folder)
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def list_cache(**options)->List[str]:
+        cache_container = CacheClient.abs_cache_folder(**options)
+        if os.path.exists(cache_container):
+            return os.listdir(cache_container)
+        else:
+            return []
+
+
+    @staticmethod
+    def create_or_attach_cache(folder_name:str=None, **options)->bool:
+        cache_folder = CacheClient.abs_cache_folder(folder_name=folder_name, **options)
+        if not os.path.exists(cache_folder):
+            os.makedirs(cache_folder)
+            return True
+        else:
+            return False
+
+
+    def __init__(self, **options)->None:
         """
         File Client constructor.
 
@@ -29,22 +74,17 @@ class CacheClient(object):
             folder that contains all the database_folders that contains the query result files
         """
 
-        root_path = IPythonAPI.get_ipython_root_path(**options)
-        cache_folder_name = options.get("cache_folder_name")
-        cache_folder_name = f"{Constants.MAGIC_CLASS_NAME_LOWER}/{cache_folder_name}"
-        if options.get("temp_folder_location") == "user_dir":
-            # app that has a free/tree build server, are not supporting directories athat starts with a dot
-            cache_folder_name = f".{cache_folder_name}"
-        self.files_folder = adjust_path(f"{root_path}/{cache_folder_name}")
+        super(CacheClient, self).__init__()
+        self.files_folder = CacheClient.abs_cache_folder(**options)
 
 
     @property
-    def data_source(self) -> str:
+    def data_source(self)->str:
         return self.files_folder
 
 
-    def _get_query_hash_filename(self, query: str) -> str:
-        lines = [l.replace("\r", "").replace("\t", " ").strip() for l in query.split("\n")]
+    def _get_query_hash_filename(self, query:str)->str:
+        lines = [line.replace("\r", "").replace("\t", " ").strip() for line in query.split("\n")]
         q_lines = []
         for line in lines:
             if not line.startswith("//"):
@@ -53,7 +93,7 @@ class CacheClient(object):
         return f"q_{hashlib.sha1(bytes(''.join(q_lines), 'utf-8')).hexdigest()}.json"
 
 
-    def _get_file_path(self, query, database_at_cluster, cache_folder):
+    def _get_file_path(self, query:str, database_at_cluster:str, cache_folder:str)->str:
         """ 
         get the file name from the query string.
 
@@ -67,7 +107,7 @@ class CacheClient(object):
         return adjust_path(file_path)
 
 
-    def _get_folder_path(self, database_at_cluster, cache_folder=None):
+    def _get_folder_path(self, database_at_cluster:str, cache_folder:str=None)->str:
         if "_at_" in database_at_cluster:
             database_at_cluster = "_".join(database_at_cluster.split())
             database_name, cluster_name = database_at_cluster.split("_at_")[:2]
@@ -75,7 +115,7 @@ class CacheClient(object):
             if not os.path.exists(self.files_folder):
                 os.makedirs(self.files_folder)
             folder_path = self.files_folder
-            if  cache_folder is not None:
+            if cache_folder is not None:
                 folder_path = adjust_path(f"{folder_path}/{cache_folder}")
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
@@ -94,7 +134,7 @@ class CacheClient(object):
         return folder_path
 
 
-    def _get_endpoint_version(self, json_response):
+    def _get_endpoint_version(self, json_response:Dict[str,Any])->str:
         try:
             tables_num = json_response["Tables"].__len__()  # pylint: disable=W0612
             return "v1"
@@ -102,7 +142,7 @@ class CacheClient(object):
             return "v2"
 
 
-    def execute(self, database_at_cluster, query, **options):
+    def execute(self, database_at_cluster:str, query:str, **options)->Union[KqlSchemaResponse,KqlQueryResponse]:
         """
         Executes a query or management command.
 
@@ -111,25 +151,41 @@ class CacheClient(object):
         """
 
         file_path = self._get_file_path(query, database_at_cluster, cache_folder=options.get("use_cache"))
-        str_response = open(file_path, "r").read()
-        json_response = json.loads(str_response)
-        if query.startswith(".") and json_response.get("tables") is not None:
-            return KqlSchemaResponse(json_response)
-        else:
-            endpoint_version = self._get_endpoint_version(json_response)
-            return KqlQueryResponse(json_response, endpoint_version)
+        # collect this inormation, in case bug report will be generated
+        KqlClient.last_query_info = {
+            "request": {
+                "file_path": file_path,
+            },
+            "response": {
+                "status_code": 200,
+            },
+        }
+        try:
+            str_response = open(file_path, "r").read()
+            json_response = json.loads(str_response)
+            if query.startswith(".") and json_response.get("tables") is not None:
+                return KqlSchemaResponse(json_response)
+            else:
+                endpoint_version = self._get_endpoint_version(json_response)
+                return KqlQueryResponse(json_response, endpoint_version)
+                
+        except Exception as e:
+            # collect this inormation, in case bug report will be generated
+            self.last_query_info["response"]["status_code"] = 400  # pylint: disable=unsupported-assignment-operation, unsubscriptable-object
+            self.last_query_info["response"]["error"] = str(e)  # pylint: disable=unsupported-assignment-operation, unsubscriptable-object
+            raise e
 
 
-    def save(self, result, conn, query, file_path=None, filefolder=None, **options):
+    def save(self, result, engine:KqlEngine, query:str, file_path:str=None, filefolder:str=None, **options)->str:
         """
         Executes a query or management command.
 
         :param str database_at_cluster: name of database and cluster that a folder will be derived that contains all the files with the query results for this specific database.
         :param str query: Query to be executed.
         """
-
         if filefolder is not None:
             file_path = f"{filefolder}/{self._get_query_hash_filename(query)}"
+
         if file_path is not None:
             path_obj = convert_to_common_path_obj(file_path)
 
@@ -144,12 +200,11 @@ class CacheClient(object):
             file_path = adjust_path(file_path)
             
         else:
-            database_friendly_name = conn.get_database_friendly_name()
-            cluster_friendly_name = conn.get_cluster_friendly_name()
+            database_friendly_name = engine.get_database_friendly_name()
+            cluster_friendly_name = engine.get_cluster_friendly_name()
             file_path = self._get_file_path(query, f"{database_friendly_name}_at_{cluster_friendly_name}", cache_folder=options.get("cache"))
         outfile = open(file_path, "w")
         outfile.write(json_dumps(result.json_response))
         outfile.flush()
         outfile.close()
         return file_path
-

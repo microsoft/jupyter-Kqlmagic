@@ -10,6 +10,7 @@ from .ipython_api import IPythonAPI
 
 class Help_html(object):
     """
+    adds entries to jupyter help
     """
 
     showfiles_base_url = None
@@ -18,36 +19,45 @@ class Help_html(object):
 
     @staticmethod
     def flush(window_location:str, options:dict={}):
-        if (window_location.startswith("http://localhost") 
-            or window_location.startswith("https://localhost")
-            or window_location.startswith("http://127.0.0.")
-            or window_location.startswith("https://127.0.0.")):
-            start = window_location[8:].find("/") + 9
-            parts = window_location[start:].split("/")
-            parts.pop()
-            Help_html.showfiles_base_url = window_location[:start] + "/".join(parts)
+        base_url = None
+        # local machine jupyter
+        if window_location.startswith(("http://localhost", "https://localhost", "http://127.0.0.", "https://127.0.0.")):           
+            # example: http://localhost:8888/notebooks/my%20notebooks/legend.ipynb
+            parts = window_location.split("/")
+            parts.pop()  # remove notebook name 
+            del parts[3]  # remove '/notebooks'
+            base_url = "/".join(parts)
+
+        # know remote service address
         else:
             notebook_service_address = options.get("notebook_service_address")
             if notebook_service_address is not None:
-                host = notebook_service_address or ""
-                start = host.find("//") + 2
-                suffix = "." + host[start:]
-            else:
-                suffix = ".notebooks.azure.com"
-            end = window_location.find(suffix)
+                # azure notebooks service
+                if notebook_service_address.endswith("notebooks.azure.com"):
+                    start = notebook_service_address.find("//") + 2
+                    host_suffix = "." + notebook_service_address[start:]
 
-            start = window_location.find("//")
-            # azure notebook environment, assume template: https://library-user.libray.notebooks.azure.com
-            if start > 0 and end > 0 and ('-' in window_location):
-                library, user = window_location[start + 2 : end].split("-", 1)
-                host = notebook_service_address or "https://notebooks.azure.com"
-                Help_html.showfiles_base_url = f"{host}/api/user/{user}/library/{library}/html"
-            # assume just a remote kernel, as local
-            else:
+                    start = window_location.find("//")
+                    end = window_location.find(host_suffix)
+                    # azure notebook environment, assume template: https://library-user.notebooks.azure.com
+                    if start > 0 and end > 0 and ('-' in window_location):
+                        library_user_segment = window_location[start + 2: end]
+                        if '-' in library_user_segment:
+                            library, user = library_user_segment.split("-", 1)
+                            base_url = f"{notebook_service_address}/api/user/{user}/library/{library}/html"
+
+                # other remote services (assume support /tree)
+                if base_url is None:
+                    parts = notebook_service_address.split("/")
+                    base_url = "/".join(parts[:3])  + '/tree'
+                
+            # default (assume support /tree)
+            if base_url is None:
+                # assume a remote kernel url pattern  as local
                 parts = window_location.split("/")
-                parts.pop()
-                Help_html.showfiles_base_url = "/".join(parts)
+                base_url = "/".join(parts[:3])  + '/tree'
 
+        Help_html.showfiles_base_url = base_url
         refresh = False
         for text, url in Help_html._pending_helps.items():
             Help_html.add_menu_item(text, url, False, **options)

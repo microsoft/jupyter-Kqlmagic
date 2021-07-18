@@ -10,14 +10,14 @@
 
 import platform
 import sys
-import ssl
 
 
-from .version import VERSION as kqlmagic_version
-from .my_utils import json_dumps 
+from ._version import __version__ as kqlmagic_version
+from .dependencies import Dependencies
 
 
-def _implementation_info() -> dict:
+
+def _python_info() -> dict:
     """Return a dict with the Python implementation and version.
 
     Provide both the name and the version of the Python implementation
@@ -34,12 +34,14 @@ def _implementation_info() -> dict:
             implementation_version = platform.python_version()
 
         elif implementation == 'PyPy':
-            implementation_version = f'{sys.pypy_version_info.major}.{sys.pypy_version_info.minor}.{sys.pypy_version_info.micro}'
-            
-            if sys.pypy_version_info.releaselevel != 'final':
-                implementation_version = ''.join([
-                    implementation_version, sys.pypy_version_info.releaselevel
-                ])
+            if hasattr(sys, "pypy_version_info"):
+                pypy_version_info = getattr(sys, "pypy_version_info")
+                implementation_version = f'{pypy_version_info.major}.{pypy_version_info.minor}.{pypy_version_info.micro}'
+                
+                if pypy_version_info.releaselevel != 'final':
+                    implementation_version = ''.join([
+                        implementation_version, pypy_version_info.releaselevel
+                    ])
 
         else:
             implementation_version = 'Unknown'
@@ -65,18 +67,27 @@ def _platform_info() -> dict:
     return {'system': platform_system, 'release': platform_release}
 
 
-def bug_info():
+def _packages_info() -> dict:
+    """Return a dict with installed packages version"""
+
+    return Dependencies.installed_packages()
+
+
+def bug_info(default_options, default_env, connections_info, last_execution:dict):
     """Generate information for a bug report."""
 
-    implementation_info = _implementation_info()
+    python_info = _python_info()
     platform_info = _platform_info()
+    packages_info = _packages_info()
+    default_options_info = default_options
+    last_execution = last_execution
 
     # TODO: collect information about: 
     #       jupyter information (front end, versions)
     #       ipython environment (version, temp file locations)
     #       all modules versions
     #       cell content, 
-    #       environment variables, 
+    #       environment variables, (that starts with KQLMAGIC and others)
     #       default options, 
     #       result object (if doesn't exist), 
     #       last error (including stack), 
@@ -84,14 +95,10 @@ def bug_info():
     return {
         'kqlmagic': {'version': kqlmagic_version},
         'platform': platform_info,
-        'implementation': implementation_info,
+        'packages': packages_info,
+        'python': python_info,
+        'kqlmagic_default_options': default_options_info,
+        'kqlmagic_connections:': connections_info,
+        'kqlmagic_default_env': default_env,
+        'Kqlmagic_last_execution': last_execution,
     }
-
-
-def bug_report():
-    """Pretty-print the bug information as JSON."""
-
-    # TODO: provide email address or forum for the bug report
-    # this print is not for debug
-    print(json_dumps(bug_info(), sort_keys=True, indent=4))
-

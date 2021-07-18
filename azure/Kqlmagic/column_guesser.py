@@ -4,10 +4,7 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from datetime import timedelta, datetime
-
-
-import pytz
+from datetime import datetime, timezone
 
 
 from .constants import Constants, VisualizationKeys
@@ -61,7 +58,7 @@ def is_quantity(val) -> bool:
 
 
 def datetime_to_linear_ticks(t: datetime) -> int:
-    return (t-datetime(1,1,1,0,0,0,0, pytz.UTC)).total_seconds() * Constants.TICK_TO_INT_FACTOR
+    return (t - datetime(1,1,1,0,0,0,0, tzinfo=timezone.utc)).total_seconds() * Constants.TICK_TO_INT_FACTOR
 
 
 class ColumnGuesserMixin(object):
@@ -115,7 +112,7 @@ class ColumnGuesserMixin(object):
         #
         is_descending_sorted = None
         if self.columns[x_col_idx].is_quantity and len(rows) >= 2:
-            if  properties.get(VisualizationKeys.IS_QUERY_SORTED) == True:
+            if properties.get(VisualizationKeys.IS_QUERY_SORTED) is True:
                 previous_col_value = rows[0][x_col_idx]
                 is_descending_sorted = True
                 for r in rows[1:]:
@@ -249,14 +246,6 @@ class ColumnGuesserMixin(object):
                 return True
 
 
-    def _get_xlabel(self, xlabel_sep=" "):
-        self.xlabels = []
-        if self.columns:
-            for row_idx in range(len(self.columns[0])):
-                self.xlabels.append(xlabel_sep.join(str(c[row_idx]) for c in self.columns))
-        self.xlabel = ", ".join(c.name for c in self.columns)
-
-
     def _get_xlabel(self, xlabel_sep=" ", index=None):
         self.xlabels = []
         if self.columns:
@@ -305,4 +294,3 @@ class ColumnGuesserMixin(object):
         self._get_x()
         while self._get_y():
             pass
-

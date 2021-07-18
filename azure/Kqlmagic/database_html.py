@@ -4,17 +4,20 @@
 # license information.
 # --------------------------------------------------------------------------
 
+from typing import Any, List, Dict
 import re
 
 
 from .constants import Constants
 from .display import Display
+from .kql_engine import KqlEngine
 from .kusto_engine import KustoEngine
+from .aria_engine import AriaEngine
 from .ai_engine import AppinsightsEngine
+from .aimon_engine import AimonEngine
 from .la_engine import LoganalyticsEngine
 from .cache_engine import CacheEngine
 from .cache_client import CacheClient
-from .help_html import Help_html
 
 
 class Database_html(object):
@@ -101,29 +104,28 @@ class Database_html(object):
 
 
     @classmethod
-    def _convert_database_metadata_to_html(cls, database_metadata_tree, connectionName, **kwargs):
+    def _convert_database_metadata_to_html(cls, database_metadata_tree:Dict[str,Any], conn_name:str, **kwargs)->str:
         item = ""
-        for table in database_metadata_tree.keys():
-            table_metadata_tree = database_metadata_tree.get(table)
-            item += cls._convert_table_metadata_tree_to_item(table, table_metadata_tree, **kwargs)
-        header = connectionName
-        title = f"{Constants.MAGIC_PACKAGE_NAME} - {connectionName.replace('@', '_at_')} schema"
+        for table_name in database_metadata_tree.keys():
+            table_metadata_tree = database_metadata_tree.get(table_name)
+            item += cls._convert_table_metadata_tree_to_item(table_name, table_metadata_tree, **kwargs)
+        header = conn_name
+        title = f"{Constants.MAGIC_PACKAGE_NAME} - {conn_name.replace('@', '_at_')} schema"
         result = cls._database_metadata_html.format(
             title, cls._database_metadata_scripts, cls._database_metadata_css, header, item
         )
-        # print(f">>> result: {result}")
         return result
 
 
     @classmethod
-    def _create_database_metadata_tree(cls, rows, databaseName, **kwargs):
+    def _create_database_metadata_tree(cls, rows, database_name:str, **kwargs)->Dict[str,Any]:
         database_metadata_tree = {}
         for row in rows:
-            database_name = row["DatabaseName"]
+            database_name:str = row["DatabaseName"]
             table_name = row["TableName"]
             column_name = row["ColumnName"]
             column_type = row["ColumnType"]
-            if database_name == databaseName:
+            if database_name.lower() == database_name.lower():
                 if table_name and len(table_name) > 0:
                     if not database_metadata_tree.get(table_name):
                         database_metadata_tree[table_name] = {}
@@ -133,7 +135,7 @@ class Database_html(object):
 
 
     @classmethod
-    def _create_database_draft_metadata_tree(cls, rows, **kwargs):
+    def _create_database_draft_metadata_tree(cls, rows:List[Dict[str,Any]], **kwargs)->Dict[str,Any]:
         database_metadata_tree = {}
         for row in rows:
             table_name = row["name"]
@@ -148,7 +150,7 @@ class Database_html(object):
 
 
     @classmethod
-    def _convert_table_metadata_tree_to_item(cls, table, table_metadata_tree, **kwargs):
+    def _convert_table_metadata_tree_to_item(cls, table_name:str, table_metadata_tree:Dict[str,Any], **kwargs):
         metadata_items = []
         for column_name in table_metadata_tree.keys():
             column_type = table_metadata_tree.get(column_name)
@@ -158,59 +160,65 @@ class Database_html(object):
             metadata_items.append(metadata_item)
             
         item = (
-            f"""<a href='#{table}' class="list-group-item" data-toggle="collapse">
-                     <i class="glyphicon glyphicon-chevron-right"></i><b>{table}</b></a>
-                  <div class="list-group collapse" id='{table}'>{''.join(metadata_items)}</div>"""
+            f"""<a href='#{table_name}' class="list-group-item" data-toggle="collapse">
+                     <i class="glyphicon glyphicon-chevron-right"></i><b>{table_name}</b></a>
+                  <div class="list-group collapse" id='{table_name}'>{''.join(metadata_items)}</div>"""
         )
         return item
 
 
     @classmethod
-    def _convert_column_metadata_to_item(cls, column_name, column_type, **kwargs):
+    def _convert_column_metadata_to_item(cls, column_name:str, column_type:str, **kwargs)->str:
         item = f"<b>{column_name}</b> : {column_type}"
         return f"""<a href="#" class="list-group-item">{item}</a>"""
 
 
     @classmethod
-    def get_schema_tree(cls, connection, **options) :
-        engine_type = (
-            KustoEngine
-            if isinstance(connection, KustoEngine) or (isinstance(connection, CacheEngine) and isinstance(connection.kql_engine, KustoEngine))
-            else AppinsightsEngine
-            if isinstance(connection, AppinsightsEngine) or (isinstance(connection, CacheEngine) and isinstance(connection.kql_engine, AppinsightsEngine))
+    def get_schema_tree(cls, engine:KqlEngine, **options)->Dict[str,Any]:
+        engine_class = (
+            AriaEngine
+            if isinstance(engine, AriaEngine) or (isinstance(engine, CacheEngine) and isinstance(engine.kql_engine, AriaEngine))
+            # must be after AriaEngine, because AriaEngine class inherit from KustoEngine
+            else KustoEngine
+            if isinstance(engine, KustoEngine) or (isinstance(engine, CacheEngine) and isinstance(engine.kql_engine, KustoEngine))
             else LoganalyticsEngine
-            if isinstance(connection, LoganalyticsEngine) or (isinstance(connection, CacheEngine) and isinstance(connection.kql_engine, LoganalyticsEngine))
+            if isinstance(engine, LoganalyticsEngine) or (isinstance(engine, CacheEngine) and isinstance(engine.kql_engine, LoganalyticsEngine))
+            else AimonEngine
+            if isinstance(engine, AimonEngine) or (isinstance(engine, CacheEngine) and isinstance(engine.kql_engine, AimonEngine))
+            # must be after AimonEngine, because AimonEngine class inherit from AppinsightsEngine
+            else AppinsightsEngine 
+            if isinstance(engine, AppinsightsEngine) or (isinstance(engine, CacheEngine) and isinstance(engine.kql_engine, AppinsightsEngine))
             else None
         )
 
-        if engine_type is not None:
-            if isinstance(connection, CacheEngine):
-                database_name = connection.kql_engine.get_database()
+        if engine_class is not None:
+            if isinstance(engine, CacheEngine):
+                client_database_name = engine.kql_engine.get_client_database_name()
             else:
-                database_name = connection.get_database()
+                client_database_name = engine.get_client_database_name()
 
-            if engine_type == KustoEngine:
-                show_schema_query = f".show database ['{cls._adjustToKustoEntityNameRules(database_name)}'] schema"
-                raw_query_result = connection.execute(show_schema_query, **options)
+            if engine_class in [KustoEngine, AriaEngine]:
+                show_schema_query = f".show database ['{cls._adjustToKustoEntityNameRules(client_database_name)}'] schema"
+                raw_query_result = engine.execute(show_schema_query, **options)
                 raw_schema_table = raw_query_result.tables[0]
-                database_metadata_tree = cls._create_database_metadata_tree(raw_schema_table.fetchall(), database_name)
+                database_metadata_tree = cls._create_database_metadata_tree(raw_schema_table.fetchall(), client_database_name)
                 if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
-                    CacheClient(**options).save(raw_query_result, connection, show_schema_query, **options)
+                    CacheClient(**options).save(raw_query_result, engine, show_schema_query, **options)
                 return database_metadata_tree
 
-            elif engine_type == AppinsightsEngine or LoganalyticsEngine:
+            elif engine_class in [AppinsightsEngine, LoganalyticsEngine, AimonEngine]:
                 show_schema_query = ".show schema"
-                metadata_result = connection.client_execute(show_schema_query, **options)
+                metadata_result = engine.client_execute(show_schema_query, **options)
                 metadata_schema_table = metadata_result.table
                 database_metadata_tree = cls._create_database_draft_metadata_tree(metadata_schema_table)
                 if options.get("cache") is not None and options.get("cache") != options.get("use_cache"):
-                    CacheClient(**options).save(metadata_result, connection, show_schema_query, **options)
+                    CacheClient(**options).save(metadata_result, engine, show_schema_query, **options)
                 return database_metadata_tree
         return None
 
 
     @classmethod
-    def _adjustToKustoEntityNameRules(cls, name: str) -> str:
+    def _adjustToKustoEntityNameRules(cls, name:str)->str:
         if isinstance(name, str):
             name = re.sub(r'[\s\n\r\f\t]+', ' ', name.strip())
             name = re.sub(r'[^0-9a-zA-Z._\s-]+', ' ', name)
@@ -218,13 +226,13 @@ class Database_html(object):
 
 
     @classmethod
-    def get_schema_file_path(cls, connection, **options):
-        database_metadata_tree = cls.get_schema_tree(connection, **options)
+    def get_schema_file_path(cls, engine:KqlEngine, **options)->None:
+        database_metadata_tree = cls.get_schema_tree(engine, **options)
         if database_metadata_tree is not None:
-            if isinstance(connection, CacheEngine):
-                conn_name = connection.kql_engine.get_conn_name()
+            if isinstance(engine, CacheEngine):
+                conn_name = engine.kql_engine.get_conn_name()
             else:
-                conn_name = connection.get_conn_name()
+                conn_name = engine.get_conn_name()
             html_str = cls._convert_database_metadata_to_html(database_metadata_tree, conn_name)
             window_name = f"_{conn_name.replace('@', '_at_')}_schema"
             return Display._html_to_file_path(html_str, window_name, **options)
@@ -233,10 +241,9 @@ class Database_html(object):
 
 
     @classmethod
-    def popup_schema(cls, file_path, connection, **options):
+    def popup_schema(cls, file_path:str, engine:KqlEngine, **options)->None:
         if file_path:
-            conn_name = connection.kql_engine.get_conn_name() if isinstance(connection, CacheEngine) else connection.get_conn_name()
+            conn_name = engine.kql_engine.get_conn_name() if isinstance(engine, CacheEngine) else engine.get_conn_name()
             button_text = f"popup schema {conn_name}"
             window_name = f"_{conn_name.replace('@', '_at_')}_schema"
             Display.show_window(window_name, file_path, button_text=button_text, onclick_visibility="visible", content="schema", **options)
-

@@ -4,26 +4,24 @@
 # license information.
 # --------------------------------------------------------------------------
 
+from typing import Union, Dict
 import uuid
-from datetime import timedelta, datetime
+import json
 
 
-import six
-import adal
-import dateutil.parser
-import requests
-
-
+from .dependencies import Dependencies
 from .my_utils import json_dumps 
 from .constants import Constants, ConnStrKeys, Cloud, Schema
 from .kql_response import KqlQueryResponse, KqlSchemaResponse, KqlError
-from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
-from .version import VERSION
+# from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
+from .my_aad_helper_msal import _MyAadHelper, ConnKeysKCSB
+from ._version import __version__
 from .log import logger
-from .kql_engine import KqlEngineError
+from .kql_client import KqlClient
+from .exceptions import KqlEngineError
 
 
-class DraftClient(object):
+class DraftClient(KqlClient):
     """Draft Client
 
         Parameters
@@ -40,32 +38,50 @@ class DraftClient(object):
     # Constants
     #
 
-    _DEFAULT_CLIENTID = "db662dc1-0cfe-4e1c-a843-19a68e65be58"
-    _WEB_CLIENT_VERSION = VERSION
+
+    _DRAFT_CLIENT_BY_CLOUD = {
+        Cloud.PUBLIC:      "db662dc1-0cfe-4e1c-a843-19a68e65be58",
+        Cloud.MOONCAKE:    "db662dc1-0cfe-4e1c-a843-19a68e65be58",
+        Cloud.FAIRFAX:     "730ea9e6-1e1d-480c-9df6-0bb9a90e1a0f",
+        Cloud.BLACKFOREST: "db662dc1-0cfe-4e1c-a843-19a68e65be58",
+        Cloud.PPE:         "db662dc1-0cfe-4e1c-a843-19a68e65be58",
+    }
+    _DRAFT_CLIENT_BY_CLOUD[Cloud.CHINA]      = _DRAFT_CLIENT_BY_CLOUD[Cloud.MOONCAKE]
+    _DRAFT_CLIENT_BY_CLOUD[Cloud.GOVERNMENT] = _DRAFT_CLIENT_BY_CLOUD[Cloud.FAIRFAX]
+    _DRAFT_CLIENT_BY_CLOUD[Cloud.GERMANY]    = _DRAFT_CLIENT_BY_CLOUD[Cloud.BLACKFOREST]
+
+    _WEB_CLIENT_VERSION = __version__
     _API_VERSION = "v1"
     _GET_SCHEMA_QUERY = ".show schema"
 
-    _CLOUD_AAD_URLS_APPINSIGHTS={
+    _APPINSIGHTS_URL_BY_CLOUD = {
         Cloud.PUBLIC:      "https://api.applicationinsights.io",
         Cloud.MOONCAKE:    "https://api.applicationinsights.azure.cn",
         Cloud.FAIRFAX:     "https://api.applicationinsights.us",
         Cloud.BLACKFOREST: "https://api.applicationinsights.de",
     }
+    _APPINSIGHTS_URL_BY_CLOUD[Cloud.CHINA]      = _APPINSIGHTS_URL_BY_CLOUD[Cloud.MOONCAKE]
+    _APPINSIGHTS_URL_BY_CLOUD[Cloud.GOVERNMENT] = _APPINSIGHTS_URL_BY_CLOUD[Cloud.FAIRFAX]
+    _APPINSIGHTS_URL_BY_CLOUD[Cloud.GERMANY]    = _APPINSIGHTS_URL_BY_CLOUD[Cloud.BLACKFOREST]
 
-    _CLOUD_AAD_URLS_LOGANALYTICS={
+    _LOGANALYTICS_URL_BY_CLOUD = {
         Cloud.PUBLIC:      "https://api.loganalytics.io",
         Cloud.MOONCAKE:    "https://api.loganalytics.azure.cn",
         Cloud.FAIRFAX:     "https://api.loganalytics.us",
         Cloud.BLACKFOREST: "https://api.loganalytics.de",
     }
+    _LOGANALYTICS_URL_BY_CLOUD[Cloud.CHINA]      = _LOGANALYTICS_URL_BY_CLOUD[Cloud.MOONCAKE]
+    _LOGANALYTICS_URL_BY_CLOUD[Cloud.GOVERNMENT] = _LOGANALYTICS_URL_BY_CLOUD[Cloud.FAIRFAX]
+    _LOGANALYTICS_URL_BY_CLOUD[Cloud.GERMANY]    = _LOGANALYTICS_URL_BY_CLOUD[Cloud.BLACKFOREST]
 
-    _CLOUD_AAD_URLS = {
-        Schema.APPLICATION_INSIGHTS : _CLOUD_AAD_URLS_APPINSIGHTS,
-        Schema.LOG_ANALYTICS : _CLOUD_AAD_URLS_LOGANALYTICS
+    _DRAFT_URLS_BY_SCHEMA = {
+        Schema.APPLICATION_INSIGHTS: _APPINSIGHTS_URL_BY_CLOUD,
+        Schema.LOG_ANALYTICS:        _LOGANALYTICS_URL_BY_CLOUD
     }
 
 
-    def __init__(self, conn_kv: dict, domain: str, data_source: str, schema: str, **options):
+    def __init__(self, conn_kv:Dict[str,str], domain:str, data_source:str, schema:str, **options)->None:
+        super(DraftClient, self).__init__()
         self._domain = domain
         self.resources_name = "workspaces" if schema == Schema.LOG_ANALYTICS else "applications"
 
@@ -75,7 +91,8 @@ class DraftClient(object):
 
         else:
             cloud = options.get("cloud")
-            self._data_source = self._CLOUD_AAD_URLS.get(schema).get(cloud)
+            urls = self._DRAFT_URLS_BY_SCHEMA.get(schema, {})
+            self._data_source = urls.get(cloud, data_source)
                 
             if not self._data_source:
                 raise KqlEngineError(f"the service {schema} is not supported in cloud {cloud}")
@@ -87,18 +104,20 @@ class DraftClient(object):
 
 
         if self._appkey is None and conn_kv.get(ConnStrKeys.ANONYMOUS) is None:
-            self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), self._DEFAULT_CLIENTID, **options)
+            cloud = options.get("cloud")
+            client_id = self._DRAFT_CLIENT_BY_CLOUD[cloud]
+            self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), client_id, **options)
         else:
             self._aad_helper = None
         logger().debug(f"draft_client.py :: __init__ :  self._aad_helper: {self._aad_helper} ;")
 
 
     @property
-    def data_source(self):
+    def data_source(self)->str:
         return self._data_source
 
 
-    def execute(self, id: str, query: str, accept_partial_results: bool = False, **options) -> object:
+    def execute(self, id:str, query:str, accept_partial_results:bool=False, **options)->Union[KqlQueryResponse, KqlSchemaResponse]:
         """ Execute a simple query or a metadata query
         
         Parameters
@@ -155,9 +174,9 @@ class DraftClient(object):
         client_request_id = f"{Constants.MAGIC_CLASS_NAME}.execute"
         client_request_id_tag = options.get("request_id_tag")
         if client_request_id_tag is not None:
-            client_request_id = f"{client_request_id};{client_request_id_tag};{str(uuid.uuid4())}"
+            client_request_id = f"{client_request_id};{client_request_id_tag};{str(uuid.uuid4())}/{self._session_guid}/AzureMonitor"
         else:
-            client_request_id = f"{client_request_id};{str(uuid.uuid4())}"
+            client_request_id = f"{client_request_id};{str(uuid.uuid4())}/{self._session_guid}/AzureMonitor"
 
         app = f'{Constants.MAGIC_CLASS_NAME};{options.get("notebook_app")}'
         app_tag = options.get("request_app_tag")
@@ -181,6 +200,13 @@ class DraftClient(object):
         if len(prefer_list) > 0:
             request_headers["Prefer"] = ", ".join(prefer_list)
 
+        cache_max_age = options.get("request_cache_max_age")
+        if cache_max_age is not None:
+            if cache_max_age > 0:
+                request_headers["Cache-Control"] = f"max-age={cache_max_age}"
+            else:
+                request_headers["Cache-Control"] = "no-cache"
+
         #
         # submit request
         #
@@ -189,9 +215,18 @@ class DraftClient(object):
             log_request_headers = request_headers.copy()
             log_request_headers["Authorization"] = "..." 
 
+        # collect this inormation, in case bug report will be generated
+        KqlClient.last_query_info = {
+            "request": {
+                "endpoint": api_url,
+                "headers": log_request_headers,
+                "timeout": options.get("timeout"),
+            }
+        }
+        requests = Dependencies.get_module("requests")
         if is_metadata:
             logger().debug(f"DraftClient::execute - GET request - url: {api_url}, headers: {log_request_headers}, timeout: {options.get('timeout')}")
-            response = requests.get(api_url, headers=request_headers)
+            response = requests.get(api_url, headers=request_headers, timeout=options.get("timeout"))
         else:
             request_payload = {
                 "query": query
@@ -209,14 +244,28 @@ class DraftClient(object):
                     request_payload["timespan"] = timespan
 
             logger().debug(f"DraftClient::execute - POST request - url: {api_url}, headers: {log_request_headers}, payload: {request_payload}, timeout: {options.get('timeout')}")
-            response = requests.post(api_url, headers=request_headers, json=request_payload)
+
+            # collect this inormation, in case bug report will be generated
+            self.last_query_info["request"]["payload"] = request_payload  # pylint: disable=unsupported-assignment-operation, unsubscriptable-object
+
+            response = requests.post(api_url, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
 
         logger().debug(f"DraftClient::execute - response - status: {response.status_code}, headers: {response.headers}, payload: {response.text}")
         #
         # handle response
         #
+        # collect this inormation, in case bug report will be generated
+        self.last_query_info["response"] = {  # pylint: disable=unsupported-assignment-operation
+            "status_code": response.status_code
+        }
 
         if response.status_code != requests.codes.ok:  # pylint: disable=E1101
+            try:
+                parsed_error = json.loads(response.text)
+            except:
+                parsed_error = response.text
+            # collect this inormation, in case bug report will be generated
+            self.last_query_info["response"]["error"] = parsed_error  # pylint: disable=unsupported-assignment-operation, unsubscriptable-object
             raise KqlError(response.text, response)
 
         json_response = response.json()
@@ -234,4 +283,3 @@ class DraftClient(object):
             raise KqlError(error_message, response, kql_response)
 
         return kql_response
-

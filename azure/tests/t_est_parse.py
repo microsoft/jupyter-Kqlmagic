@@ -7,15 +7,14 @@
 import os
 
 
-from six.moves import configparser
 try:
     from traitlets.config.configurable import Configurable
 except ImportError:
     from IPython.config.configurable import Configurable
 
 
-from azure.Kqlmagic.parser import Parser
-from azure.Kqlmagic.kusto_engine import KustoEngine
+from ..Kqlmagic.parser import Parser 
+from ..Kqlmagic.kusto_engine import KustoEngine 
 
 
 TEST_URI_SCHEMA_NAME = "kusto"
@@ -60,12 +59,14 @@ def test_expand_environment_variables_in_connection():
             'kql': query1,
             'options': default_options}
 
+
 def test_parse_kusto_socket_connection_with_credentials():
     conn_str = "{}://username('username').password('password').cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)
     assert Parser.parse("{0} {1}".format(conn_str, query1), empty_config, TEST_ENGINE, {}) == \
            {'connection': conn_str,
             'kql': query1,
             'options': default_options}
+
 
 def test_parse_kusto_socket_connection_with_env_credentials():
     conn_str = "{}://username($USERNAME).password($PASSWORD).cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)
@@ -76,6 +77,7 @@ def test_parse_kusto_socket_connection_with_env_credentials():
            {'connection': result_conn_str,
             'kql': query1,
             'options': default_options}
+
 
 def test_parse_kusto_socket_connection_dsn():
     conn_str = "{}://username($USERNAME).password($PASSWORD).cluster('clustername').database('dbname')".format(TEST_URI_SCHEMA_NAME)

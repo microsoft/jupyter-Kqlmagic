@@ -4,7 +4,10 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from .kql_engine import KqlEngine, KqlEngineError
+from typing import Any, Dict
+
+
+from .kql_engine import KqlEngine
 from .draft_client import DraftClient
 from .constants import ConnStrKeys, Schema
 
@@ -14,12 +17,13 @@ class LoganalyticsEngine(KqlEngine):
     # Constants
     # ---------
 
-    _URI_SCHEMA_NAME = Schema.LOG_ANALYTICS # no spaces, underscores, and hyphe-minus, because they are ignored in parser
+    _URI_SCHEMA_NAME = Schema.LOG_ANALYTICS  # no spaces, underscores, and hyphe-minus, because they are ignored in parser
     _DOMAIN = "workspaces"
     _DATA_SOURCE = "https://api.loganalytics.io"
     
 
     _ALT_URI_SCHEMA_NAMES = [_URI_SCHEMA_NAME]
+    _RESERVED_CLUSTER_NAME = _URI_SCHEMA_NAME
     _MANDATORY_KEY = ConnStrKeys.WORKSPACE
     _VALID_KEYS_COMBINATIONS = [
         [ConnStrKeys.WORKSPACE, ConnStrKeys.ALIAS, ConnStrKeys.DATA_SOURCE_URL, ConnStrKeys.TENANT, ConnStrKeys.AAD_URL, ConnStrKeys.CLIENTID, ConnStrKeys.CLIENTSECRET], 
@@ -66,7 +70,7 @@ class LoganalyticsEngine(KqlEngine):
     # Instance methods
     # ----------------
 
-    def __init__(self, conn_str, user_ns: dict, current=None, **options):
+    def __init__(self, conn_str:str, user_ns:Dict[str,Any], current:KqlEngine=None, **options)->None:
         super(LoganalyticsEngine, self).__init__()
         self._parsed_conn = self._parse_common_connection_str(
             conn_str, current, self._URI_SCHEMA_NAME, self._MANDATORY_KEY, self._VALID_KEYS_COMBINATIONS, user_ns

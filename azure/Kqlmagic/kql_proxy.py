@@ -6,15 +6,16 @@
 
 import json
 from datetime import datetime
-
-import six
-import pandas
-from dateutil import parser
+import collections
 
 
+import dateutil.parser
 
 
-class KqlRow(six.Iterator):
+from .dependencies import Dependencies
+
+
+class KqlRow(collections.Iterator):
 
     def __init__(self, row, col_num, **options):
         self.options = options
@@ -67,7 +68,7 @@ class KqlRow(six.Iterator):
         return self.row.__repr__()
 
 
-class KqlRowsIter(six.Iterator):
+class KqlRowsIter(collections.Iterator):
     """ Iterator over returned rows, limited by size """
 
     def __init__(self, table, row_num, col_num, **options):
@@ -104,14 +105,19 @@ class KqlResponse(object):
         self.completion_query_info = response.completion_query_info_results
         self.completion_query_resource_consumption = response.completion_query_resource_consumption_results
         self.dataSetCompletion = response.dataSetCompletion_results
-        self.tables = [KqlTableResponse(t, response.visualization_results.get(t.id, {}), **options) for t in response.primary_results]
+        self.tables = [
+            KqlTableResponse(
+                t, 
+                response.extended_properties.get(t.id, {}),
+                **options) 
+            for t in response.primary_results]
 
 
 class KqlTableResponse(object):
 
-    def __init__(self, data_table, visualization_results: dict, **options):
+    def __init__(self, data_table, extended_properties:dict, **options):
         self.options = options
-        self.visualization_results = visualization_results
+        self._extended_properties = extended_properties
         self.data_table = data_table
         self.columns_count = self.data_table.columns_count
 
@@ -149,9 +155,9 @@ class KqlTableResponse(object):
     
 
     @property
-    def visualization_properties(self):
-        " returns all Visualization in result set, such as, Title, Accumulate, IsQuerySorted, Kind, Annotation, By"
-        return self.visualization_results   
+    def extended_properties(self):
+        " returns properties as specified in ExtendedProperties table"
+        return self._extended_properties
 
 
     @property
@@ -172,6 +178,8 @@ class KqlTableResponse(object):
 
     def to_dataframe(self, raise_errors=True, options={}):
         """Returns Pandas data frame."""
+
+        pandas = Dependencies.get_module("pandas")
 
         if self.data_table.columns_count == 0 or self.data_table.rows_count == 0:
             # return pandas.DataFrame()
@@ -221,10 +229,10 @@ class KqlTableResponse(object):
 
     def _is_valid_datetime(self, d:str)->bool:
         # max diff in seconds from 9223372036 from 1970-01-01T00:00:00Z
-        MAX_DIFF_FROM_EPOCH_IN_SECS = 9223372036 # 2**63/1000000000
-        START_EPOCH_DATETIME = parser.isoparse('1970-01-01T00:00:00Z')
+        MAX_DIFF_FROM_EPOCH_IN_SECS = 9223372036  # 2**63/1000000000
+        START_EPOCH_DATETIME = dateutil.parser.isoparse('1970-01-01T00:00:00Z')
         try:
-            d = parser.isoparse(d) if type(d) == str else d
+            d = dateutil.parser.isoparse(d) if type(d) == str else d
             return isinstance(d, datetime) and abs((d - START_EPOCH_DATETIME).total_seconds()) < MAX_DIFF_FROM_EPOCH_IN_SECS
 
         except:
@@ -234,7 +242,7 @@ class KqlTableResponse(object):
     @staticmethod
     def _dynamic_to_object(value):
         try:
-            return json.loads(value) if value and isinstance(value, str) else value if value else None
+            return json.loads(value) if value and isinstance(value, str) else value
         except Exception:
             return value
 
@@ -242,7 +250,7 @@ class KqlTableResponse(object):
     @staticmethod
     def _dynamic_to_str(value):
         try:
-            return value if value and isinstance(value, str) else f"{value}" if value else None
+            return value if isinstance(value, str) else f"{value}" if value is not None else None
         except Exception:
             return value
 
@@ -288,4 +296,3 @@ class FakeResultProxy(object):
         self.rowcount = cursor.rowcount
         self.keys = lambda: headers
         self.returns_rows = True
-

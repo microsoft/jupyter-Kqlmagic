@@ -7,9 +7,10 @@
 import os
 import sys
 import time
+from typing import Any, Callable, Iterable
 
 
-
+from ._debug_utils import debug_print
 try:
     import IPython.core.display as ipy_display
     display = ipy_display.display
@@ -101,7 +102,7 @@ class IPythonAPI(object):
     def _get_ipython_help_links(cls, **options)->list:
         help_links = None
         ip = cls._get_ipython()
-        if ip is not None:
+        if ip is not None and hasattr(ip, "kernel") and hasattr(ip.kernel, "_trait_values"):
             help_links = ip.kernel._trait_values["help_links"]
         return help_links
 
@@ -111,7 +112,7 @@ class IPythonAPI(object):
         has_kernel = False
         ip = cls._get_ipython()
         if ip is not None:
-            has_kernel = hasattr(ip, 'kernel')
+            has_kernel = hasattr(ip, "kernel")
         return has_kernel
 
 
@@ -159,7 +160,6 @@ class IPythonAPI(object):
                     break
             if not found:
                 help_links.append({"text": text, "url": url})
-            # print(f">>> help_links: {help_links)}")
             if reconnect:
                 return cls.try_kernel_reconnect(**options)
             else:
@@ -217,6 +217,24 @@ class IPythonAPI(object):
 
 
     @classmethod
+    def run_cell_magic(cls, name:str, line:str, cell:str)->Any:
+        ip = cls._get_ipython()
+        if ip is not None:
+            return ip.run_cell_magic(name, line, cell)
+        else:
+            raise Exception("not python kernel, can't execute cell magic")
+
+
+    @classmethod
+    def run_line_magic(cls, name:str, body:str)->Any:
+        ip = cls._get_ipython()
+        if ip is not None:
+            return ip.run_line_magic(name, body)
+        else:
+            raise Exception("not python kernel, can't execute line magic")
+
+
+    @classmethod
     def get_notebook_connection_info(cls):
         conn_info = None
         try:
@@ -232,9 +250,58 @@ class IPythonAPI(object):
         return conn_info
 
 
+    @classmethod
+    def transform_cell(cls, cell:str)->str:
+        tr_cell = cell
+        try:
+            ip = cls._get_ipython()
+            if ip is not None:
+                tr_cell = ip.input_transformer_manager.transform_cell(cell)
+        except:
+            pass
+        return tr_cell
 
+
+    @classmethod
+    def is_in_input_transformers_cleanup(cls, transformer_func:Callable[[Iterable], Iterable])->bool:
+        try:
+            ip = cls._get_ipython()
+            if ip is not None:
+                return transformer_func in ip.input_transformers_cleanup
+        except:
+            pass
+        return False
+
+
+    @classmethod
+    def try_add_input_transformers_cleanup(cls, transformer_func:Callable[[Iterable], Iterable])->bool:
+        cls.try_remove_input_transformers_cleanup(transformer_func) # to make sure it within list only once, and add in the end of the list
+        try:
+            ip = cls._get_ipython()
+            if ip is not None:
+                ip.input_transformers_cleanup.append(transformer_func)
+                return True
+        except:
+            pass
+        return False
+
+
+    @classmethod
+    def try_remove_input_transformers_cleanup(cls, transformer_func:Callable[[Iterable], Iterable])->bool:
+        try:
+            ip = cls._get_ipython()
+            if ip is not None:
+                if cls.is_in_input_transformers_cleanup(transformer_func):
+                    ip.input_transformers_cleanup.remove(transformer_func)
+                return True
+        except:
+            pass
+        return False
+
+      
 try:
     from IPython.core.magic import Magics, magics_class, cell_magic, line_magic, needs_local_scope
+    is_magics_class = True
 except Exception:
     class Magics(object):
         def __init__(self, shell):
@@ -244,6 +311,7 @@ except Exception:
         class _magics_class(object):
             def __init__(self, *args, **kwargs):
                 self.oInstance = _class(*args,**kwargs)
+            
             def __getattribute__(self,s):
                 try:    
                     x = super(_magics_class,self).__getattribute__(s)
@@ -262,3 +330,5 @@ except Exception:
         return _line_magic
     def needs_local_scope(_func):
         return _func
+    
+    is_magics_class = False

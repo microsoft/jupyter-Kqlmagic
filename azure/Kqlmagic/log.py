@@ -9,39 +9,37 @@ import logging
 import datetime
 import uuid
 import traceback
+from typing import Any, List, Dict
 
 
 from .constants import Constants
+from .my_utils import get_env_var
 from .ipython_api import IPythonAPI
 
 
-def _get_env_var(var_name:str)->str:
-    value = os.getenv(var_name)
-    if value:
-        # value = value.strip().upper().replace("_", "").replace("-", "")
-        if value.startswith("'") or value.startswith('"'):
-            value = value[1:-1].strip()
-    return value
+isNullLogger:bool = False
 
 
-def initialize(log_level=None, log_file=None, log_file_prefix=None, log_file_mode=None):
-    log_level = log_level or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL")
-    log_file = log_file or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE")
-    log_file_prefix = log_file_prefix or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX")
-    log_file_mode = log_file_mode or _get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE")
+def initialize(log_level:str=None, log_file:str=None, log_file_prefix:str=None, log_file_mode:str=None)->None:
+    global isNullLogger
+    log_level = log_level or get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL")
+    log_file = log_file or get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE")
+    log_file_prefix = log_file_prefix or get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX")
+    log_file_mode = log_file_mode or get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE")
     if log_level or log_file or log_file_mode or log_file_prefix:
         kernel_id = IPythonAPI.get_notebook_kernel_id() or "kernel_id"
-
 
         log_level = log_level or logging.DEBUG
         log_file = log_file or f"{log_file_prefix or 'kqlmagic'}-{kernel_id}.log"
         # handler's default mode is 'a' (append)
         log_file_mode = (log_file_mode or "w").lower()[:1]
         log_handler = logging.FileHandler(log_file, mode=log_file_mode)
+        isNullLogger = False
     else:
         log_handler = logging.NullHandler()
+        isNullLogger = True
 
-    set_logging_options({ 'level': log_level, 'handler': log_handler})
+    set_logging_options({'level': log_level, 'handler': log_handler})
     set_logger(Logger())
 
     if log_file:
@@ -54,11 +52,11 @@ def initialize(log_level=None, log_file=None, log_file_prefix=None, log_file_mod
         logger().debug("logger init done")
 
 
-def create_log_context(correlation_id=None):
+def create_log_context(correlation_id:str=None)->Dict[str,str]:
     return {"correlation_id": correlation_id or str(uuid.uuid4())}
 
 
-def set_logging_options(options=None):
+def set_logging_options(options:Dict[str,Any]=None)->None:
     """Configure logger, including level and handler spec'd by python
     logging module.
 
@@ -80,7 +78,7 @@ def set_logging_options(options=None):
         logger.addHandler(handler)
 
 
-def get_logging_options():
+def get_logging_options()->Dict[str,Any]:
     """Get logging options
 
     :returns: a dict, with a key of 'level' for logging level.
@@ -97,16 +95,17 @@ class Logger(object):
     trace through keyword argument of 'log_stack_trace'
     """
 
-    def __init__(self, component_name=None, log_context=None):
+    def __init__(self, component_name:str=None, log_context:Dict[str,str]=None)->None:
         # if not log_context:
         #     raise AttributeError('Logger: log_context is a required parameter')
 
         self._component_name = component_name
         self.log_context = log_context
         self._logging = logging.getLogger(Constants.LOGGER_NAME)
+        self._current_log_buffer = []
 
 
-    def _log_message(self, msg, log_stack_trace=None):
+    def _log_message(self, msg:str, log_stack_trace:bool=None)->str:
         formatted = ""
 
         if self.log_context:
@@ -122,52 +121,66 @@ class Logger(object):
         if log_stack_trace:
             formatted += f"\nStack:\n{traceback.format_stack()}"
 
+        self._current_log_buffer.append(formatted)
         return formatted
+        
+
+    def isNull(self)->bool:
+        return isNullLogger
 
 
-    def critical(self, msg, *args, **kwargs):
+    def getCurrentLogMessages(self)->List[str]:
+        return self._current_log_buffer
+
+
+    def resetCurrentLogMessages(self)->None:
+        self._current_log_buffer = []
+
+
+    def critical(self, msg:str, *args, **kwargs)->None:
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.critical(msg, *args, **kwargs)
 
 
-    def error(self, msg, *args, **kwargs):
+    def error(self, msg:str, *args, **kwargs)->None:
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.error(msg, *args, **kwargs)
 
 
-    def warn(self, msg, *args, **kwargs):
+    def warn(self, msg:str, *args, **kwargs)->None:
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.warning(msg, *args, **kwargs)
 
 
-    def info(self, msg, *args, **kwargs):
+    def info(self, msg:str, *args, **kwargs)->None:
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.info(msg, *args, **kwargs)
 
 
-    def debug(self, msg, *args, **kwargs):
+    def debug(self, msg:str, *args, **kwargs)->None:
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.debug(msg, *args, **kwargs)
 
 
-    def exception(self, msg, *args, **kwargs):
+    def exception(self, msg:str, *args, **kwargs)->None:
         log_stack_trace = kwargs.pop("log_stack_trace", None)
         msg = self._log_message(msg, log_stack_trace)
         self._logging.exception(msg, *args, **kwargs)
 
 
-current_logger = None
+current_logger:Logger = None
 
-def logger():
+
+def logger()->Logger:
     return current_logger
 
 
-def set_logger(new_logger):
+def set_logger(new_logger:Logger)->Logger:
     global current_logger
     current_logger = new_logger
     return current_logger

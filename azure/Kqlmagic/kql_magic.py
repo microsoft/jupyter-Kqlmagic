@@ -4,13 +4,12 @@
 # license information.
 # --------------------------------------------------------------------------
 
-import os
-import sys
-import time
-import json
-import logging
-import hashlib
-import urllib.request
+from typing import Any, Dict, List
+
+
+# must be one of the fist to be executed, as it contains the information what is installed
+from .dependencies import Dependencies 
+dependencies = Dependencies()
 
 
 from .log import logger
@@ -18,14 +17,17 @@ from .log import logger
 logger().debug("kql_magic.py - import Configurable from traitlets.config.configurable")
 from traitlets.config.configurable import Configurable
 logger().debug("kql_magic.py - import Bool, Int, Float, Unicode, Enum, TraitError, validate from traitlets")
-from traitlets import Bool, Int, Float, Unicode, Enum, Dict, TraitError, validate, TraitType
+from traitlets import TraitType, Bool, Int, Float, Unicode, Enum, TraitError, validate
+from traitlets import Dict as _Dict
 
-from .ipython_api import Magics, magics_class, cell_magic, line_magic, needs_local_scope
+from .ipython_api import Magics, magics_class, cell_magic, line_magic, needs_local_scope, is_magics_class
 from .ipython_api import IPythonAPI
 
 from .kql_magic_core import Kqlmagic_core
 from .constants import Constants, Cloud
 from .palette import Palettes, Palette
+
+
 
 try:
     from flask import Flask
@@ -34,12 +36,25 @@ except Exception:
 else:
     flask_installed = True
 
+
 from .results import ResultSet
 
-kql_core_obj = None
+kql_core_count:int = 0
+kql_core_obj:Kqlmagic_core = None
+is_non_magic_kql_on:bool = False
+
 
 @magics_class
 class Kqlmagic(Magics, Configurable):
+
+    is_ipython_extension = False
+
+    is_magic = Bool(
+        default_value=False,
+        read_only=True,
+        config=True, 
+        help="""when set, module is used as ipython magic.\n"""
+    )
 
     auto_limit = Int(
         default_value=0, 
@@ -74,7 +89,7 @@ class Kqlmagic(Magics, Configurable):
 
     auto_dataframe = Bool(
         default_value=False, 
-        config=True, 
+        config=Dependencies.is_installed("pandas"), 
         help="""Return Pandas dataframe instead of regular result sets.\n
         Abbreviation: 'ad'"""
     )
@@ -112,7 +127,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     cloud = Enum(
-        [Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.FAIRFAX, Cloud.BLACKFOREST],
+        [Cloud.PUBLIC, Cloud.MOONCAKE, Cloud.CHINA, Cloud.FAIRFAX, Cloud.GOVERNMENT, Cloud.BLACKFOREST, Cloud.GERMANY, Cloud.PPE],
         default_value=Cloud.PUBLIC,
         config=True,
         help="""Default cloud\n
@@ -121,33 +136,48 @@ class Kqlmagic(Magics, Configurable):
 
     enable_sso = Bool(
         default_value=False, 
-        config = True, 
+        config=True, 
         help=f"""Enables or disables SSO.\n
         If enabled, SSO will only work if the environment parameter {Constants.MAGIC_CLASS_NAME_UPPER}_SSO_ENCRYPTION_KEYS is set properly."""
     )
 
+    try_kqlmaic_sso = Bool(
+        default_value=False, 
+        config=True, 
+        help=f"""Try to get token from Kqlmagic."""
+    )
+
     try_azcli_login = Bool(
         default_value=False, 
-        config = True, 
-        help=f"""Try to get token from Azure Cli.."""
+        config=True, 
+        help=f"""Try first to get token from Azure CLI.\n
+        To override default tenant, tenant=value should be specified in connection string"""
     )
 
     try_azcli_login_subscription = Unicode(
         default_value=None, 
         allow_none=True,
-        config = True, 
-        help=f"""Try first to get token from Azure Cli, for the specified subscription."""
+        config=True, 
+        help=f"""Try first to get token from Azure CLI, for the specified subscription.\n
+        To override default tenant, tenant=value should be specified in connection string."""
     )
 
-    try_token = Dict(
+    try_vscode_login = Bool(
+        default_value=False, 
+        config=True, 
+        help=f"""Try first to get token from Visual Studio Code Azure Account login.\n
+        To override default tenant, tenant=value should be specified in connection string."""
+    )
+
+    try_token = _Dict(
         default_value=None,
         config=True, 
         allow_none=True, 
-        help=f"""When specified and is not None, will be used as the token for the connection string.
+        help=f"""Try first to use this token.\n
         Should be a dictionary with at least this keys: tokenType/token_type, accessToken/access_token"""
     )
 
-    try_msi = Dict(
+    try_msi = _Dict(
         default_value=None,
         config=True, 
         allow_none=True, 
@@ -164,14 +194,14 @@ class Kqlmagic(Magics, Configurable):
     sso_db_gc_interval = Int(
         default_value=168, 
         config=True,
-        help= """Garbage Collection interval for not changed SSO cache entries. Default is one week."""
+        help="""Garbage Collection interval for not changed SSO cache entries. Default is one week."""
     )
 
     device_code_login_notification = Enum(
-        ["auto", "button", "popup_interaction", "browser", "terminal", "email"],
+        ["auto", "button", "popup_interaction", "browser", "terminal", "terminal_reference", "email"],
         default_value="auto", 
-        config = True,
-        help = """Sets device_code login notification method.\n
+        config=True,
+        help="""Sets device_code login notification method.\n
         Abbreviation: 'dcln'"""
     )
 
@@ -183,6 +213,16 @@ class Kqlmagic(Magics, Configurable):
         Abbreviation: 'dcne'"""
     )
 
+    # set by default to "device_code" and not "auto" for backward compitability
+    code_auth_interactive_mode = Enum(
+        ["auto", "device_code", "auth_code"],
+        default_value="device_code",
+        config=True,
+        allow_none=True,
+        help="""Sets code authentication interative mode, if "auto" is set, "auth_code" will be seleted if kernel is local, otherwise "device_code" is used\n
+        Abbreviation: 'caim'"""
+    )
+
     timeout = Int(
         default_value=None, 
         config=True, 
@@ -191,19 +231,48 @@ class Kqlmagic(Magics, Configurable):
         Abbreviation: 'to' or 'wait'"""
     )
 
+    enum_list = ["None"] 
+    default_value = "None"
+    if dependencies.is_installed("plotly"):
+        default_value = "plotly"
+        enum_list.append("plotly")
+        enum_list.append("plotly_widget")
+        enum_list.append("plotly_orca")
     plot_package = Enum(
-        ["None", "plotly", "plotly_orca", 'plotly_widget'], 
-        default_value="plotly", 
-        config=True, 
+        enum_list, 
+        default_value=default_value, 
+        config=len(enum_list) > 1, 
         help="""Set the plot package (plotlt_orca requires plotly orca to be installed on the server).\n 
         Abbreviation: 'pp'"""
     )
 
+    enum_list = ["auto", "prettytable", "qgrid"] 
+    if dependencies.is_installed("pandas"):
+        enum_list.append("pandas")
+        enum_list.append("pandas_html_table_schema")
+    if dependencies.is_installed("plotly"):
+        enum_list.append("plotly")
     table_package = Enum(
-        ["auto", "prettytable", "pandas", "plotly", "qgrid", "pandas_html_table_schema"], 
+        enum_list, 
         default_value="auto", 
         config=True, 
         help="Set the table display package. Abbreviation: tp"
+    )
+
+    assign_var = Unicode(
+        default_value=None,
+        allow_none=True, 
+        config=True, 
+        help="""If specified, the query result result will be assigned to this variable in user's namespace.\n
+        Abbreviation: 'av'"""
+    )
+
+    cursor_var = Unicode(
+        default_value=None,
+        allow_none=True, 
+        config=True, 
+        help="""If specified, the cursor value returned from the query will be assigned to this variable in user's namespace.\n
+        Abbreviation: 'ac'"""
     )
 
     last_raw_result_var = Unicode(
@@ -250,7 +319,7 @@ class Kqlmagic(Magics, Configurable):
 
     plotly_fs_includejs = Bool(
         default_value=False,
-        config=True,
+        config=Dependencies.is_installed("plotly"),
         help="""Include plotly javascript code in popup window. If set to False (default), it download the script from https://cdn.plot.ly/plotly-latest.min.js.\n
         Abbreviation: 'pfi'"""
     )
@@ -285,7 +354,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     palette_name = Unicode(
-        default_value=Palettes.DEFAULT_NAME, 
+        default_value=Palettes.get_default_pallete_name(), 
         config=True, 
         help="""Set pallete by name to be used for charts.\n
         Abbreviation: 'pn'"""
@@ -298,6 +367,7 @@ class Kqlmagic(Magics, Configurable):
         Abbreviation: 'pc'"""
     
     )
+
     palette_desaturation = Float(
         default_value=Palettes.DEFAULT_DESATURATION, 
         config=True, 
@@ -306,7 +376,8 @@ class Kqlmagic(Magics, Configurable):
     )
 
     temp_folder_name = Unicode(
-        default_value=f"temp_files", 
+        default_value=f"temp_files",
+        read_only=True,
         config=True, 
         help=f"""Set the folder name for temporary files, relative to starting directory or user directory.\n
         Will be prefixed by {Constants.MAGIC_CLASS_NAME_LOWER}/ or .{Constants.MAGIC_CLASS_NAME_LOWER}/"""
@@ -314,21 +385,23 @@ class Kqlmagic(Magics, Configurable):
 
     temp_folder_location = Enum(
         ["auto", "starting_dir", "user_dir"], 
-        default_value="auto", 
+        default_value="auto",
+        read_only=True,
         config=True, 
         help=f"""Set the location of the temp_folder, either within starting working directory or user workspace directory"""
     )
 
     # TODO: export files not used yet
     export_folder_name = Unicode(
-        default_value=f"exported_files", 
+        default_value=f"exported_files",
+        read_only=True,
         config=True, 
         help=f"""Set the folder name for exported files, relative to starting directory or user directory.\n
         Will be prefixed by {Constants.MAGIC_CLASS_NAME_LOWER}/ or .{Constants.MAGIC_CLASS_NAME_LOWER}/"""
     )
 
     popup_interaction = Enum(
-        ["auto", "button", "reference", "webbrowser_open_at_kernel", "reference_popup"],
+        ["auto", "button", "memory_button", "reference", "webbrowser_open_at_kernel", "reference_popup"],
         default_value="auto",
         config=True, 
         help="""Set popup interaction.\n
@@ -337,14 +410,16 @@ class Kqlmagic(Magics, Configurable):
 
     temp_files_server = Enum(
         ["auto", "jupyter", "kqlmagic", "disabled"],
-        default_value="auto" if flask_installed else "disabled",
-        config=True, 
-        help="""Temp files server."""        
+        default_value="auto" if Dependencies.is_installed("flask") else "disabled",
+        read_only=True,
+        config=Dependencies.is_installed("flask"),
+        help="""Temp local files server."""        
     )
 
     temp_files_server_address = Unicode(
-        default_value=None, 
-        config=True, 
+        default_value=None,
+        read_only=True,
+        config=Dependencies.is_installed("flask"), 
         allow_none=True, 
         help="""Temp files server address."""        
     )
@@ -352,87 +427,153 @@ class Kqlmagic(Magics, Configurable):
     kernel_location = Enum(
         ["auto", "local", "remote"],
         default_value="auto",
+        read_only=True,
         config=True, 
         help="""Kernel location"""    
     )
 
     cache_folder_name = Unicode(
-        default_value=f"cache_files", 
+        default_value=f"cache_files",
+        read_only=True,
         config=True, 
         help=f"""Set the folder name for cache files, relative to starting directory or user directory.\n
         Will be prefixed by {Constants.MAGIC_CLASS_NAME_LOWER}/ or .{Constants.MAGIC_CLASS_NAME_LOWER}/"""
     )
 
     notebook_service_address = Unicode(
-        default_value=None, 
+        default_value=None,
+        read_only=True,
         config=True, 
         allow_none=True, 
         help="""Notebook service address."""        
     )
 
     notebook_app = Enum(
-        ["auto", "jupyterlab", "azurenotebook", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
-        default_value="auto", 
+        ["auto", "jupyterlab", "azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
+        default_value="auto",
+        read_only=True,
         config=True, 
         help="""Set notebook application used."""
-    ) #TODO: add "papermill"
+    )  # TODO: add "papermill"
 
     test_notebook_app = Enum(
-        ["none", "jupyterlab", "azurenotebook", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
-        default_value="none", 
+        ["none", "jupyterlab", "azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
+        default_value="none",
+        read_only=True,
         config=True, 
         help="""Set testing application mode, results should return for the specified notebook application."""
-    ) #TODO: add "papermill"
+    )  # TODO: add "papermill"
 
     kernel_id = Unicode(
-        default_value=None, 
+        default_value=None,
+        read_only=True,
         config=True,
         allow_none=True, 
         help="Current notebook kernel_id"
     )
 
     add_kql_ref_to_help = Bool(
-        default_value=True, 
+        default_value=True,
+        read_only=True,
         config=True, 
         help=f"""On {Constants.MAGIC_CLASS_NAME} load, auto add kql reference to Help menu."""
     )
 
     add_schema_to_help = Bool(
-        default_value=True, 
+        default_value=True,
+        read_only=True,
         config=True, 
         help="""On connection to database@cluster add  schema to Help menu."""
     )
 
     cache = Unicode(
         default_value=None, 
+        read_only=True,
         config=True, 
         allow_none=True, 
-        help="""Cache query results to the specified folder."""
+        help="""Cache query results to be saved to the specified folder. (relative to cache_folder_name)"""
     )
 
     use_cache = Unicode(
-        default_value=None, 
+        default_value=None,
+        read_only=True,
         config=True, 
         allow_none=True, 
-        help="""Use cached query results from the specified folder, instead of executing the query."""
+        help="""Use cached query results from the specified folder, instead of executing the query. (relative to cache_folder_name)"""
     )
 
     check_magic_version = Bool(
-        default_value=True, 
+        default_value=True,
+        read_only=True,
         config=True, 
         help=f"""On {Constants.MAGIC_CLASS_NAME} load, check whether new version of {Constants.MAGIC_CLASS_NAME} exist"""
     )
 
     show_what_new = Bool(
-        default_value=True, 
+        default_value=True,
+        read_only=True,
         config=True, 
         help=f"""On {Constants.MAGIC_CLASS_NAME} load, get history file of {Constants.MAGIC_CLASS_NAME} and show what new button to open it"""
     )
 
     show_init_banner = Bool(
-        default_value=True, 
+        default_value=True,
+        read_only=True,
         config=True, 
         help=f"""On {Constants.MAGIC_CLASS_NAME} load, show init banner"""
+    )
+
+    warn_missing_dependencies = Bool(
+        default_value=True,
+        read_only=True,
+        config=True, 
+        help=f"""On {Constants.MAGIC_CLASS_NAME} load, warn missing dependencies"""
+    )
+
+    kqlmagic_kernel = Bool(
+        default_value=False,
+        read_only=True,
+        config=True, 
+        help=f"""When set to True, {Constants.MAGIC_CLASS_NAME} kernel will be active"""
+    )
+
+    warn_missing_env_variables = Bool(
+        default_value=True,
+        read_only=True,
+        config=True, 
+        help=f"""On {Constants.MAGIC_CLASS_NAME} load, warn missing environment variables"""
+    )
+
+    debug = Bool(
+        default_value=False,
+        read_only=True,
+        config=True, 
+        help=f"""Used internally for debug only, when set to True, debug prints are displayed\n
+        It is read on {Constants.MAGIC_CLASS_NAME} load, from environment variable {Constants.MAGIC_CLASS_NAME_UPPER}_DEBUG\n"""
+    )
+
+    allow_single_line_cell = Bool( 
+        default_value=True,
+        read_only=True,
+        config=True,
+        help=f"""When set to True, allows {Constants.MAGIC_CLASS_NAME} cell magic to include one line only, without body"""
+    )
+
+    allow_py_comments_before_cell = Bool( 
+        default_value=True,
+        read_only=True,
+        config=True,
+        help=f"""When set to True, allows {Constants.MAGIC_CLASS_NAME} cell magic to be prefixed by python comments"""
+    )
+
+    extras_require = Unicode(
+        default_value=None,
+        read_only=True,
+        allow_none=True, 
+        config=True, 
+        help=f"""comma separated list of setup extras_require values that should be the same as specified at KqlmagicCustom install.\n
+        It is read on {Constants.MAGIC_CLASS_NAME} load, from environment variable {Constants.MAGIC_CLASS_NAME_UPPER}_EXTRAS_REQUIRE\n
+        """
     )
 
     request_id_tag = Unicode(
@@ -462,10 +603,20 @@ class Kqlmagic(Magics, Configurable):
         Abbreviation: 'usertag'"""
     )
 
-    # TODO: utilize using fig.show shouw(comfig=..) instead of oofline.iplot
-    plotly_config = Dict(
-        default_value=None,
+    request_cache_max_age = Int(
+        default_value=0, 
         config=True, 
+        allow_none=True, 
+        help=f"""specifies, in seconds, the maximum amount of time a cached response is valid for.\n
+        if set to 0, will bypass the response cache and always query the downstream services.\n
+        if set to None, will use cached reponse as long it doesn't expires.\n
+        Abbreviation: 'maxage'"""
+    )
+
+    # TODO: utilize using fig.show show(comfig=..) instead of offline.iplot
+    plotly_config = _Dict(
+        default_value=None,
+        config=Dependencies.is_installed("plotly"),
         allow_none=True, 
         help=f"""plotly configuration options. see: https://plotly.com/python/configuration-options."""
     )
@@ -473,14 +624,14 @@ class Kqlmagic(Magics, Configurable):
     dynamic_to_dataframe = Enum(
         ["object", "str"],
         default_value="object",
-        config=True,
+        config=Dependencies.is_installed("pandas"),
         help=f"""controls to what dataframe type should an kql dynamic value be translated.\n
         Abbreviation: 'dtd'"""
     )
 
-    plotly_layout = Dict(
+    plotly_layout = _Dict(
         default_value=None, 
-        config=True, 
+        config=Dependencies.is_installed("plotly"), 
         allow_none=True, 
         help=f"""plotly layout parameter, when set they override the defualt layout parameters.\n
         Abbreviation: 'pl'"""        
@@ -489,14 +640,14 @@ class Kqlmagic(Magics, Configurable):
     auth_token_warnings = Bool(
         default_value=False, 
         config=True, 
-        help=f"""When set, will display auth token warning when token different from connection string params.\n
+        help=f"""When set to True, will display auth token warning when token different from connection string params.\n
         Abbreviation: 'atw'"""
     )
 
     enable_curly_brackets_params = Bool(
         default_value=False, 
-        config=True, 
-        help=f"""when set, strings within curly brackets will be evaluated as a python expression, and if evaluation succeeds result will replace the string (including the curly brackets).\n
+        config=True,
+        help=f"""when set to True, strings within curly brackets will be evaluated as a python expression, and if evaluation succeeds result will replace the string (including the curly brackets).\n
         If evaluation fails it will stay as is, including the curly brackets.\n
         To escape Curly brackets the must be doubled {{{{something}}}}\n
         Abbreviation: 'ecbp'"""
@@ -505,8 +656,25 @@ class Kqlmagic(Magics, Configurable):
     logger().debug("Kqlmagic:: - define class code")
 
 
+    @staticmethod
+    def get_default_options()->Dict[str,Any]:
+        c = kql_core_obj.default_options
+        return {name: getattr(c, name) for name in c.class_traits() if c.trait_metadata(name, "config")}
+
+
+    @validate("auto_dataframe")
+    def _valid_value_auto_dataframe(self, proposal:Dict[str,Any]):
+        try:
+            if proposal["value"] is True and not Dependencies.is_installed("pandas"):
+                raise ValueError("cannot be set to True, 'pandas' package is not installed")
+        except (AttributeError, ValueError) as e:
+            message = f"The 'auto_dataframe' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
+            raise TraitError(message)
+        return proposal["value"]
+
+
     @validate("palette_name")
-    def _valid_value_palette_name(self, proposal):
+    def _valid_value_palette_name(self, proposal:Dict[str,Any]):
         try:
             Palette.validate_palette_name(proposal["value"])
         except (AttributeError, ValueError) as e:
@@ -516,7 +684,7 @@ class Kqlmagic(Magics, Configurable):
 
 
     @validate("palette_desaturation")
-    def _valid_value_palette_desaturation(self, proposal):
+    def _valid_value_palette_desaturation(self, proposal:Dict[str,Any]):
         try:
             Palette.validate_palette_desaturation(proposal["value"])
         except (AttributeError, ValueError) as e:
@@ -526,7 +694,7 @@ class Kqlmagic(Magics, Configurable):
 
 
     @validate("palette_colors")
-    def _valid_value_palette_color(self, proposal):
+    def _valid_value_palette_color(self, proposal:Dict[str,Any]):
         try:
             Palette.validate_palette_colors(proposal["value"])
         except (AttributeError, ValueError) as e:
@@ -536,63 +704,63 @@ class Kqlmagic(Magics, Configurable):
 
 
     @validate("notebook_app")
-    def _valid_value_notebook_app(self, proposal):
+    def _valid_value_notebook_app(self, proposal:Dict[str,Any]):
         try:
             if proposal["value"] == "auto":
                 raise ValueError("cannot be set to auto, after instance is loaded")
-        except (AttributeError , ValueError) as e:
+        except (AttributeError, ValueError) as e:
             message = f"The 'notebook_app' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
 
     @validate("table_package")
-    def _valid_value_table_package(self, proposal):
+    def _valid_value_table_package(self, proposal:Dict[str,Any]):
         try:
             if proposal["value"] == "auto":
                 raise ValueError("cannot be set to auto, after instance is loaded")
-        except (AttributeError , ValueError) as e:
+        except (AttributeError, ValueError) as e:
             message = f"The 'table_package' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]     
 
 
     @validate("temp_folder_location")
-    def _valid_value_temp_folder_location(self, proposal):
+    def _valid_value_temp_folder_location(self, proposal:Dict[str,Any]):
         try:
             if proposal["value"] == "auto":
                 raise ValueError("cannot be set to auto, after instance is loaded")
-        except (AttributeError , ValueError) as e:
+        except (AttributeError, ValueError) as e:
             message = f"The 'temp_folder_location' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]   
 
 
     @validate("temp_files_server")
-    def _valid_value_temp_files_server(self, proposal):
+    def _valid_value_temp_files_server(self, proposal:Dict[str,Any]):
         try:
             if proposal["value"] != self.temp_files_server:
                 if self.temp_files_server == "disabled":
                     raise ValueError("feature is 'disabled', due to missing 'flask' module")
-        except (AttributeError , ValueError) as e:
+        except (AttributeError, ValueError) as e:
             message = f"The 'temp_files_server' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
 
     @validate("kernel_id")
-    def _valid_value_kernel_id_app(self, proposal):
+    def _valid_value_kernel_id_app(self, proposal:Dict[str,Any]):
         try:
             if self.kernel_id is not None:
                 raise ValueError("cannot be set, it is readonly, set internally")
-        except (AttributeError , ValueError) as e:
+        except (AttributeError, ValueError) as e:
             message = f"The 'kernel_id' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
 
     @validate("try_msi")
-    def _valid_value_try_msi(self, proposal):
+    def _valid_value_try_msi(self, proposal:Dict[str,Any]):
         try:
             msi_params = proposal["value"]
             if msi_params is not None:
@@ -606,14 +774,14 @@ class Kqlmagic(Magics, Configurable):
                         exclusive_pcount += 1
                 if exclusive_pcount > 1:
                     raise ValueError("the following parameters are mutually exclusive and can not be provided at the same time: user_uid, object_id, msi_res_id")
-        except (AttributeError , ValueError) as e:
+        except (AttributeError, ValueError) as e:
             message = f"The 'try_msi' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
 
     @validate("try_token")
-    def _valid_value_try_token(self, proposal):
+    def _valid_value_try_token(self, proposal:Dict[str,Any]):
         try:
             token = proposal["value"]
             if token is not None:
@@ -621,39 +789,89 @@ class Kqlmagic(Magics, Configurable):
                 for pair in mandatory_properties:
                     if token.get(pair[0]) is None and token.get(pair[1]) is None:
                         raise ValueError(f"one of '{pair}' property is mandatory and is not set in token. mandatory properties are: {mandatory_properties}")                
-        except (AttributeError , ValueError) as e:
+        except (AttributeError, ValueError) as e:
             message = f"The 'try_token' trait of a {Constants.MAGIC_CLASS_NAME} instance {str(e)}"
             raise TraitError(message)
         return proposal["value"]
 
 
-    def __init__(self, shell, global_ns=None, local_ns=None, is_magic=True):
-        global kql_core_obj
+    def __init__(self, shell, global_ns=None, local_ns=None, is_magic=True)->None:
+        global kql_core_obj, kql_core_count
+        kql_core_count += 1
         if kql_core_obj is None:
             Configurable.__init__(self, config=(shell.config if shell is not None else None))
+            self._config_traits = self.traits()
+            self._read_only_config_trait_names = self._get_read_only_config_trait_names()
+            self._set_read_only_config_traits(False)
             # Add ourself to the list of module configurable via %config
             if shell is not None:
                 shell.configurables.append(self)
-        if is_magic:
-            Magics.__init__(self, shell=shell)
+            default_options = self
         else:
-            setattr(self, 'show_init_banner', False)
-        
-        kql_core_obj = kql_core_obj or Kqlmagic_core(global_ns=global_ns, local_ns=local_ns, shell=shell, default_options=self)
+            default_options = kql_core_obj.default_options
+
+        if is_magic and is_magics_class and self.is_ipython_extension:
+            Magics.__init__(self, shell=shell)
+            default_options.set_trait("is_magic", True, force=True)
+        else:
+            default_options.set_trait("is_magic", False, force=True)
+            default_options.set_trait("show_init_banner", False, force=True, lock=True)
+
+        if kql_core_obj is None:
+            kql_core_obj = Kqlmagic_core(global_ns=global_ns, local_ns=local_ns, shell=shell, default_options=self)
+            self._set_read_only_config_traits(True)
+
+
+    @property
+    def config_traits(self)->Dict[str,TraitType]:
+        return self._config_traits
+
+
+    @property
+    def read_only_trait_names(self)->List[str]:
+        return self._read_only_config_trait_names
+
+
+    def _get_read_only_config_trait_names(self):
+        return [name for name, trait in self._config_traits.items() if trait.read_only==True]
+
+
+    def _set_read_only_config_traits(self, is_read_only):
+        for name in self._read_only_config_trait_names:
+            self._config_traits[name].read_only = is_read_only == True
+
+
+    def set_trait(self, name:str, value:Any, force:bool=False, lock:bool=False):
+        if force is True:
+            super(Kqlmagic, self).set_trait(name, value)
+        else:
+            try:
+                setattr(self, name, value)
+            except TraitError:
+                if value != getattr(self, name):
+                    raise
+            
+        if lock is True:
+            self._config_traits[name].read_only = True
+        return getattr(self, name)
+
+
+    def is_read_only(self, name:str)->bool:
+        return self._config_traits[name].read_only
 
 
     @needs_local_scope
     @line_magic(Constants.MAGIC_NAME)
     @cell_magic(Constants.MAGIC_NAME)
     def execute(self, 
-        line:str, 
-        cell:str="", 
-        local_ns:dict={}, 
-        override_vars:dict=None, 
-        override_options:dict=None, 
-        override_query_properties:dict=None, 
-        override_connection:str=None, 
-        override_result_set=None):
+                line:str, 
+                cell:str=None, 
+                local_ns:dict={}, 
+                override_vars:Dict[str,str]=None, 
+                override_options:Dict[str,Any]=None, 
+                override_query_properties:Dict[str,Any]=None, 
+                override_connection:str=None, 
+                override_result_set:ResultSet=None):
 
         # Known issue:
         #
@@ -674,27 +892,60 @@ class Kqlmagic(Magics, Configurable):
 
         return result
 
-
-def kql(text:str='', options:dict=None, query_properties:dict=None, vars:dict=None, conn:str=None, global_ns=None, local_ns=None):
-    global kql_core_obj
-    shell = None
-    if kql_core_obj is None:
-        if global_ns is None and local_ns is None:
-            shell = IPythonAPI.get_shell()
-            if shell is None:
-                global_ns = globals()
-                local_ns = locals()
+    @staticmethod
+    def stop(unload_ipython_extension=False, kql_stop=False)->None:
+        global kql_core_obj, is_non_magic_kql_on, kql_core_count
+        if kql_core_obj and kql_core_count > 0:
+            kql_core_count -= 1
+            if kql_core_count == 0:
+                kql_core_obj.stop()
+                kql_core_obj = None
+                is_non_magic_kql_on = False
+            else:
+                if unload_ipython_extension is True:
+                    default_options = kql_core_obj.default_options
+                    default_options.set_trait("is_magic", False, force=True)
+                if kql_stop is True:
+                    is_non_magic_kql_on = False
         
-        Kqlmagic(
-            shell=shell, 
-            global_ns=global_ns, 
-            local_ns=local_ns, 
-            is_magic=False)
+
+def kql(text:str='', options:Dict[str,Any]=None, query_properties:Dict[str,Any]=None, vars:Dict[str,str]=None, connection_string:str=None, global_ns=None, local_ns=None):
+    global kql_core_obj, is_non_magic_kql_on, kql_core_count
+
+    if not is_non_magic_kql_on:
+        if kql_core_obj is None:
+            shell = None
+            if global_ns is None and local_ns is None:
+                shell = IPythonAPI.get_shell()
+                if shell is None:
+                    global_ns = globals()
+                    local_ns = locals()
+            
+            Kqlmagic(
+                shell=shell, 
+                global_ns=global_ns, 
+                local_ns=local_ns, 
+                is_magic=False)
+        else:
+            kql_core_count += 1
+        is_non_magic_kql_on = True
+
+    if text.find("\n"):
+        line = ""
+        cell = text
+    else:
+        line = text
+        cell = None
 
     return kql_core_obj.execute(
-        text, 
+        line, 
+        cell,
         override_vars=vars,
         override_options=options, 
         override_query_properties=query_properties, 
-        override_connection=conn)
+        override_connection=connection_string)
 
+
+def kql_stop():
+    if is_non_magic_kql_on:
+        Kqlmagic.stop(kql_stop=True)

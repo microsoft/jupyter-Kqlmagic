@@ -10,21 +10,19 @@
 [![Downloads](https://pepy.tech/badge/kqlmagic/month)](https://pepy.tech/project/kqlmagic)
 [![Downloads](https://pepy.tech/badge/kqlmagic/week)](https://pepy.tech/project/kqlmagic)
 
-
-
 [*Kqlmagic*](https://github.com/Microsoft/jupyter-Kqlmagic/tree/master) magic extension enables notebook experience, exploring Microsoft Azure Monitor data: Azure Data Explorer (Kusto), 
 ApplicationInsights, and LogAnalytics data, from Jupyter notebook (Python3 kernel), using kql (Kusto Query language).
-
-
 
 ## Install
 
 ### Option 1: Via PyPi
+
 To install via the Python Package Index (PyPI), type:
 
 `pip install Kqlmagic`
 
 ### Option 2: Source Via Git
+
 To get the source code of the SDK via git just type:
 
 ```python
@@ -34,9 +32,77 @@ python setup.py install
 ```
 
 ### Option 3: Source Zip
+
 Download a zip of the code via GitHub or PyPI. Then follow the same instructions as in option 2.
 
+## Dependencies control
+
+You can control which Kqlmagic dependencies will be installed, by settimg installing KqlmagicCustom instead of Kqlmagic with extras_require.
+Features that require a missing dependency will be disabled.
+Following is the List of the Extras:
+
+```python
+'default',
+    'jupyter-all',
+    'ipython-all',
+    'python-all',
+
+        'plotly',
+        'pandas',
+        'widgets',
+
+        'extended',
+            'jupyter-extended',
+            'ipython-extended',
+            'python-extended',
+
+            'sso',
+                'azcli_sso',
+                'msi_sso',
+                'vscode_sso',
+                'msal_sso',
+                'kqlmagic_sso',
+                'kqlmagic_msal_sso',
+                'kqlmagic_fernet_sso',
+
+            'utils',
+                'base_utils',
+                'text_utils',
+                'json_color',
+                'auth_code_clipboard',
+                'matplotlib_palettes',
+
+            'basic',
+                'jupyter-basic',
+                'ipython-basic',
+                'python-basic',
+
+                    'naked',
+```
+
+Some packages are mandatory, and Kqlmagic won't start without them. Most packages are optional, and Kqlmagic will disable the functionality that is based on the missing dependencies.
+
+for example:
+will install extended packages + pandas:
+
+```python
+pip install KqlmagicCustom[extended, pandas]
+```
+
+will install extended basic packages that work with Jupyter, azcli single sign on and plotly:
+```python
+pip install KqlmagicCustom[jupyter-basic,azcli_sso,plotly]
+```
+
+## Versions
+
+This library follows [Semantic Versioning](http://semver.org/).
+
+You can find the changes for each version under
+[Releases](https://github.com/microsoft/jupyter-Kqlmagic/blob/master/HISTORY.md).
+
 ## Minimum Requirements
+
 * Python 3.6+
 * See setup.py for dependencies
 
@@ -46,8 +112,7 @@ To load the Kqlmagic extension, run in notebook cell:
 
 `In [ ]: %reload_ext Kqlmagic`
 
-
-## Authentication methods:
+## Authentication methods
 
 * AAD Username/password - Provide your AAD username and password.
 * AAD application - Provide your AAD tenant ID, AAD app ID and app secret.
@@ -55,7 +120,7 @@ To load the Kqlmagic extension, run in notebook cell:
 * certificate - Provide your AAD tenant ID, AAD app ID, certificate and certificate-thumbprint (supported only with Azure Data Explorer)
 * appid/appkey - Provide you application insight appid, and appkey (supported only with Application Insights)
 
-## Get Started Notebooks:
+## Get Started Notebooks
 
 * [Get Started with Kqlmagic for Kusto](https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FQuickStart.ipynb)
 
@@ -63,25 +128,24 @@ To load the Kqlmagic extension, run in notebook cell:
 
 * [Get Started with Kqlmagic for Log Analytics](https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FQuickStartLA.ipynb)
 
-
 * [Parametrize your Kqlmagic query with Python](https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FParametrizeYourQuery.ipynb)
 
 * [Choose colors palette for your Kqlmagic query chart result](https://mybinder.org/v2/gh/Microsoft/jupyter-Kqlmagic/master?filepath=notebooks%2FColorYourCharts.ipynb)
 
 ## Need Support?
-- **Have a feature request for Kqlmagic?** Please post it on [User Voice](https://feedback.azure.com/forums/913690-azure-monitor) to help us prioritize
-- **Have a technical question?** Ask on [Stack Overflow with tag "Kqlmagic"](https://stackoverflow.com/questions/tagged/Kqlmagic)
-- **Need Support?** Every customer with an active Azure subscription has access to [support](https://docs.microsoft.com/en-us/azure/azure-supportability/how-to-create-azure-support-request) with guaranteed response time.  Consider submitting a ticket and get assistance from Microsoft support team
-- **Found a bug?** Please help us fix it by thoroughly documenting it and [filing an issue](https://github.com/Microsoft/jupyter-Kqlmagic/issues/new).
 
+* **Have a feature request for Kqlmagic?** Please post it on [User Voice](https://feedback.azure.com/forums/913690-azure-monitor) to help us prioritize
+* **Have a technical question?** Ask on [Stack Overflow with tag "Kqlmagic"](https://stackoverflow.com/questions/tagged/Kqlmagic)
+* **Need Support?** Every customer with an active Azure subscription has access to [support](https://docs.microsoft.com/en-us/azure/azure-supportability/how-to-create-azure-support-request) with guaranteed response time.  Consider submitting a ticket and get assistance from Microsoft support team
+* **Found a bug?** Please help us fix it by thoroughly documenting it and [filing an issue](https://github.com/Microsoft/jupyter-Kqlmagic/issues/new).
 
 ## Contribute
 
 We gladly accept community contributions.
 
-- Issues: Please report bugs using the Issues section of GitHub
-- Forums: Interact with the development teams on StackOverflow or the Microsoft Azure Forums
-- Source Code Contributions: If you would like to become an active contributor to this project please follow the instructions provided in [Contributing.md](CONTRIBUTING.md).
+* Issues: Please report bugs using the Issues section of GitHub
+* Forums: Interact with the development teams on StackOverflow or the Microsoft Azure Forums
+* Source Code Contributions: If you would like to become an active contributor to this project please follow the instructions provided in [Contributing.md](CONTRIBUTING.md).
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 

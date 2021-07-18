@@ -93,6 +93,9 @@
 """
 
 import sys
+import re
+from functools import cmp_to_key
+from typing import Any, Dict, Tuple, Iterable
 
 
 import requests
@@ -100,16 +103,215 @@ import requests
 
 from .constants import Constants
 from .help import MarkdownString
-
-version_info = (0, 1, 113)
-
-VERSION = '0.1.113'
-
-# cannot be used till code in setup is fixed
-# '.'.join(map(str, version_info))
+from ._version import __version__
 
 
-def execute_version_command() -> MarkdownString:
+_IGNORE_POST_VERSION_PATTERN = r'[.]?(post|rev|r)[0-9]*$'
+_IS_STABLE_VESRION_PATTERN = r'[v]?([0-9]+[!])?[0-9]+(\.[0-9]*)*([.]?(post|rev|r)[0-9]*)?$'
+
+try:
+    import pkg_resources
+
+    def is_stable_version(version:str)->bool:
+        parsed_version = pkg_resources.parse_version(version)
+        return not parsed_version.is_prerelease  # is_prerelease returns true for .dev or .rc versions
+
+
+    def compare_version(other:str, version:str, ignore_current_version_post:bool)->int:
+        """ Compares current version to another version string.
+
+        Parameters
+        ----------
+        other : str
+            The other version to compare with, assume string "X.Y.Z" X,Y,Z integers
+        version : str
+            The current version to compare with, assume string "X.Y.Z" X,Y,Z integers
+        ignore_current_version_post : bool
+            If set the comparison should ignore current version post version information
+
+
+        Returns
+        -------
+        int
+            -1 if version higher than other
+             0 if version equal to other
+             1 if version lower than other
+        """
+        VERSION_BIGGER = -1
+        VERSION_LOWER  =  1
+        VERSION_EQUAL  =  0
+
+        if ignore_current_version_post:
+            version = re.sub(_IGNORE_POST_VERSION_PATTERN, '',version, re.IGNORECASE)
+            other = re.sub(_IGNORE_POST_VERSION_PATTERN, '',other, re.IGNORECASE)
+        if other == version:
+            return VERSION_EQUAL
+
+        other_parsed = pkg_resources.parse_version(other)
+        version_parsed = pkg_resources.parse_version(version)
+        if other_parsed == version_parsed:
+            return VERSION_EQUAL
+
+        if other_parsed < version_parsed:
+            return VERSION_BIGGER
+        else:
+            return VERSION_LOWER
+
+except:
+    def is_stable_version(version:str)->bool:
+        match = re.match(_IS_STABLE_VESRION_PATTERN, version, re.IGNORECASE)
+        return match is not None
+
+
+    def compare_version(other:str, version:str, ignore_current_version_post:bool=False)->int:
+        """ Compares current version to another version string.
+
+        Parameters
+        ----------
+        other : str
+            The other version to compare with, assume string "X.Y.Z" X,Y,Z integers
+        version : str
+            The current version to compare with, assume string "X.Y.Z" X,Y,Z integers
+        ignore_current_version_post : bool
+            If set the comparison should ignore current version post versions
+
+
+        Returns
+        -------
+        int
+            -1 if version higher than other
+             0 if version equal to other
+             1 if version lower than other
+        """
+
+        VERSION_BIGGER = -1
+        VERSION_LOWER  =  1
+        VERSION_EQUAL  =  0
+
+        try:
+            if ignore_current_version_post:
+                version = re.sub(_IGNORE_POST_VERSION_PATTERN, '',version, re.IGNORECASE)
+                other = re.sub(_IGNORE_POST_VERSION_PATTERN, '',other, re.IGNORECASE)
+
+            if other != version:
+                other_list, other_pre_post_list = _normalize_version(other)
+                version_list, version_pre_post_list = _normalize_version(version)
+                max_len = max(len(version_list), len(other_list))
+                other_list = [*other_list, *([0] * max(0, max_len - len(other_list))), *other_pre_post_list]
+                version_list = [*version_list, *([0] * max(0, max_len - len(version_list))), *version_pre_post_list]
+
+                for idx in range(0, max_len):
+                    v_element = int(version_list[idx])
+                    o_element = int(other_list[idx])
+                    if v_element != o_element:
+                        if v_element > o_element:
+                            return VERSION_BIGGER
+                        else:
+                            return VERSION_LOWER
+                                  
+        except:
+            pass
+        return VERSION_EQUAL
+
+
+    def _normalize_version(v:str)->Tuple[list,list]:
+        PRE_POST_STR_TO_LEVEL = {
+            "dev": -40,
+            "a": -30,
+            "alpha": -30,
+            "b": -20,
+            "beta": -20,
+            "rc": -10,
+
+            "post": 10,
+            "r": 10,
+            "rev": 10
+        }
+        v = v.strip().lower()
+        v = v[1:] if v.startswith("v") else v
+        
+        version_list = v.split(".")
+
+        first = version_list[0].strip()
+        pair = first.split("!", 1)
+        if len(pair) == 1:
+            version_list = [0, *version_list]
+        else:
+            version_list = [*pair, *version_list[1:]]
+        last = version_list[-1].strip()
+
+        pre_post_list = [0,0]
+        if not is_int(last):
+            version_list = version_list[:-1]
+            if last != "":
+                match = re.match(r'([0-9]*)[\-_]?([a-z]*)[\-_]?([0-9]*)', last, re.IGNORECASE)
+                if match:
+                    groups = match.groups()
+                    pre_post_level = PRE_POST_STR_TO_LEVEL.get(groups[1].lower())
+                    if pre_post_level is not None:
+                        if groups[0] != "":
+                            version_list.append(groups[0])
+                        pre_post_version = int(groups[2]) if groups[2] != "" else 0
+                        pre_post_list = [pre_post_level, pre_post_version]
+                else:
+                    pre_post_list = [last, last]
+
+        return version_list, pre_post_list
+
+
+    def is_int(str_val:str)->bool:
+        """ Checks whether a string can be converted to int.
+
+        Parameters
+        ----------
+        str_val : str
+            A string to be checked.
+
+        Returns
+        -------
+        bool
+            True if can be converted to int, otherwise False
+        """
+
+        return not (len(str_val) == 0 or any([c not in "0123456789" for c in str_val]))
+
+
+    def to_int(str_val:str)->int:
+        """ Converts string to int if possible.
+        
+        Parameters
+        ----------
+        str_val : str
+            A string to be converted.
+
+        Returns
+        -------
+        int or None
+            Converted integer if success, otherwise None
+        """
+
+        return int(str_val) if is_int(str_val) else None
+
+
+def pre_version_label(v:str)->str:
+    PRE_STR_TO_LABEL = {
+        "dev": "Development",
+        "a": "Alpha",
+        "alpha": "Alpha",
+        "b": "Beta",
+        "beta": "Beta",
+        "rc": "Release Candidate",
+    }
+    version_list = v.split(".")
+    last = version_list[-1].strip()
+    if last != "":
+        match = re.match(r'([0-9]*)[\-_]?([a-z]*)[\-_]?([0-9]*)', last, re.IGNORECASE)
+        if match:
+            groups = match.groups()
+            return PRE_STR_TO_LABEL.get(groups[1])
+
+
+def execute_version_command()->MarkdownString:
     """ execute the version command.
     command just return a string with the version that will be displayed to the user
 
@@ -118,10 +320,11 @@ def execute_version_command() -> MarkdownString:
     str
         A string with the current version
     """
-    return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} version: {VERSION}", title="version")
+
+    return MarkdownString(f"{Constants.MAGIC_PACKAGE_NAME} version: {__version__}", title="version")
 
 
-def get_pypi_latest_version(package_name: str, only_stable_version: bool) -> str:
+def get_pypi_latest_version(package_name:str)->Tuple[str,str]:
     """ Retreives latest package version string for PyPI.
 
     Parameters
@@ -131,8 +334,8 @@ def get_pypi_latest_version(package_name: str, only_stable_version: bool) -> str
 
     Returns
     -------
-    str or None
-        The latest version string of package in PyPI, or None if fails to retrieve
+    str, str or None, None
+        The latest version string and latest stable string of package in PyPI, or None, None if fails to retrieve
 
     Raises
     ------
@@ -145,201 +348,25 @@ def get_pypi_latest_version(package_name: str, only_stable_version: bool) -> str
     #
 
     json_response = _retreive_package_from_pypi(package_name)
-    version = json_response.get("info").get("version") if json_response and json_response.get("info") else None
+    all_releases = json_response.get("releases").keys()
+    all_releases_desc_sorted = sorted(all_releases, key=cmp_to_key(lambda v,o: compare_version(v, o, False)), reverse=True)
 
-    if only_stable_version and version and not _is_stable_version(version):
-        version = _get_latest_stable_version(json_response) or version
-    return version
+    latest_stable_release = latest_release = json_response.get("info").get("version") if json_response and json_response.get("info") else None
 
+    if len(all_releases_desc_sorted) > 0:
+        latest_release = all_releases_desc_sorted[0]
+        latest_stable_release = _get_latest_stable_version(all_releases_desc_sorted) or latest_stable_release or latest_release
 
-def _is_stable_version(version: str) -> bool:
-    v = _normalize_version(version)
-    return len([True for p in v if to_int(p) is None and not p.startswith("post")]) == 0
-
-
-def _get_latest_stable_version(json_response: str) -> bool:
-    latest_stable_version = None
-    stable_versions = [v for v in json_response['releases'].keys() if _is_stable_version(v)]
-    if len(stable_versions)  > 0:
-        latest_stable_version = stable_versions[0] 
-        for v in stable_versions:
-            if compare_version(v, latest_stable_version, False) > 0:
-                latest_stable_version = v
-    return latest_stable_version
+    return latest_release, latest_stable_release
 
 
-def compare_version(other: str, version: str, ignore_current_version_post: bool) -> int:
-    """ Compares current version to another version string.
-
-    Parameters
-    ----------
-    other : str
-        The other version to compare with, assume string "X.Y.Z" X,Y,Z integers
-    version : str
-        The current version to compare with, assume string "X.Y.Z" X,Y,Z integers
-    ignore_current_version_post : bool
-        If set the comparison should ignore current version post versions
+def _get_latest_stable_version(all_releases_desc_sorted:Iterable)->str:
+    for release in all_releases_desc_sorted:
+        if is_stable_version(release):
+            return release
 
 
-    Returns
-    -------
-    int
-        -1 if version higher than other
-         0 if version equal to other
-         1 if version lower than other
-    """
-
-    # normalize for comaprison
-    v = _normalize_version(version)
-    o = _normalize_version(other)
-    v_len = _len_version(v)
-    o_len = _len_version(o)
-    v = _pad_version(v, o_len - v_len)
-    o = _pad_version(o, v_len - o_len)
-    
-    if len(v) > len(o):
-        o.append(0)
-    elif len(v) < len(o):
-        v.append(0)
-
-    for idx, v_val in enumerate(v):
-        o_val = o[idx]
-        if o_val != v_val:
-            v_int = to_int(v_val)
-            o_int = to_int(o_val)
-            # both are int, so they can be compared, and also be equal ('05' == '5')
-            if o_int is not None and v_int is not None:
-                if v_int != o_int:
-                    return -1 if o_int < v_int else 1
-            # both are not int
-            elif o_int is None and v_int is None:
-                if v_val.startswith("post"):
-                    if o_val.startswith("post"):
-                        if ignore_current_version_post:
-                            return 0
-                        o_int = _post_sub_version(o_val)
-                        v_int = _post_sub_version(v_val)
-                        if v_int != o_int:
-                            return -1 if o_int < v_int else 1
-                    elif o_val.startswith("dev"):
-                        return -1
-                    else:
-                        return 1
-                elif o_val.startswith("post"):
-                    if v_val.startswith("dev"):
-                        return 1
-                    else:
-                        return -1
-                elif v_val.startswith("dev"):
-                    if o_val.startswith("dev"):
-                        o_int = _post_sub_version(o_val)
-                        v_int = _post_sub_version(v_val)
-                        if v_int != o_int:
-                            return -1 if o_int < v_int else 1
-                    else:
-                        return 1
-                elif o_val.startswith("dev"):
-                    return -1
-                else:
-                    val = _compare_pre_sub_version(o_val, v_val)
-                    if val != 0:
-                        return val
-
-            # any value not int is interpreted as less than 0
-            elif o_int is None:
-                if o_val.startswith("post"):
-                    return 0 if ignore_current_version_post else 1
-                if o_val.startswith("dev"):
-                    return -1
-                o_int = _pre_release_sub_version(o_val)
-                return -1 if o_int <= v_int else 1
-            else:
-                if v_val.startswith("post"):
-                    return -1
-                if v_val.startswith("dev"):
-                    return 1
-                v_int = _pre_release_sub_version(v_val)
-                return -1 if o_int < v_int else 1
-    return 0
-
-
-def _pre_release_sub_version(v: str):
-    parts = _pre_sub_version_parts(v)
-    return parts[0] or 0
-
-def _compare_pre_sub_version(o: str, v: str):
-    v_parts = _pre_sub_version_parts(v)
-    o_parts = _pre_sub_version_parts(o)
-    for idx in range(3):
-        if v_parts[idx] != o_parts[idx]:
-            return 1 if o_parts[idx] > v_parts[idx] else -1
-    return 0
-
-
-def _pre_sub_version_parts(v: str):
-    for delim in "abc":
-        parts = v.split(delim, 1)
-        if len(parts) == 2:
-            return [to_int(parts[0]) or 0, delim, to_int(parts[1]) or 0]
-    return [0, " ", 0]
-
-def _post_sub_version(v: str):
-    parts = v.split("post", 1)
-    return to_int(parts[1]) or 0
-
-
-def _dev_sub_version(v: str):
-    parts = v.split("dev", 1)
-    return to_int(parts[1]) or 0
-
-
-def _normalize_version(v: str) -> list:
-
-    # case in-sensitive, and remove trailing whitespaces
-    v = v.strip().lower()
-
-    # if starts with "v" remove it
-    v = v[1:] if v.startswith("v") else v
-
-    # handle epoch prefix, if doesn't exist assume 0
-    v = v.replace("!", ".") if len(v.split("!", 1)) == 2 else f"0.{v}"
-
-    # if post or dev use "-" or "_" instead of "." replace
-    v = v.replace("-post",".post").replace("_post",".post").replace("-dev",".dev").replace("_dev",".dev")
-
-    # ignore all the other "-" or "_" delimiters
-    v = v.replace("-", "").replace("_", "")
-
-    # replace the exploct pre version to "a", "b", "c" characters
-    v = v.replace("alpha", "a").replace("beta", "b").replace("pre", "c").replace("rc", "c")
-
-    # if pre-release characters after "." remove "."
-    v = v.replace(".a", "0a").replace(".b", "0b").replace(".c", "0c")
-
-    return v.split(".")
-
-
-def _len_version(v_list: list) -> int:
-    """ Compute length of the component, but without the last component if it is a dev or post"""
-    l = len(v_list)
-    return l - 1 if v_list[-1].startswith("dev") or v_list[-1].startswith("post") else l
-
-
-def _pad_version(v_list: list, l: int) -> list:
-    """ pad the list at the end with 0 value, but if last component is dev or post, the padding is before the last"""
-    if l > 0:
-        last = None
-        if  v_list[-1].startswith("dev") or v_list[-1].startswith("post"):
-            last = v_list[-1]
-            v_list = v_list[:-1]
-        for idx in range(l): # pylint: disable=unused-variable
-            v_list.append(0)
-        if last:
-            v_list.append(last)
-    return v_list
-
-
-def _retreive_package_from_pypi(package_name: str) -> dict:
+def _retreive_package_from_pypi(package_name:str)->Dict[str,Any]:
     """ Retreives package data from PyPI.
 
     Parameters
@@ -370,41 +397,7 @@ def _retreive_package_from_pypi(package_name: str) -> dict:
     return json_response
 
 
-def is_int(str_val: str) -> bool:
-    """ Checks whether a string can be converted to int.
-
-    Parameters
-    ----------
-    str_val : str
-        A string to be checked.
-
-    Returns
-    -------
-    bool
-        True if can be converted to int, otherwise False
-    """
-
-    return not (len(str_val) == 0 or any([c not in "0123456789" for c in str_val]))
-
-
-def to_int(str_val: str) -> int:
-    """ Converts string to int if possible.
-    
-    Parameters
-    ----------
-    str_val : str
-        A string to be converted.
-
-    Returns
-    -------
-    int or None
-        Converted integer if success, otherwise None
-    """
-
-    return int(str_val) if is_int(str_val) else None
-
-
-def validate_required_python_version_running(minimal_required_version: str) -> None:
+def validate_required_python_version_running(minimal_required_version:str)->None:
     """ Validate whether the running python version meets minimal required python version 
     
     Parameters
@@ -422,12 +415,12 @@ def validate_required_python_version_running(minimal_required_version: str) -> N
     Raise RunTime exception, if running python version is lower than required python version 
 
     """
+
     try:
         parts = minimal_required_version.split(".")
-        min_py_version = 1000000*int(parts[0]) + 1000*(int(parts[1]) if len(parts) > 1 else 0) + (int(parts[2]) if len(parts) > 2 else 0)
-        running_py_version = 1000000*sys.version_info.major + 1000*sys.version_info.minor + sys.version_info.micro
+        min_py_version = 1000000 * int(parts[0]) + 1000 * (int(parts[1]) if len(parts) > 1 else 0) + (int(parts[2]) if len(parts) > 2 else 0)
+        running_py_version = 1000000 * sys.version_info.major + 1000 * sys.version_info.minor + sys.version_info.micro
         if running_py_version < min_py_version:
             raise RuntimeError("")
     except:
         raise RuntimeError(f"Kqlmagic requires python >= {Constants.MINIMAL_PYTHON_VERSION_REQUIRED}, you use python {sys.version}")
-

@@ -12,7 +12,7 @@ from textwrap import dedent
 
 import pytest
 
-
+from Kqlmagic import kql
 from Kqlmagic.constants import Constants
 from Kqlmagic.kql_magic import Kqlmagic as Magic
 
@@ -23,7 +23,7 @@ ip = get_ipython() # pylint:disable=undefined-variable
 @pytest.fixture 
 def register_magic():
     magic = Magic(shell=ip)
-    ip.register_magics(magic)
+    # ip.register_magics(magic)
 
 TEST_URI_SCHEMA_NAME = "kusto"
 query1 = "-conn=$TEST_CONNECTION_STR let T = view () { datatable(n:long, name:string)[1,'foo',2,'bar'] }; T"
@@ -31,15 +31,19 @@ query2 = "-conn=$TEST_CONNECTION_STR pageViews | where client_City != '' | summa
 
 version_command = "--version"
 version_pw_command = f"{version_command} -pw"
-version_expected_pattern = r'Kqlmagic version: [0-9]+\.[0-9]+\.[0-9]+'
+version_expected_pattern = r'Kqlmagic version: [0-9]+\.[0-9]+\.[0-9]+.*'
 
 def test_ok(register_magic):
+    print("test_ok")
     assert True
 
 
 #Testing "--version" command
 def test_version(register_magic):
-    result = ip.run_line_magic('kql', version_command)
+    print(f"line magic: {version_command}")
+    # result = ip.run_line_magic('kql', version_command)
+    result = kql(version_command)
+
     version_str = str(result)
     print(version_str)
     expected_pattern = r'^' + version_expected_pattern  + r'$'
@@ -48,7 +52,8 @@ def test_version(register_magic):
 
 #Testing "--version" command with pop up window button
 def test_version_pw_button(register_magic):
-    result = ip.run_line_magic('kql', version_pw_command)
+    # result = ip.run_line_magic('kql', version_pw_command)
+    result = kql(version_pw_command)
     pw_html_str = result._repr_html_()
     print(pw_html_str)
     assert re.search(r'<button', pw_html_str)
@@ -56,9 +61,10 @@ def test_version_pw_button(register_magic):
 
 #Testing "--version" command with pop up window button
 def test_version_pw_file(register_magic):
-    result = ip.run_line_magic('kql', version_pw_command)
+    # result = ip.run_line_magic('kql', version_pw_command)
+    result = kql(version_pw_command)
     pw_html_str = result._repr_html_()
-    print(pw_html_str)
+    print(f"pw_html_str: {pw_html_str}")
     f = re.search(r'kql_MagicLaunchWindowFunction\(\'(.+?)\'\,', pw_html_str)  
     file_path = f.group(1)
     print(file_path)
@@ -66,8 +72,9 @@ def test_version_pw_file(register_magic):
     version_html_str = ''
     for line in version_file:
         version_html_str += line
-    print(version_html_str)
-    expected_pattern = r'^<p>' + version_expected_pattern  + r'</p>$'
+    print(f"version_html_str: {version_html_str}")
+    expected_pattern = r'^<p>' + version_expected_pattern  + r'</p>'
+        print(f"expected_pattern: {expected_pattern}")
     assert re.search(expected_pattern , version_html_str)
 
 
@@ -79,7 +86,8 @@ def test_version_pw_file(register_magic):
 # | 2 | bar  |
 
 def test_query(register_magic):
-    result = ip.run_line_magic('kql', query1)
+    # result = ip.run_line_magic('kql', query1)
+    result = kql(query1)
     print(result)
     assert result[0][0] == 1
     assert result[1]['name'] == 'bar'
@@ -90,7 +98,8 @@ def test_query(register_magic):
 # "pageViews | where client_City != '' | summarize count() by client_City | sort by count_ | limit 10"
 # and checks the result
 def test_query2(register_magic):
-    result = ip.run_line_magic('kql', query2)
+    # result = ip.run_line_magic('kql', query2)
+    result = kql(query2)
 
     print(result)
     assert result[0][0] == "Bothell"

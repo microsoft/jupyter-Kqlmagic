@@ -4,25 +4,28 @@
 # license information.
 # --------------------------------------------------------------------------
 
-import os
-import sys
+import base64
 import uuid
 import webbrowser
-import json
-import datetime
 import urllib.parse
+import urllib.request
 
 
-from pygments import highlight
-from pygments.lexers.data import JsonLexer
-from pygments.formatters.terminal import TerminalFormatter
-
-
-from .ipython_api import display, HTML, Javascript, JSON
+from ._debug_utils import debug_print
+from .ipython_api import display, HTML
 from .ipython_api import IPythonAPI
-from .my_utils import adjust_path, adjust_path_to_uri, get_valid_filename_with_spaces, json_dumps
+from .my_utils import adjust_path, adjust_path_to_uri, json_dumps, single_quote
 from .constants import Constants
 
+
+try:
+    from pygments import highlight
+    from pygments.lexers.data import JsonLexer
+    from pygments.formatters.terminal import TerminalFormatter
+except:
+    highlight = None
+    JsonLexer = None
+    TerminalFormatter = None
 
 
 class FormattedJsonDict(dict):
@@ -39,8 +42,13 @@ class FormattedJsonDict(dict):
         if len(item) == 1 and isinstance(self.get(" "), list):
             _dict = self.get(" ")
         formatted_json = json_dumps(_dict, indent=4, sort_keys=True)
-        self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
+        self.colorful_json = formatted_json
 
+        if highlight and JsonLexer and TerminalFormatter:
+            try:
+                self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
+            except:
+                pass
 
     def get(self, key, default=None):
         value = super(FormattedJsonDict, self).get(key, default)
@@ -77,7 +85,7 @@ class FormattedJsonList(list):
 
     def __repr__(self):
         if len(self.item) > 0 and type(self.item[0]).__name__ == 'KqlRow':
-            _list = [l.row for l in self.item]
+            _list = [kql_row.row for kql_row in self.item]
         else:
             _list = self.item
         return FormattedJsonDict({self.key: _list}).__repr__()
@@ -132,7 +140,6 @@ class JSONList(list):
         self.item = item
         self.extend(item)
         self.key = key or " "
-        # print(f">>> JSONList, len self: {len(self)} self: {self}")
 
 
     def __getitem__(self, key):
@@ -142,7 +149,7 @@ class JSONList(list):
 
     def _repr_json_(self):
         if len(self) > 0 and type(self.item[0]).__name__ == "KqlRow":
-            _list = [l.row for l in self.item]
+            _list = [kql_row.row for kql_row in self.item]
         else:
             _list = self.item
         return JSONDict({self.key: _list})._repr_json_()
@@ -221,17 +228,17 @@ class Display(object):
 
     @staticmethod
     def get_show_deeplink_webbrowser_html_obj(window_name, deep_link_url:str, close_window_timeout_in_secs: int, options={}):
-            close_itself_timeout_in_secs = 0
-            html_str = Display._get_Launch_page_html(window_name, deep_link_url, close_window_timeout_in_secs, close_itself_timeout_in_secs, False, options=options)
-            file_name = Display._get_name()
-            file_path = Display._html_to_file_path(html_str, file_name, **options)
-            url = Display._get_file_path_url(file_path, options=options)
-            return url
+        close_itself_timeout_in_secs = 0
+        html_str = Display._get_Launch_page_html(window_name, deep_link_url, close_window_timeout_in_secs, close_itself_timeout_in_secs, False, options=options)
+        file_name = Display._get_name()
+        file_path = Display._html_to_file_path(html_str, file_name, **options)
+        url = Display._get_file_path_url(file_path, options=options)
+        return url
 
 
     @staticmethod
     def get_show_deeplink_html_obj(window_name, deep_link_url:str, close_window_timeout_in_secs: int, options={}):
-        if  options.get("kernel_location") == "local":
+        if options.get("kernel_location") == "local":
             url = Display.get_show_deeplink_webbrowser_html_obj(window_name, deep_link_url, close_window_timeout_in_secs, options=options)
             webbrowser.open(url, new=1, autoraise=True)
             Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
@@ -261,7 +268,7 @@ class Display(object):
             webbrowser.open(url, new=1, autoraise=True)
             html_str = Display._getInfoMessageHtmlStr(f"opened popup window: '{window_name}', see it in your browser", **options)
 
-        elif mode == "button":
+        elif mode in ["button", "memory_button"]:
             html_str = Display._get_window_html(window_name, file_path, button_text, onclick_visibility, isText=isText, palette=palette, before_text=before_text, after_text=after_text, close_window_timeout_in_secs=close_window_timeout_in_secs, content=content, options=options)
 
         elif mode in ["reference", "reference_popup"]:
@@ -302,7 +309,7 @@ class Display(object):
         popup_window_name = window_name
 
         if isPopupMode or options.get("temp_files_server_address") is not None:
-            close_window_timeout_in_secs = close_window_timeout_in_secs or 60 # five minutes
+            close_window_timeout_in_secs = close_window_timeout_in_secs or 60  # five minutes
             popup_window_name = f"popup_{window_name}"
             popup_html = Display._get_popup_window_html(url, window_name, close_window_timeout_in_secs, options=options)
             popup_file_name = f"popup_{file_path.split('/')[-1].split('.')[0]}"
@@ -310,7 +317,6 @@ class Display(object):
             url = Display._get_file_path_url(popup_file_path, options=options)
 
         if options.get("temp_files_server_address") is not None:
-            import urllib.parse
             indirect_url = f'{options.get("temp_files_server_address")}/webbrowser?url={urllib.parse.quote(url)}&kernelid={options.get("kernel_id")}'
             url = indirect_url
         ref_text = ref_text or "popup window"
@@ -414,9 +420,21 @@ class Display(object):
         return html_str
 
     @staticmethod
-    def _get_window_html(window_name, file_path, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, close_itself_timeout_in_secs=None, content=None, options={}):
-        # if isText is True, file_path is the text
+    def _get_window_html(window_name, file_path_or_data, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, close_itself_timeout_in_secs=None, content=None, options={}):
+        # if isText is True, file_path_or_data is the text
         host_or_text = 'text' if isText else (options.get("notebook_service_address") or "")
+        if host_or_text != 'text' and options.get("popup_interaction") == "memory_button":
+            if file_path_or_data.startswith("http"):
+                with urllib.request.urlopen(file_path_or_data) as bytes_reader:
+                    file_path_or_data = bytes_reader.read().decode('utf-8')
+            else:
+                full_file_name = adjust_path(f"{Display.showfiles_file_base_path}/{file_path_or_data}")
+                with open(full_file_name, 'r') as str_reader:
+                    # Read the entire file
+                    file_path_or_data = str_reader.read()
+            file_path_or_data =  base64.b64encode(file_path_or_data.encode('utf-8')).decode('utf-8')
+            isText = True
+            host_or_text = 'body'
         onclick_visibility = "visible" if onclick_visibility == "visible" else "hidden"
         button_text = button_text or "popup window"
         window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
@@ -435,20 +453,20 @@ class Display(object):
             close_itself_timeout_in_secs = max(close_itself_timeout_in_secs - close_window_timeout_in_secs, 0)
 
         if not isText and Display.showfiles_url_base_path.startswith("http"):
-            file_path = Display._get_file_path_url(file_path, options=options)
+            file_path_or_data = Display._get_file_path_url(file_path_or_data, options=options)
 
             if options.get("temp_files_server_address") is not None and content == "schema" and options.get("notebook_app") in ["nteract"]:
-                import urllib.parse
-                indirect_url = f'{options.get("temp_files_server_address")}/webbrowser?url={urllib.parse.quote(file_path)}&kernelid={options.get("kernel_id")}'
-                file_path = indirect_url
-                
+                indirect_url = f'{options.get("temp_files_server_address")}/webbrowser?url={urllib.parse.quote(file_path_or_data)}&kernelid={options.get("kernel_id")}'
+                file_path_or_data = indirect_url
+
+            
         html_str = (
             f"""<!DOCTYPE html>
             <html><body>
             <div style='{style}'>
             {before_text}
             <button onclick="this.style.visibility='{onclick_visibility}';
-            kql_MagicLaunchWindowFunction('{file_path}', '{window_params}', '{window_name}', '{host_or_text}');
+            kql_MagicLaunchWindowFunction({single_quote(file_path_or_data)}, {single_quote(window_params)}, {single_quote(window_name)}, {single_quote(host_or_text)});
             kql_MagicCloseWindow(kql_Magic_{window_name}, {str(close_window_timeout_in_secs)}, {str(close_itself_timeout_in_secs)});">
             {button_text}</button>{after_text}
             </div>
@@ -470,12 +488,30 @@ class Display(object):
                 }}
             }}
 
-            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, host_or_text) {{
+            function kql_MagicLaunchWindowFunction(file_path_or_data, window_params, window_name, host_or_text) {{
                 var url;
-                if (host_or_text == 'text') {{
+                const baseURI = String(window.location);
+                if (host_or_text == 'text' || host_or_text == 'body') {{
                     url = ''
-                }} else if (file_path.startsWith('http')) {{
-                    url = file_path;
+                }} else if (file_path_or_data.startsWith('http')) {{
+                    url = file_path_or_data;
+                }} else if (host_or_text.endsWith('.azureml.ms') || host_or_text.endsWith('.azureml.net')) {{
+                    let azuremlBaseURI = String(window.document.baseURI);
+                    let start = azuremlBaseURI.search('activeFilePath=');
+                    if (start > 0) {{
+                        start += 'activeFilePath='.length;
+                        let end = azuremlBaseURI.substring(start).search('&');
+                        if (end < 0) {{
+                            end = undefined;
+                        }}
+                        let parts = azuremlBaseURI.substring(start, end).split('/');
+                        parts.pop();
+                        url = host_or_text + '/tree/' + parts.join('/') + '/' + file_path_or_data;
+                    }} else {{
+                        var parts = baseURI.split('/');
+                        parts.pop();
+                        url = parts.join('/') + '/' + file_path_or_data;
+                    }}
                 }} else {{
                     var base_url = '';
 
@@ -484,11 +520,11 @@ class Display(object):
                     var start = azure_host.search('//');
                     var azure_host_suffix = '.' + azure_host.substring(start+2);
 
-                    var loc = String(window.location);
-                    var end = loc.search(azure_host_suffix);
-                    start = loc.search('//');
+                    var end = baseURI.search(azure_host_suffix);
+                    start = baseURI.search('//');
                     if (start > 0 && end > 0) {{
-                        var parts = loc.substring(start+2, end).split('-');
+                        // # azure notebook environment, assume template: https://library-user.notebooks.azure.com
+                        var parts = baseURI.substring(start+2, end).split('-');
                         if (parts.length == 2) {{
                             var library = parts[0];
                             var user = parts[1];
@@ -502,7 +538,7 @@ class Display(object):
                         if (configDataScipt != null) {{
                             var jupyterConfigData = JSON.parse(configDataScipt.textContent);
                             if (jupyterConfigData['appName'] == 'JupyterLab' && jupyterConfigData['serverRoot'] != null &&  jupyterConfigData['treeUrl'] != null) {{
-                                var basePath = '{Display.showfiles_file_base_path}' + '/';
+                                var basePath = {single_quote(Display.showfiles_file_base_path)} + '/';
                                 if (basePath.startsWith(jupyterConfigData['serverRoot'])) {{
                                     base_url = '/files/' + basePath.substring(jupyterConfigData['serverRoot'].length+1);
                                 }}
@@ -510,14 +546,14 @@ class Display(object):
                         }}
                     }}
 
-                    // assume local jupyter notebook
+                    // works for local jupyter notebook
                     if (base_url.length == 0) {{
 
-                        var parts = loc.split('/');
-                        parts.pop();
+                        var parts = baseURI.split('/');
+                        parts.pop(); // remove notebook name segment
                         base_url = parts.join('/') + '/';
                     }}
-                    url = base_url + file_path;
+                    url = base_url + file_path_or_data;
                 }}
 
                 window.focus();
@@ -527,12 +563,17 @@ class Display(object):
                 // kql_Magic + window_name should be a global variable 
                 window_obj = window.open(url, window_name, window_params + params);
                 if (url == '') {{
-                    var el = window_obj.document.createElement('p');
-                    window_obj.document.body.overflow = 'auto';
-                    el.style.top = 0;
-                    el.style.left = 0;
-                    el.innerHTML = file_path;
-                    window_obj.document.body.appendChild(el);
+                    let decodedData = atob(file_path_or_data);
+                    if (host_or_text == 'text') {{
+                        var el = window_obj.document.createElement('p');
+                        window_obj.document.body.overflow = 'auto';
+                        el.style.top = 0;
+                        el.style.left = 0;
+                        el.innerHTML = decodedData;
+                        window_obj.document.body.appendChild(el);
+                    }} else {{
+                        window_obj.document.body.innerHTML = decodedData;
+                    }}
                 }}
                 kql_Magic_{window_name} = window_obj;
             }}
@@ -543,9 +584,21 @@ class Display(object):
         return html_str
 
     @staticmethod
-    def _get_Launch_page_html(window_name, file_path, close_window_timeout_in_secs, close_itself_timeout_in_secs, isText, options={}):
-        # if isText is True, file_path is the text
+    def _get_Launch_page_html(window_name, file_path_or_data, close_window_timeout_in_secs, close_itself_timeout_in_secs, isText, options={}):
+        # if isText is True, file_path_or_data is the text
         host_or_text = 'text' if isText else (options.get("notebook_service_address") or "")
+        if host_or_text != 'text' and options.get("popup_interaction") == "memory_button":
+            if file_path_or_data.startswith("http"):
+                with urllib.request.urlopen(file_path_or_data) as bytes_reader:
+                    file_path_or_data = bytes_reader.read().decode('utf-8')
+            else:
+                full_file_name = adjust_path(f"{Display.showfiles_file_base_path}/{file_path_or_data}")
+                with open(full_file_name, 'r') as str_reader:
+                    # Read the entire file
+                    file_path_or_data = str_reader.read()
+            file_path_or_data =  base64.b64encode(file_path_or_data.encode('utf-8')).decode('utf-8')
+            isText = True
+            host_or_text = 'body'
         window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
         if window_name[0] in "0123456789":
             window_name = f"w_{window_name}"
@@ -578,12 +631,30 @@ class Display(object):
                 }}
             }}
 
-            function kql_MagicLaunchWindowFunction(file_path, window_params, window_name, host_or_text) {{
+            function kql_MagicLaunchWindowFunction(file_path_or_data, window_params, window_name, host_or_text) {{
                 var url;
-                if (host_or_text == 'text') {{
+                const baseURI = String(window.location);
+                if (host_or_text == 'text' || host_or_text == 'body') {{
                     url = ''
-                }} else if (file_path.startsWith('http')) {{
-                    url = file_path;
+                }} else if (file_path_or_data.startsWith('http')) {{
+                    url = file_path_or_data;
+                }} else if (host_or_text.endsWith('.azureml.ms') || host_or_text.endsWith('.azureml.net')) {{
+                    let azuremlBaseURI = String(window.document.baseURI);
+                    let start = azuremlBaseURI.search('activeFilePath=');
+                    if (start > 0) {{
+                        start += 'activeFilePath='.length;
+                        let end = azuremlBaseURI.substring(start).search('&');
+                        if (end < 0) {{
+                            end = undefined;
+                        }}
+                        let parts = azuremlBaseURI.substring(start, end).split('/');
+                        parts.pop();
+                        url = host_or_text + '/tree/' + parts.join('/') + '/' + file_path_or_data;
+                    }} else {{
+                        var parts = baseURI.split('/');
+                        parts.pop();
+                        url = parts.join('/') + '/' + file_path_or_data;
+                    }}
                 }} else {{
                     var base_url = '';
 
@@ -592,11 +663,10 @@ class Display(object):
                     var start = azure_host.search('//');
                     var azure_host_suffix = '.' + azure_host.substring(start+2);
 
-                    var loc = String(window.location);
-                    var end = loc.search(azure_host_suffix);
-                    start = loc.search('//');
+                    var end = baseURI.search(azure_host_suffix);
+                    start = baseURI.search('//');
                     if (start > 0 && end > 0) {{
-                        var parts = loc.substring(start+2, end).split('-');
+                        var parts = baseURI.substring(start+2, end).split('-');
                         if (parts.length == 2) {{
                             var library = parts[0];
                             var user = parts[1];
@@ -610,7 +680,7 @@ class Display(object):
                         if (configDataScipt != null) {{
                             var jupyterConfigData = JSON.parse(configDataScipt.textContent);
                             if (jupyterConfigData['appName'] == 'JupyterLab' && jupyterConfigData['serverRoot'] != null &&  jupyterConfigData['treeUrl'] != null) {{
-                                var basePath = '{Display.showfiles_file_base_path}' + '/';
+                                var basePath = {single_quote(Display.showfiles_file_base_path)} + '/';
                                 if (basePath.startsWith(jupyterConfigData['serverRoot'])) {{
                                     base_url = '/files/' + basePath.substring(jupyterConfigData['serverRoot'].length+1);
                                 }}
@@ -618,14 +688,13 @@ class Display(object):
                         }}
                     }}
 
-                    // assume local jupyter notebook
+                    // works for local jupyter
                     if (base_url.length == 0) {{
-
-                        var parts = loc.split('/');
+                        var parts = baseURI.split('/');
                         parts.pop();
                         base_url = parts.join('/') + '/';
                     }}
-                    url = base_url + file_path;
+                    url = base_url + file_path_or_data;
                 }}
 
                 window.focus();
@@ -635,24 +704,28 @@ class Display(object):
                 // kql_Magic + window_name should be a global variable 
                 window_obj = window.open(url, window_name, window_params + params);
                 if (url == '') {{
-                    var el = window_obj.document.createElement('p');
-                    window_obj.document.body.overflow = 'auto';
-                    el.style.top = 0;
-                    el.style.left = 0;
-                    el.innerHTML = file_path;
-                    window_obj.document.body.appendChild(el);
+                    let decodedData = atob(file_path_or_data);
+                    if (host_or_text == 'text') {{
+                        var el = window_obj.document.createElement('p');
+                        window_obj.document.body.overflow = 'auto';
+                        el.style.top = 0;
+                        el.style.left = 0;
+                        el.innerHTML = decodedData;
+                        window_obj.document.body.appendChild(el);
+                    }} else {{
+                        window_obj.document.body.innerHTML = decodedData;
+                    }}
                 }}
                 kql_Magic_{window_name} = window_obj;
             }}
 
-            kql_MagicLaunchWindowFunction('{file_path}', '{window_params}', '{window_name}', '{host_or_text}');
+            kql_MagicLaunchWindowFunction({single_quote(file_path_or_data)}, {single_quote(window_params)}, {single_quote(window_name)}, {single_quote(host_or_text)});
 
             kql_MagicCloseWindow(kql_Magic_{window_name}, {str(close_window_timeout_in_secs)}, {str(close_itself_timeout_in_secs)});
 
             </script>
             </body></html>"""
         )
-        # print(f">>> html_str: {html_str}")
         return html_str
 
     @staticmethod
@@ -672,21 +745,32 @@ class Display(object):
     @staticmethod
     def _getMessageHtml(msg, palette):
         "get query information in as an HTML string"
-        if msg is None:
-            msg_str = ''
-        elif isinstance(msg, list):
+
+        style_options = {}
+        if isinstance(msg, dict):
+            if isinstance(msg.get("style_options"), dict):
+                style_options = msg.get("style_options")
+                msg = msg.get("message")
+        
+        if isinstance(msg, list):
             msg_str = "<br>".join(msg)
+        elif isinstance(msg, dict):
+            msg_str = "<br>".join([f"{k}: {v}" for k, v in msg.items()])
         elif isinstance(msg, str):
             msg_str = msg
         else:
-            msg_str = str(msg)
-        if len(msg_str) > 0:
-            # success_style
-            palette_color = palette["color"]
-            palette_background_color = palette["background-color"]
-            palette_border_color = palette["border-color"]
+            msg_str = f"{msg or ''}"
+        if len(msg_str) > 0:          
+            style = {
+                "padding": "10px",
+                "color": palette["color"],
+                "background-color": palette["background-color"],
+                "border-color": palette["border-color"],
+                **style_options
+            }
+            style_str = "".join([f"; {k}: {v}" for k,v in style.items()])[1:]
             msg_str = msg_str.replace('"', "&quot;").replace("'", "&apos;").replace("\n", "<br>").replace(" ", "&nbsp;")
-            body = f"<div><p style='padding: 10px; color: {palette_color}; background-color: {palette_background_color}; border-color: {palette_border_color}'>{msg_str}</p></div>"
+            body = f"<div><p style='{style_str}'>{msg_str}</p></div>"
         else:
             body = ""
         return {"body": body}
@@ -758,19 +842,3 @@ class Display(object):
     @staticmethod
     def showDangerMessage(msg, display_handler_name=None, **options):
         Display._showMessage(Display.getDangerMessageHtml(msg))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

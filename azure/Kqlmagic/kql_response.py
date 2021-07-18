@@ -4,14 +4,18 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from datetime import timedelta, datetime
+from datetime import timedelta
 import re
 import json
 from decimal import Decimal
+import collections
 
 
 import dateutil.parser
-import six
+
+
+from .constants import ExtendedPropertiesKeys
+
 
 
 # Regex for TimeSpan
@@ -37,14 +41,14 @@ class KqlResult(dict):
             mapping = self.index2column_mapping[start:end]
             dic = dict([(c, dict.__getitem__(self, c)) for c in mapping])
             return KqlResult(mapping, dic)
-        elif isinstance(key, six.integer_types):
+        elif isinstance(key, int):
             val = dict.__getitem__(self, self.index2column_mapping[key])
         else:
             val = dict.__getitem__(self, key)
         return val
 
 
-class KqlResponseTable(six.Iterator):
+class KqlResponseTable(collections.Iterator):
     """ Iterator over returned rows """
 
     def __init__(self, id, response_table):
@@ -58,7 +62,7 @@ class KqlResponseTable(six.Iterator):
             ctype = c["ColumnType"] if "ColumnType" in c else c["DataType"]
             self.index2type_mapping.append(ctype)
         self.row_index = 0
-        self._rows_count = sum([1 for r in self.rows if isinstance(r,list)]) # len(self.rows)
+        self._rows_count = sum([1 for r in self.rows if isinstance(r,list)])  # len(self.rows)
         # Here we keep converter functions for each type that we need to take special care (e.g. convert)
 
         # index MUST be lowercase !!!
@@ -73,7 +77,7 @@ class KqlResponseTable(six.Iterator):
     @staticmethod
     def to_object(value):
         try:
-            return json.loads(value) if value and isinstance(value, str) else value if value else None
+            return json.loads(value) if value and isinstance(value, str) else value
         except Exception:
             return value
 
@@ -88,6 +92,7 @@ class KqlResponseTable(six.Iterator):
             return dateutil.parser.parse(str(value))
 
         return dateutil.parser.isoparse(value)
+
 
     @staticmethod
     def to_decimal(value):
@@ -201,8 +206,9 @@ class KqlQueryResponse(object):
 
     def __init__(self, json_response, endpoint_version="v1"):
         self.json_response = json_response
-        self.endpoint_version = "v1" if not isinstance(self.json_response, list)  else endpoint_version
+        self.endpoint_version = "v1" if not isinstance(self.json_response, list) else endpoint_version
         self.visualization = None
+        self._extended_properties = None
 
         if self.endpoint_version == "v2":
             self.all_tables = [t for t in json_response if t["FrameType"] == "DataTable"]
@@ -232,30 +238,39 @@ class KqlQueryResponse(object):
 
 
     @property
-    def visualization_results(self):
-        if self.visualization is None:
-            self.visualization = {}
+    def extended_properties(self):
+        if self._extended_properties is None:
+            self._extended_properties = {}
             if self.endpoint_version == "v2":
                 for table in self.all_tables:
                     if table["TableName"] == "@ExtendedProperties" and table["TableKind"] == "QueryProperties":
                         cols_idx_map = self._map_columns_to_index(table["Columns"])
                         types = self._get_columns_types(table["Columns"])
                         key_idx = cols_idx_map.get("Key")
-                        id_idx = cols_idx_map.get("TableId")
+                        table_id_idx = cols_idx_map.get("TableId")
                         value_idx = cols_idx_map.get("Value")
                         if (
                             key_idx is not None
-                            and id_idx is not None
+                            and table_id_idx is not None
                             and value_idx is not None
                             and types[key_idx] == "string"
-                            and types[id_idx] == "int"
-                            and types[value_idx] == "dynamic"
+                            and types[table_id_idx] == "int"
                         ):
                             for row in table["Rows"]:
-                                if row[key_idx] == "Visualization":
-                                    # print(f'visualization raw properties for table {id_idx}: {row[value_idx]}')
-                                    value = row[value_idx]
-                                    self.visualization[row[id_idx]] = self._dynamic_to_object(value)
+                                table_id = row[table_id_idx]
+                                key = row[key_idx]
+                                value = row[value_idx]
+                                extended_properties = self._extended_properties.get(table_id, {})
+                                if key == ExtendedPropertiesKeys.VISUALIZATION:
+                                    value_obj = self._dynamic_to_object(value)
+                                    extended_properties[key] = value_obj
+                                elif key == ExtendedPropertiesKeys.CURSOR:
+                                    # Note: although the value column is defined as dynamic the value here is string
+                                    extended_properties[key] = str(value)
+                                else:
+                                    extended_properties[key] = value
+                                self._extended_properties[table_id] = extended_properties
+
             else:
                 tables_num = self.json_response["Tables"].__len__()
                 if tables_num > 1:
@@ -263,10 +278,23 @@ class KqlQueryResponse(object):
                     for row in last_table["Rows"]:
                         if row[2] == "@ExtendedProperties" and row[1] == "QueryProperties":
                             table = self.json_response["Tables"][row[0]]
-                            # print(f'visualization raw properties for first table: {table['Rows'][0][0]}')
-                            value = table["Rows"][0][0]
-                            self.visualization[0] = self._dynamic_to_object(value)
-        return self.visualization
+                            table_id = 0
+                            value_idx = 0
+                            extended_properties = {}
+                            for row in table["Rows"]:
+                                value = row[value_idx]
+                                value_obj = self._dynamic_to_object(value)
+                                if type(value_obj) == dict:
+                                    key = list(value_obj.keys())[0]
+                                    if key == ExtendedPropertiesKeys.VISUALIZATION:
+                                        extended_properties[key] = value_obj
+                                    elif key == ExtendedPropertiesKeys.CURSOR:
+                                        extended_properties[key] = str(value_obj.get(ExtendedPropertiesKeys.CURSOR,""))
+                                    else:
+                                        extended_properties[key] = value_obj
+                                    self._extended_properties[table_id] = extended_properties
+                            break
+        return self._extended_properties
 
 
     @property
@@ -361,7 +389,7 @@ class KqlQueryResponse(object):
 
 
     @staticmethod
-    def _dynamic_to_object(value):
+    def _dynamic_to_object(value:str):
         try:
             return json.loads(value) if value and isinstance(value, str) else value if value else None
         except Exception:
@@ -394,4 +422,3 @@ class KqlError(Exception):
 
     def get_partial_results(self):
         return self.kql_response
-

@@ -8,15 +8,18 @@ from email.message import EmailMessage
 import re
 
 
+from .constants import Email
+
+
 class EmailNotification(object):
 
     def __init__(self, **params):
-        self._port = params.get("smtpport")  
-        self._smtp_server = params.get("smtpendpoint")
-        self._sender_email = params.get("sendfrom")
-        self._receiver_email = params.get("sendto") 
-        self._password = params.get("sendfrompassword")
-        self._context = params.get("context")
+        self._port = params.get(Email.SMTP_PORT)  
+        self._smtp_server = params.get(Email.SMTP_ENDPOINT)
+        self._sender_email = params.get(Email.SEND_FROM)
+        self._receiver_email = params.get(Email.SEND_TO) 
+        self._password = params.get(Email.SEND_FROM_PASSWORD)
+        self._context = params.get(Email.CONTEXT)
 
         self._validate_email_params()
 
@@ -38,7 +41,7 @@ class EmailNotification(object):
             server.starttls() 
             server.login(self._sender_email, self._password)
             result = server.sendmail(self._sender_email, self._receiver_email, 
-            f"From: {self._sender_email}\nTo: {self._receiver_email}\nSubject: {subject}\n\nContext: {self.context}\n{message}")
+                                     f"From: {self._sender_email}\nTo: {self._receiver_email}\nSubject: {subject}\n\nContext: {self.context}\n{message}")
             if result:
                 error_message = []
                 for key, value in result:
@@ -53,9 +56,8 @@ class EmailNotification(object):
         raise ValueError("""
             cannot notify device_code login by email because some email parameters are missing. 
             Set KQLMAGIC_CODE_NOTIFICATION_EMAIL in the following way: SMTPEndPoint: \" email server\"; SMTPPort: \"email port\";
-            sendFrom: \"sender email address \"; sendFromPassword: \"email address password \"; sendTo:\" email address to send to\"""" )
+            sendFrom: \"sender email address \"; sendFromPassword: \"email address password \"; sendTo:\" email address to send to\"""")
 
 
     def _is_email_format(self, email):
-        return re.match( r'[\w\.-]+@[\w\.-]+(\.[\w]+)+', email)
-    
+        return re.match(r'[\w\.-]+@[\w\.-]+(\.[\w]+)+', email)

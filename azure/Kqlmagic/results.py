@@ -4,7 +4,6 @@
 # license information.
 # --------------------------------------------------------------------------
 
-import copy
 import functools
 import operator
 import csv
@@ -13,20 +12,23 @@ import os.path
 import re
 import uuid
 import base64
+import json
+import io
+from typing import Any, Union, Dict
+
+from traitlets.traitlets import Bool
 
 
-import six
-import prettytable
-import plotly
-import plotly.graph_objs as go
+from ._debug_utils import debug_print
+from .dependencies import Dependencies
 
 
 from .log import logger
 
 
-from .version import VERSION as kqlmagic_version
-from .constants import VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends, VisualizationSplits, VisualizationKinds
-from .my_utils import adjust_path
+from ._version import __version__ as kqlmagic_version
+from .constants import ExtendedPropertiesKeys, VisualizationKeys, VisualizationValues, VisualizationScales, VisualizationLegends
+from .my_utils import adjust_path, json_dumps
 from .column_guesser import ColumnGuesserMixin
 from .display import Display
 from .palette import Palette, Palettes
@@ -55,24 +57,17 @@ class UnicodeWriter(object):
     # Object constructor
     def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
         # Redirect output to a queue
-        self.queue = six.StringIO()
+        self.queue = io.StringIO()
         self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
         self.stream = f
         self.encoder = codecs.getincrementalencoder(encoding)()
 
 
     def writerow(self, row):
-        if six.PY2:
-            _row = [s.encode("utf-8") if hasattr(s, "encode") else s for s in row]
-        else:
-            _row = row
+        _row = row
         self.writer.writerow(_row)
         # Fetch UTF-8 output from the queue ...
         data = self.queue.getvalue()
-        if six.PY2:
-            data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
-            data = self.encoder.encode(data)
         # write to the target stream
         self.stream.write(data)
         # empty queue
@@ -127,7 +122,6 @@ class FileResultDescriptor(bytes):
         if self.is_image:
             return self if self.format in FileResultDescriptor.FILE_BINARY_FORMATS else "".join(chr(x) for x in self)
         else:
-            # print(f">>> {self._file_location_message()}")
             filename = adjust_path(self.file_or_image)
             return open(filename, "rb" if self.format in self.FILE_BINARY_FORMATS else "r").read()
 
@@ -151,9 +145,9 @@ class FileResultDescriptor(bytes):
     def _repr_html_(self):
         if self.show and self.format == "html":
             return self._get_data()
-        if not self.show and not self.is_image:
-            href = os.path.join(".", "files", self.file_or_image)
-            return f'<a href="{href}" download>{self.message}</a>'
+        # if not self.show and not self.is_image:
+        #     href = os.path.join(".", "files", self.file_or_image)
+        #     return f'<a href="{href}" download>{self.message}</a>'
 
 
     def _repr_png_(self):
@@ -198,6 +192,46 @@ def _nonbreaking_spaces(match_obj):
     return f"{match_obj.group(1)}{spaces}"
 
 
+class DisplayRows(list):
+
+    def __init__(self, rows:list, limit:int):
+        self.limit = min(limit or len(rows), len(rows))
+        self.rows = rows
+        self.row_index = 0
+
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            if key.start and key.start >= self.limit:
+                return
+            key_start = key.start
+            if key.stop is None or key.stop >= self.limit:
+                key_stop = self.limit - 1
+            else:
+                key_stop = key.stop
+            key_slice = slice(key_start, key_stop, key.step)
+            return list.__getitem__(self.rows, key_slice)
+        if key < self.limit:
+            return list.__getitem__(self.rows, key)
+
+
+    def __len__(self):
+        return self.limit
+
+
+    def __iter__(self):
+        self.row_index = 0
+        return self
+
+
+    def __next__(self):
+        if self.row_index >= self.limit:
+            raise StopIteration
+        val = self.__getitem__(self.row_index)
+        self.row_index = self.row_index + 1
+        return val
+
+
 class ResultSet(list, ColumnGuesserMixin):
     """
     Results of a query.
@@ -205,10 +239,12 @@ class ResultSet(list, ColumnGuesserMixin):
     Can access rows listwise, or by string value of leftmost column.
     """
 
-    is_matplotlib_intialized = False
+    _is_matplotlib_intialized = False
+    matplotlib_pyplot = None
+
 
     # Object constructor
-    def __init__(self, metadata, queryResult, fork_table_id=0, fork_table_resultSets={}):
+    def __init__(self, metadata:Dict[str,Any], queryResult, fork_table_id:int=0, fork_table_resultSets={}):
 
         #         self.current_colors_palette = ['rgb(184, 247, 212)', 'rgb(111, 231, 219)', 'rgb(127, 166, 238)', 'rgb(131, 90, 241)']
 
@@ -224,14 +260,15 @@ class ResultSet(list, ColumnGuesserMixin):
         self.suppress_result = False
         self.update_obj(metadata, queryResult)
 
-    def _update_metadata(self, metadata: dict):
+
+    def _update_metadata(self, metadata:Dict[str,Any])->None:
         self._metadata = metadata
         self.parametrized_query_obj = metadata.get('parametrized_query_obj')
         self.options = metadata['parsed'].get('options') or {}
-        self.conn = metadata.get('conn')
+        self.engine = metadata.get('engine')
 
 
-    def _get_palette(self, n_colors=None, desaturation=None):
+    def _get_palette(self, n_colors:int=None, desaturation:float=None):
         name = self.options.get("palette_name")
         length = max(n_colors or 10, self.options.get("palette_colors") or 10)
         self._metadata["palette"] = Palette(
@@ -243,7 +280,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return self.palette
 
 
-    def get_color_from_palette(self, idx, n_colors=None, desaturation=None):
+    def get_color_from_palette(self, idx:int, n_colors:int=None, desaturation:float=None)->str:
         palette = self.palette or self._get_palette(n_colors, desaturation)
         if idx < len(palette):
             return str(palette[idx])
@@ -252,13 +289,13 @@ class ResultSet(list, ColumnGuesserMixin):
 
     # Public API   
     @property 
-    def parametrized_query(self):
+    def parametrized_query(self)->str:
         return self.parametrized_query_obj.pretty_query
 
 
     # Public API   
     @property
-    def query(self):
+    def query(self)->str:
         return self._metadata.get("parsed").get("query").strip()
 
 
@@ -276,31 +313,31 @@ class ResultSet(list, ColumnGuesserMixin):
 
     # Public API   
     @property
-    def palettes(self):
+    def palettes(self)->Palettes:
         return Palettes(n_colors=self.options.get("palette_colors"), desaturation=self.options.get("palette_desaturation"))
 
 
     # Public API   
     @property
-    def connection(self):
-        return self._metadata.get("connection")
+    def connection(self)->str:
+        return self._metadata.get("conn_name")
 
 
     # Public API   
     @property
-    def start_time(self):
+    def start_time(self)->float:
         return self._metadata.get("start_time")
 
 
     # Public API   
     @property
-    def end_time(self):
+    def end_time(self)->float:
         return self._metadata.get("end_time")
 
 
     # Public API   
     @property
-    def elapsed_timespan(self):
+    def elapsed_timespan(self)->float:
         return self.end_time - self.start_time
 
 
@@ -312,15 +349,21 @@ class ResultSet(list, ColumnGuesserMixin):
 
     # Public API   
     @property
-    def title(self):
+    def cursor(self):
+        return self._cursor
+
+
+    # Public API   
+    @property
+    def title(self)->str:
         return self.visualization_properties.get(VisualizationKeys.TITLE)
 
     # Public API
-    def deep_link(self, qld_param: str=None):
+    def deep_link(self, qld_param:str=None):
         if (qld_param and qld_param not in ["Kusto.Explorer", "Kusto.WebExplorer"]):
             raise ValueError('Unknow deep link destination, the only supported are: ["Kusto.Explorer", "Kusto.WebExplorer"]')
-        _options = {**self.options, "query_link_destination": qld_param } if qld_param else self.options
-        deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, options=_options)
+        _options = {**self.options, "query_link_destination": qld_param} if qld_param else self.options
+        deep_link_url = self.engine.get_deep_link(self.parametrized_query_obj.query, options=_options)
         # only use deep links for kusto connection
         if deep_link_url is not None:
             logger().debug("ResultSet::deep_link - url: {deep_link_url}")
@@ -334,7 +377,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return None
 
 
-    def _update_query_results(self, queryResult):
+    def _update_query_results(self, queryResult)->None:
         self._queryResult = queryResult
         self._completion_query_info = queryResult.completion_query_info
         self._completion_query_resource_consumption = queryResult.completion_query_resource_consumption
@@ -347,12 +390,11 @@ class ResultSet(list, ColumnGuesserMixin):
         self.columns_type = queryResultTable.types()
         self.columns_datafarme_type = queryResultTable.datafarme_types
         self.field_names = _unduplicate_field_names(self.columns_name)
-                # table printing style to any of prettytable's defined styles (currently DEFAULT, MSWORD_FRIENDLY, PLAIN_COLUMNS, RANDOM)
-        prettytable_style = prettytable.__dict__[self.options.get("prettytable_style", "DEFAULT").upper()]
-        self.pretty = PrettyTable(self.field_names, style=prettytable_style) if len(self.field_names) > 0 else None
+        self.pretty = None
         self.records_count = queryResultTable.recordscount()
         self.is_partial_table = queryResultTable.ispartial()
-        self.visualization_properties = queryResultTable.visualization_properties
+        self.visualization_properties = queryResultTable.extended_properties.get(ExtendedPropertiesKeys.VISUALIZATION, {})
+        self._cursor = queryResultTable.extended_properties.get(ExtendedPropertiesKeys.CURSOR, "")
         # table
         auto_limit = 0 if not self.options.get("auto_limit") else self.options.get("auto_limit")
         if queryResultTable.returns_rows():
@@ -367,11 +409,12 @@ class ResultSet(list, ColumnGuesserMixin):
         self._fork_table_resultSets[str(self.fork_table_id)] = self
     
 
-    def update_obj(self, metadata, queryResult):
+    def update_obj(self, metadata:Dict[str,Any], queryResult)->None:
         self._update_metadata(metadata)
         self._update_query_results(queryResult)
 
-    def _create_fork_results(self):
+
+    def _create_fork_results(self)->None:
         if self.fork_table_id == 0 and len(self._fork_table_resultSets) == 1:
             for fork_table_id in range(1, len(self._queryResult.tables)):
                 r = ResultSet(self._metadata, self._queryResult, fork_table_id=fork_table_id, fork_table_resultSets=self._fork_table_resultSets)
@@ -381,7 +424,7 @@ class ResultSet(list, ColumnGuesserMixin):
                         r.feedback_info.append("Done ({:0>2}:{:06.3f}): {} records".format(int(minutes), seconds, r.records_count))
 
 
-    def _update_fork_results(self):
+    def _update_fork_results(self)->None:
         if self.fork_table_id == 0:
             for r in self._fork_table_resultSets.values():
                 if r != self:
@@ -396,7 +439,7 @@ class ResultSet(list, ColumnGuesserMixin):
                             r.feedback_info.append("Done ({:0>2}:{:06.3f}): {} records".format(int(minutes), seconds, r.records_count))
 
 
-    def fork_result(self, fork_table_id=0):
+    def fork_result(self, fork_table_id:int=0):
         # return self._fork_table_resultSets.get(str(fork_table_id))
         return self._fork_table_resultSets[str(fork_table_id)]
 
@@ -422,22 +465,23 @@ class ResultSet(list, ColumnGuesserMixin):
 
 
     # IPython html presentation of the object
-    def _repr_html_(self):
+    def _repr_html_(self)->str:
         self.show_result()
         return ""
 
-    def show_result(self, suppress_next_repr_html_=None):
 
+    def show_result(self, is_last_query:Bool=None)->str:
+        suppress_next_repr_html_ = bool(is_last_query)  # and self.need_suppress_next_workaround()
         suppress_current_repr_html_ = self._suppress_next_repr_html_
         self._suppress_next_repr_html_ = suppress_next_repr_html_
         if suppress_current_repr_html_:
             return ""
 
         if not self.suppress_result:
-            feedback_warning = self.feedback_warning if self.display_info  else None
-            conn_info = self._metadata.get("conn_info") if self.display_info  else None
+            feedback_warning = self.feedback_warning if self.display_info else None
+            conn_info = self._metadata.get("conn_info") if self.display_info else None
             parametrized_query = self.parametrized_query_obj.query if self.display_info and self.options.get("show_query") else None
-            feedback_info = self.feedback_info if self.display_info  else None
+            feedback_info = self.feedback_info if self.display_info else None
 
             Display.showWarningMessage(feedback_warning, display_handler_name='feedback_warning', **self.options)
             Display.showInfoMessage(conn_info, display_handler_name='conn_info', **self.options)
@@ -471,11 +515,11 @@ class ResultSet(list, ColumnGuesserMixin):
         return ""
 
 
-    def show_button_to_deep_link(self, browser=False, display_handler_name=None):
+    def show_button_to_deep_link(self, browser:bool=False, display_handler_name:str=None)->None:
         close_window_timeout_in_secs = 60 if self.options.get("query_link_destination") == "Kusto.Explorer" else None
-        deep_link_url = self.conn.get_deep_link(self.parametrized_query_obj.query, options=self.options)
+        deep_link_url = self.engine.get_deep_link(self.parametrized_query_obj.query, options=self.options)
 
-        if deep_link_url is not None: #only use deep links for kusto connection 
+        if deep_link_url is not None:  # only use deep links for kusto connection 
             logger().debug(f"ResultSet::show_button_to_deep_link - url: {deep_link_url}")
             import urllib.parse
             # nteract cannot execute deep link script, workaround using temp_file_server webbrowser
@@ -501,34 +545,57 @@ class ResultSet(list, ColumnGuesserMixin):
         return None
 
 
-    def _getTableHtml(self):
+    def _getPrettyTableHtml(self)->Dict[str,str]:
         "get query result in a table format as an HTML string"
-        _cell_with_spaces_pattern = re.compile(r"(<td>)( {2,})")
-        if self.pretty:
-            self.pretty.add_rows(self)
+
+        display_limit = 0 if not self.options.get("display_limit") else self.options.get("display_limit")
+        table = DisplayRows(self, display_limit)
+        prettytable = Dependencies.get_module('prettytable', dont_throw=True)
+        if prettytable:
+            if self.pretty is None:
+                # table printing style to any of prettytable's defined styles (currently DEFAULT, MSWORD_FRIENDLY, PLAIN_COLUMNS, RANDOM)
+                prettytable_style = prettytable.__dict__[self.options.get("prettytable_style", "DEFAULT").upper()]
+                self.pretty = PrettyTable(self.field_names, style=prettytable_style) if len(self.field_names) > 0 else None
+            self.pretty.add_rows(table)
             result = self.pretty.get_html_string()
+            _cell_with_spaces_pattern = re.compile(r"(<td>)( {2,})")
             result = _cell_with_spaces_pattern.sub(_nonbreaking_spaces, result)
-            display_limit = 0 if not self.options.get("display_limit") else self.options.get("display_limit")
-            if display_limit > 0 and len(self) > display_limit:
-                result = f'{result}\n<span style="font-style:italic;text-align:center;">{len(self)} rows, truncated to display_limit of {display_limit}</span>'
-            return {"body": result}
         else:
-            return {}
+            tabulate = Dependencies.get_module('tabulate', dont_throw=True)
+            if tabulate:
+                result = tabulate.tabulate(table, self.field_names, tablefmt="html")
+            else:
+                prettytable = Dependencies.get_module('prettytable')
+                return {}
+
+        if display_limit > 0 and len(self) > display_limit:
+            result = f'{result}\n<span style="font-style:italic;text-align:center;">{len(self)} rows, truncated to display_limit of {display_limit}</span>'
+        return {"body": result}
 
 
-    def show_table(self, display_handler_name=None, **kwargs):
+    def need_suppress_next_workaround(self)->bool:
+        if self.options.get("table_package") != "pandas_html_table_schema" \
+                or self.options.get("popup_window") \
+                or (len(self) == 1 and len(self[0]) == 1 and (isinstance(self[0][0], dict) or isinstance(self[0][0], list))):
+            return False
+        else:
+            return False
+
+
+    def show_table(self, display_handler_name:str=None, **kwargs)->None:
         "display the table"
 
         options = {**self.options, **kwargs}
 
+        pd = None
         pandas__repr_data_resource_ = None
         pandas_display_html_table_schema = None
         pandas__repr_data_resource_patched = False
-        if not options.get("popup_window") and len(self) == 1 and len(self[0]) == 1  and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
+        if not options.get("popup_window") and len(self) == 1 and len(self[0]) == 1 and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
             content = Display.to_json_styled_class(self[0][0], options=options)
         else:
             if options.get("table_package", "").lower() in ["pandas", "pandas_html_table_schema"]:
-                import pandas as pd
+                pd = Dependencies.get_module("pandas")
 
                 df = self.to_dataframe()
                 display_limit = options.get("display_limit")
@@ -537,17 +604,20 @@ class ResultSet(list, ColumnGuesserMixin):
 
                 pd.set_option('display.max_rows', display_limit)
                 pd.set_option('display.max_columns', None)
-                pd.set_option('display.min_rows', display_limit)
+                try:
+                    pd.set_option('display.min_rows', display_limit)
+                except:
+                    pass
                 pd.set_option('display.large_repr', "truncate")
 
 
-                if options.get("table_package", "").lower() == "pandas_html_table_schema" and not options.get("popup_window"):
+                if options.get("table_package", "") == "pandas_html_table_schema" and not options.get("popup_window"):
                     df_copied = False
                     for idx, column_type in enumerate(self.columns_type):
                         if column_type == "dynamic":
                             if not df_copied:
-                               df_copied =  True
-                               df = df.copy()
+                                df_copied =  True
+                                df = df.copy()
                             col_name = self.columns_name[idx]
                             for item_idx, item in enumerate(df[col_name]):
                                 df.loc[item_idx, col_name] = f"{item}"
@@ -564,8 +634,9 @@ class ResultSet(list, ColumnGuesserMixin):
                     pd.options.display.html.table_schema = False
                     t = df._repr_html_()
                     content = Display.toHtml(body=t, title='table')
+            # prettytable or tabulate in html format
             else:
-                t = self._getTableHtml()
+                t = self._getPrettyTableHtml()
                 content = Display.toHtml(**t, title='table')
 
         if options.get("popup_window") and not options.get("button_text"):
@@ -586,39 +657,77 @@ class ResultSet(list, ColumnGuesserMixin):
 
     def _patch_pandas__repr_data_resource_(self):
         "patch pandas' _repr_data_resource_ method. main modifications is to remove pandas primary key index"
-        import pandas as pd
+        pd = Dependencies.get_module("pandas")
         pandas__repr_data_resource_ = pd.DataFrame._repr_data_resource_
 
-        def my__repr_data_resource_(self):
-            obj = pandas__repr_data_resource_(self)
+        def my__repr_data_resource_(pandas_self):
+            "replace pandas method. Takes pandas method result and modify it"
 
-            #
-            # mofify schema part
-            #
-            schema = obj.get("schema")
+            # object from pandas
+            obj = pandas__repr_data_resource_(pandas_self)
+            modified_obj = False
 
-            # remove primary key, becuase index is the primary key
-            del schema["primaryKey"]
+            try: 
+                if not isinstance(obj, dict):
+                    return obj
 
-            # replace pandas version with kqlmagic version
-            del schema["pandas_version"]
-            schema["kqmagic_version"] = kqlmagic_version
-            
-            # remove index field
-            fields = schema.get("fields")
-            for idx, field in enumerate(fields):
-                if field.get("name") == "index":
-                    fields.pop(idx)
-                    break
-            
-            #
-            # modify data part
-            #
-            data = obj.get("data")
-            for row in data:
-                del row["index"]
+                schema = obj.get("schema")
+                if not isinstance(schema, dict):
+                    return obj
 
-            # return modified object
+                #
+                # mofify schema part
+                #
+                primary_keys = schema.get('primaryKey')
+                if isinstance(primary_keys, str):
+                    primary_keys = [primary_keys.strip()]
+
+                if not isinstance(primary_keys, list):
+                    return obj
+
+                if 'index' not in primary_keys:
+                    return obj
+
+                fields = schema.get("fields")
+                if not isinstance(fields, list):
+                    return obj
+
+                rows = obj.get("data")
+                if not isinstance(rows, list):
+                    return obj
+
+                #
+                # mofify schema
+                #
+
+                # remove primary key, becuase index is the primary key
+                del schema["primaryKey"]
+
+                # replace pandas version with kqlmagic version
+                if "pandas_version" in schema:
+                    del schema["pandas_version"]
+
+                schema["kqmagic_version"] = kqlmagic_version
+
+                # remove 'index' field metadata
+                fields = schema.get("fields")
+                for idx, field in enumerate(fields):
+                    if field.get("name") == "index":
+                        fields.pop(idx)
+                        break
+
+                #
+                # mofify data
+                #
+
+                # remove 'index' column
+                for row in rows:
+                    del row["index"]
+
+            except:
+                pass
+            if not modified_obj:
+                logger().debug(f"ResultSet::my__repr_data_resource_ - didn't modify:\n {obj}\n")
             return obj
 
 
@@ -626,30 +735,32 @@ class ResultSet(list, ColumnGuesserMixin):
 
         return pandas__repr_data_resource_
 
-    def _unpatch_pandas__repr_data_resource_(self, pandas__repr_data_resource_):
-        import pandas as pd
+
+    def _unpatch_pandas__repr_data_resource_(self, pandas__repr_data_resource_)->None:
+        pd = Dependencies.get_module("pandas")
         pd.DataFrame._repr_data_resource_ = pandas__repr_data_resource_
 
+
     # Public API   
-    def popup_table(self, **kwargs):
+    def popup_table(self, **kwargs)->None:
         "display the table in popup window"
-        return self.show_table(**{"popup_window": True, **kwargs})
+        self.show_table(**{"popup_window": True, **kwargs})
 
 
     # Public API   
-    def display_table(self, **kwargs):
+    def display_table(self, **kwargs)->None:
         "display the table in cell"
-        return self.show_table(**{"popup_window": False, **kwargs})
+        self.show_table(**{"popup_window": False, **kwargs})
 
 
     # Printable pretty presentation of the object
-    def __str__(self, *args, **kwargs):
-        self.pretty.add_rows(self)
-        return str(self.pretty or "")
+    def __str__(self, *args, **kwargs)->str:
+        j_table = [[json.loads(json_dumps(row[col])) for col in self.columns_name] for row in self]
+        return json_dumps(j_table)
 
 
     # For iterator self[key]
-    def __getitem__(self, key):
+    def __getitem__(self, key:Union[int,str,slice]):
         """
         Access by integer (row position within result set)
         or by string (value of leftmost column)
@@ -665,7 +776,7 @@ class ResultSet(list, ColumnGuesserMixin):
             item = result[0]
 
         if isinstance(key, slice):
-            if key.start == None and key.stop == None and key.step == None:
+            if key.start is None and key.stop is None and key.step is None:
                 return item
             elif len(item) == 0:
                 return item
@@ -673,7 +784,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return Display.to_json_styled_class(item, options=self.options)
 
 
-    def to_dict(self):
+    def to_dict(self)->Dict[str,Any]:
         """Returns a single dict built from the result set
         Keys are column names; values are a tuple"""
         if len(self):
@@ -694,20 +805,21 @@ class ResultSet(list, ColumnGuesserMixin):
         if self._dataframe is None:
             self._dataframe = self._queryResult.tables[self.fork_table_id].to_dataframe(options=self.options)
 
-            # import pandas as pd
+            # pd = Dependencies.get_module("pandas")
             # frame = pd.DataFrame(self, columns=(self and self.columns_name) or [])
             # self._dataframe = frame
         return self._dataframe
 
 
     # Public API   
-    def submit(self, override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
+    def submit(self, override_vars:Dict[str,str]=None, override_options:Dict[str,Any]=None, override_query_properties:Dict[str,Any]=None, override_connection:str=None)->None:
         "execute the query again"
         magic = self._metadata.get("magic")
         line = self._metadata.get("parsed").get("line")
         cell = self._metadata.get("parsed").get("cell")
 
-        return magic.execute(line, cell, 
+        return magic.execute(
+            line, cell, 
             override_vars=override_vars, 
             override_options=override_options, 
             override_query_properties=override_query_properties,
@@ -715,7 +827,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
 
     # Public API   
-    def refresh(self, override_vars:dict=None, override_options:dict=None, override_query_properties:dict=None, override_connection:str=None):
+    def refresh(self, override_vars:Dict[str,str]=None, override_options:Dict[str,Any]=None, override_query_properties:Dict[str,Any]=None, override_connection:str=None)->None:
         "refresh the results of the query, on the same object: self"
 
         _override_options = {**override_options} if type(override_options) == dict else {}
@@ -726,7 +838,8 @@ class ResultSet(list, ColumnGuesserMixin):
         line = self._metadata.get("parsed").get("line")
         cell = self._metadata.get("parsed").get("cell")
 
-        return magic.execute(line, cell, 
+        return magic.execute(
+            line, cell, 
             override_vars=override_vars, 
             override_options=_override_options, 
             override_query_properties=override_query_properties,
@@ -735,7 +848,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
 
     # Public API   
-    def popup(self, **kwargs):
+    def popup(self, **kwargs)->None:
         if self.is_chart():
             self.popup_Chart(**kwargs)
         else:
@@ -743,7 +856,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
 
     # Public API        
-    def show_chart(self, display_handler_name=None, **kwargs):
+    def show_chart(self, display_handler_name:str=None, **kwargs)->None:
         "display the chart that was specified in the query"
         _options = {**self.options, **kwargs}
         window_mode = _options.get("popup_window")
@@ -755,7 +868,8 @@ class ResultSet(list, ColumnGuesserMixin):
             html = Display.toHtml(**c, title='chart')
             Display.show(html, display_handler_name=display_handler_name, **_options)
         elif c.get("fig"):
-            if _options.get("notebook_app") in ["azurenotebook", "jupyterlab", "visualstudiocode", "ipython"]: 
+            if _options.get("notebook_app") in ["azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyterlab", "visualstudiocode", "ipython"]:
+                plotly = Dependencies.get_module('plotly')
                 plotly.offline.init_notebook_mode(connected=True)
                 plotly.offline.iplot(c.get("fig"), filename="plotlychart")
             else:
@@ -765,7 +879,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
 
     # Public API 
-    def to_image(self, **kwargs):
+    def to_image(self, **kwargs)->FileResultDescriptor:
         "export image of the chart that was specified in the query to a file"
         _options = {**self.options, **kwargs}
 
@@ -786,27 +900,27 @@ class ResultSet(list, ColumnGuesserMixin):
 
 
     # Public API 
-    def popup_Chart(self, **kwargs):
+    def popup_Chart(self, **kwargs)->None:
         "display the chart that was specified in the query in a popup window"
-        return self.chart_popup(**kwargs)
+        self.chart_popup(**kwargs)
 
 
-    def display_Chart(self, **kwargs):
+    def display_Chart(self, **kwargs)->None:
         "display the chart that was specified in the query in the cell"
-        return self.chart_display(**kwargs)
+        self.chart_display(**kwargs)
 
 
-    def chart_popup(self, **kwargs):
+    def chart_popup(self, **kwargs)->None:
         "display the chart that was specified in the query"
-        return self.show_chart(**{"popup_window": True, **kwargs})
+        self.show_chart(**{"popup_window": True, **kwargs})
 
 
-    def chart_display(self, **kwargs):
+    def chart_display(self, **kwargs)->None:
         "display the chart that was specified in the query"
-        return self.show_chart(**{"popup_window": False, **kwargs})
+        self.show_chart(**{"popup_window": False, **kwargs})
 
 
-    def is_chart(self):
+    def is_chart(self)->bool:
         return self.visualization and self.visualization != VisualizationValues.TABLE
 
 
@@ -817,7 +931,7 @@ class ResultSet(list, ColumnGuesserMixin):
     ]
 
 
-    def _getChartHtml(self, window_mode=False, options={}):
+    def _getChartHtml(self, window_mode:bool=False, options:Dict[str,Any]={})->Dict[str,Any]:
         "get query result in a char format as an HTML string"
         # https://kusto.azurewebsites.net/docs/queryLanguage/query_language_renderoperator.html
 
@@ -851,7 +965,8 @@ class ResultSet(list, ColumnGuesserMixin):
             chart_obj = self._render_piechart_plotly(self.visualization_properties, " ", options=options)
 
         # First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
-        # kind = default, unstacked, stacked, stacked100 (Default, same as unstacked; unstacked - Each "area" to its own; stacked - "Areas" are stacked to the right; stacked100 - "Areas" are stacked to the right, and stretched to the same width)
+        # kind = default, unstacked, stacked, stacked100 (Default, same as unstacked; unstacked - Each "area" to its own; stacked 
+        # - "Areas" are stacked to the right; stacked100 - "Areas" are stacked to the right, and stretched to the same width)
         elif self.visualization == VisualizationValues.BAR_CHART:
             chart_obj = self._render_barchart_plotly(self.visualization_properties, " ", options=options)
 
@@ -915,6 +1030,7 @@ class ResultSet(list, ColumnGuesserMixin):
                 
             elif window_mode:
                 head = '<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>' if not self.options.get("plotly_fs_includejs") else None
+                plotly = Dependencies.get_module('plotly')
                 body = plotly.offline.plot(
                     chart_figure,
                     include_plotlyjs=window_mode and self.options.get("plotly_fs_includejs", False), 
@@ -927,19 +1043,21 @@ class ResultSet(list, ColumnGuesserMixin):
         return {}
 
 
-    def _plotly_fig_to_image(self, fig, filename:str, options:dict={}) -> bytes:
+    def _plotly_fig_to_image(self, fig, filename:str, options:Dict[str,Any]={})->bytes:
         try:
-            if filename: #requires plotly orca package
+            if filename:  # requires plotly orca package
                 fig.write_image(
                     adjust_path(filename),
                     format=options.get("format"), 
                     scale=options.get("scale"), width=options.get("width"), height=options.get("height")
                 )
+                # plotly = Dependencies.get_module('plotly')
                 # plotly.io.write_image(
                 #     fig, file, format=options.get("format"), scale=options.get("scale"), width=options.get("width"), height=options.get("height")
                 # )
                 return filename        
             else:
+                plotly = Dependencies.get_module('plotly')
                 return plotly.io.to_image(
                     fig, format=options.get("format"), scale=options.get("scale"), width=options.get("width"), height=options.get("height")
                 )
@@ -952,13 +1070,17 @@ class ResultSet(list, ColumnGuesserMixin):
 
     @classmethod
     def _init_matplotlib(cls, **options):
-        if not cls.is_matplotlib_intialized:
+        if not cls._is_matplotlib_intialized:
+            plt = Dependencies.get_module('matplotlib.pyplot')
+            cls.matplotlib_pyplot = plt
             logger().debug("ResultSet::_init_matplotlib - initialize matplotlib")
             IPythonAPI.try_init_ipython_matplotlib_magic(**options)
-            cls.is_matplotlib_intialized = True
+
+            cls._is_matplotlib_intialized = True
+        return cls.matplotlib_pyplot
 
 
-    def pie(self, properties:dict, key_word_sep=" ", **kwargs):
+    def pie(self, properties:Dict[str,Any], key_word_sep:str=" ", **kwargs):
         """Generates a pylab pie chart from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -980,8 +1102,7 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.pie``.
         """
 
-        self._init_matplotlib(**kwargs)
-        import matplotlib.pyplot as plt
+        plt = self._init_matplotlib(**kwargs)
 
         self.build_columns()
 
@@ -991,7 +1112,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return pie
 
 
-    def plot(self, properties:dict, **kwargs):
+    def plot(self, properties:Dict[str,Any], **kwargs):
         """Generates a pylab plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -1009,8 +1130,7 @@ class ResultSet(list, ColumnGuesserMixin):
         Any additional keyword arguments will be passsed
         through to ``matplotlib.pylab.plot``.
         """
-        self._init_matplotlib(**kwargs)
-        import matplotlib.pylab as plt
+        plt = self._init_matplotlib(**kwargs)
 
         self.guess_plot_columns()
         self.x = self.x or range(len(self.ys[0]))
@@ -1024,7 +1144,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return plot
 
 
-    def bar(self, properties:dict, key_word_sep=" ", **kwargs):
+    def bar(self, properties:Dict[str,Any], key_word_sep:str=" ", **kwargs):
         """Generates a pylab bar plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -1044,8 +1164,7 @@ class ResultSet(list, ColumnGuesserMixin):
         Any additional keyword arguments will be passsed
         through to ``matplotlib.pylab.bar``.
         """
-        self._init_matplotlib(**kwargs)
-        import matplotlib.pylab as plt
+        plt = self._init_matplotlib(**kwargs)
 
         self.guess_pie_columns(xlabel_sep=key_word_sep)
         plot = plt.bar(range(len(self.ys[0])), self.ys[0], **kwargs)
@@ -1056,25 +1175,22 @@ class ResultSet(list, ColumnGuesserMixin):
         return plot
 
 
-    def to_csv(self, filename=None, **kwargs):
+    def to_csv(self, filename:str=None, **kwargs):
         """Generate results in comma-separated form.  Write to ``filename`` if given.
            Any other parameters will be passed on to csv.writer."""
-        if not self.pretty:
+        if len(self) == 0:
             return None  # no results
-        self.pretty.add_rows(self)
         if filename:
             filename = adjust_path(filename)
             encoding = kwargs.get("encoding", "utf-8")
-            if six.PY2:
-                outfile = open(filename, "wb")
-            else:
-                outfile = open(filename, "w", newline="", encoding=encoding)
+            outfile = open(filename, "w", newline="", encoding=encoding)
         else:
-            outfile = six.StringIO()
+            outfile = io.StringIO()
         writer = UnicodeWriter(outfile, **kwargs)
         writer.writerow(self.field_names)
         for row in self:
-            writer.writerow(row)
+            j_row = [json.loads(json_dumps(row[col])) for col in self.columns_name]
+            writer.writerow(j_row)
         if filename:
             outfile.close()
             message = "csv results"
@@ -1083,7 +1199,7 @@ class ResultSet(list, ColumnGuesserMixin):
             return outfile.getvalue()
 
 
-    def _render_pie(self, properties:dict, key_word_sep=" ", **kwargs):
+    def _render_pie(self, properties:Dict[str,Any], key_word_sep:str=" ", **kwargs):
         """Generates a pylab pie chart from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -1103,8 +1219,7 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.pie``.
         """
 
-        self._init_matplotlib(**kwargs)        
-        import matplotlib.pylab as plt
+        plt = self._init_matplotlib(**kwargs)
 
         self.build_columns()
 
@@ -1114,7 +1229,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return pie
 
 
-    def _render_barh(self, properties:dict, key_word_sep=" ", **kwargs):
+    def _render_barh(self, properties:Dict[str,Any], key_word_sep:str=" ", **kwargs):
         """Generates a pylab horizaontal barchart from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -1135,8 +1250,8 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.pie``.
         """
 
-        self._init_matplotlib(**kwargs)        
-        import matplotlib.pylab as plt
+        barchart = None
+        plt = self._init_matplotlib(**kwargs)
 
         self.build_columns()
         quantity_columns = [c for c in self.columns[1:] if c.is_quantity]
@@ -1163,7 +1278,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return barchart
 
 
-    def _render_bar(self,properties:dict, key_word_sep=" ", **kwargs):
+    def _render_bar(self,properties:Dict[str,Any], key_word_sep:str=" ", **kwargs):
         """Generates a pylab horizaontal barchart from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -1184,8 +1299,8 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.pie``.
         """
 
-        self._init_matplotlib(**kwargs)        
-        import matplotlib.pylab as plt
+        columnchart = None
+        plt = self._init_matplotlib(**kwargs)
 
         self.build_columns()
         quantity_columns = [c for c in self.columns[1:] if c.is_quantity]
@@ -1210,7 +1325,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return columnchart
 
 
-    def _render_linechart(self, properties:dict, key_word_sep=" ", **kwargs):
+    def _render_linechart(self, properties:Dict[str,Any], key_word_sep:str=" ", **kwargs):
         """Generates a pylab plot from the result set.
 
         ``matplotlib`` must be installed, and in an
@@ -1228,8 +1343,7 @@ class ResultSet(list, ColumnGuesserMixin):
         through to ``matplotlib.pylab.plot``.
         """
 
-        self._init_matplotlib(**kwargs)
-        import matplotlib.pyplot as plt
+        plt = self._init_matplotlib(**kwargs)
 
         self.build_columns()
         quantity_columns = [c for c in self.columns if c.is_quantity]
@@ -1249,7 +1363,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return plot
 
 
-    def _get_plotly_axis_scale(self, specified_property: str, col=None):
+    def _get_plotly_axis_scale(self, specified_property:str, col=None)->str:
         if col is not None:
             if not col.is_quantity:
                 return "category"
@@ -1258,7 +1372,7 @@ class ResultSet(list, ColumnGuesserMixin):
         return "log" if specified_property == VisualizationScales.LOG else "linear"
 
 
-    def _get_plotly_ylabel(self, specified_property: str, tabs: list) -> str:
+    def _get_plotly_ylabel(self, specified_property:str, tabs:list)->str:
         label = specified_property
         if label is None:
             label_names = []
@@ -1286,11 +1400,11 @@ class ResultSet(list, ColumnGuesserMixin):
     }
 
 
-    def _get_plotly_chart_x_type(self, properties: dict) -> str:
+    def _get_plotly_chart_x_type(self, properties:Dict[str,Any])->str:
         return self._CHART_X_TYPE.get(properties.get(VisualizationKeys.VISUALIZATION), "first")
     
 
-    def _get_plotly_chart_properties(self, properties: dict, tabs: list, options: dict={}) -> dict:
+    def _get_plotly_chart_properties(self, properties:Dict[str,Any], tabs: list, options:Dict[str,Any]={})->Dict[str,Any]:
         chart_properties = {}
         if properties.get(VisualizationKeys.VISUALIZATION) == VisualizationValues.BAR_CHART:
             chart_properties["xlabel"] = self._get_plotly_ylabel(properties.get(VisualizationKeys.X_TITLE), tabs)
@@ -1313,13 +1427,13 @@ class ResultSet(list, ColumnGuesserMixin):
         return chart_properties
 
 
-    def _figure_or_figurewidget(self, data, layout, window_mode:bool, options:dict={}):
-
+    def _figure_or_figurewidget(self, data, layout:Dict[str,Any], window_mode:bool, options:dict={}):
         plotly_layout = options.get("plotly_layout")
         if plotly_layout is not None:
-            for l in plotly_layout:
-                layout[l] = plotly_layout.get(l)
+            for property in plotly_layout:
+                layout[property] = plotly_layout.get(property)
 
+        go = Dependencies.get_module('plotly.graph_objs')
         if IPythonAPI.is_ipywidgets_installed() and options.get("plot_package") == "plotly_widget" and not window_mode:
             # print("----------- FigureWidget --------------")
 
@@ -1330,14 +1444,15 @@ class ResultSet(list, ColumnGuesserMixin):
         return fig
 
 
-    def _render_areachart_plotly(self, properties: dict, key_word_sep=" ", options:dict={}):
+    def _render_areachart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Area graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
 
-        self._build_chart_sub_tables(properties , x_type=self._get_plotly_chart_x_type(properties))
+        go = Dependencies.get_module('plotly.graph_objs')
+        self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
         chart_properties = self._get_plotly_chart_properties(properties, self.chart_sub_tables, options=options)
@@ -1373,13 +1488,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_stackedareachart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
+    def _render_stackedareachart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Stacked area graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
 
+        go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
@@ -1423,13 +1539,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_timechart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
+    def _render_timechart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Line graph. 
         First column is x-axis, and should be datetime. Other columns are y-axes.
         """
 
+        go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
@@ -1475,13 +1592,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_piechart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
+    def _render_piechart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Pie chart. 
         First column is color-axis, second column is numeric.
         """
 
+        go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
@@ -1538,13 +1656,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_barchart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
+    def _render_barchart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Bar chart. 
         First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
         """
 
+        go = Dependencies.get_module('plotly.graph_objs')
         sub_tables = self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(sub_tables) < 1:
             # this print is not for debug
@@ -1581,13 +1700,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_linechart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
+    def _render_linechart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Line graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
 
+        go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
@@ -1622,13 +1742,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_scatterchart_plotly(self, properties:dict, key_word_sep=" ", options:dict={}):
+    def _render_scatterchart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Points graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
 
+        go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
             return None
@@ -1663,28 +1784,22 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-class PrettyTable(prettytable.PrettyTable):
+prettytable = Dependencies.get_module('prettytable', dont_throw=True)
+if prettytable:
+    class PrettyTable(prettytable.PrettyTable):
 
-    # Object constructor
-    def __init__(self, *args, **kwargs):
-        self.row_count = 0
-        self.display_limit = None
-        super(PrettyTable, self).__init__(*args, **kwargs)
+        # Object constructor
+        def __init__(self, *args, **kwargs):
+            self.row_count = 0
+            super(PrettyTable, self).__init__(*args, **kwargs)
 
 
-    def add_rows(self, data):
-        if self.row_count and (data.options.get("display_limit") == self.display_limit):
-            return  # correct number of rows already present
-        self.clear_rows()
-        self.display_limit = data.options.get("display_limit")
-        if self.display_limit == 0:
-            self.display_limit = None  # TODO: remove this to make 0 really 0
-        if self.display_limit in (None, 0):
+        def add_rows(self, data):
+            if self.row_count == len(data):
+                return  # correct number of rows already present
+            self.clear_rows()
             self.row_count = len(data)
-        else:
-            self.row_count = min(len(data), self.display_limit)
 
-        for row in data[: self.display_limit]:
-            r = [list(c) if isinstance(c, list) else dict(c) if isinstance(c, dict) else c for c in row]
-            self.add_row(r)
-
+            for row in data:
+                r = [list(c) if isinstance(c, list) else dict(c) if isinstance(c, dict) else c for c in row]
+                self.add_row(r)

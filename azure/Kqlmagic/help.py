@@ -7,11 +7,9 @@
 """A module that manage package version.
 """
 
-from bs4 import BeautifulSoup
-from markdown import markdown
 
-
-from .constants import Constants
+from .dependencies import Dependencies
+from .constants import Constants, Email, SsoEnvVarParam
 
 
 _KQL_URL                   = "http://aka.ms/kdocs"
@@ -53,6 +51,54 @@ The following commands are supported:<br>
 <br>
 
 - **version** - Displays Kqlmagic current version string.<br>
+<br>
+
+- **bug_report** - gathers last cell execution state, ready to be copy/paste to Kqlmagic github issues (you must have an account in github)<br>
+      - Kqlmagic version<br>
+      - platform information<br>
+      - python information<br>
+      - Kqlmagic dependencies version <br>
+      - Kqlmagic default options<br>
+      - Kqlmagic connections<br>
+      - Kqlmagic environment variables<br>
+      - Last kql execution context (options, parameters, tags, request, response), including error stack in case it failed<br>
+<br>
+
+- **py** - execute python code in user's namespace, code may change namespace state, and if last statement is an expression it returns value.<br>
+<br>
+
+- **pyrw** - execute python code in user's namespace, code may change namespace state, and if last statement is an expression it returns value.<br>
+<br>
+
+- **pyro** - execute python code in user's namespace, namespace state does NOT change, and if last statement is an expression it returns value.<br>
+<br>
+
+- **line_magic** - executes a python kernel line magic.<br>
+    - Only this line will be input to the specified line magic<br>
+    - "%" syntax can be used instaed of the command name<br>
+<br>
+
+- **cell_magic** - executes a python kernel cell magic.<br>
+    - All following lines will be input to the specified cell magic<br>
+    - "%%" syntax can be used instead of the command name<br>
+<br>
+
+- **activate_kernel** - activates kqlmagic kernel over python kernel.<br>
+    - After activation, code cells executes by default as kqlmagic cells<br>
+<br>
+
+- **deactivate_kernel** - deactivates kqlmagic kernel over python kernel (switch back to python kernel).<br>
+<br>
+
+- **cache** - enables/disables caching query results to the specified folder.<br>
+    - OPTIONAL - Stored cached data can be also queried using the cache schema: cache://<cache-folder-name>
+<br>
+
+- **use_cache** - enables/disables using query results stored in specified folder as cache.<br>
+    - OPTIONAL - Stored cached data can be also queried using the cache schema: cache://<cache-folder-name>
+<br>
+
+- **conn** - Displays connections info.<br>
 <br>
 
 - **banner** - Displays Kqlmagic init banner.<br>
@@ -185,15 +231,16 @@ _USAGE = f"""## Usage:
 
 
 _HELP_HELP = f"""## Overview
-Help command is a tool to get more information on a topics that are relevant to Kqlmagic.
-t
+Help command is a tool to get more information on a topics that are relevant to Kqlmagic.<br>help
+
 usage: ```%kql --help "topic"```<br>
 
 ## Topics
 - **usage** - How to use Kqlmagic.<br>
 <br>
 
--**config** - Lists Kqlmagic default options. The same as --config without parameters.<br>
+- **config** - Lists Kqlmagic default options. The same as --config without parameters.<br>
+<br>
 
 - **faq** - Reference to Kqlmagic FAQ<br>
 <br>
@@ -207,10 +254,19 @@ usage: ```%kql --help "topic"```<br>
 - **options** - Lists the available options, and their behavior impact on the submit query command.<br>
 <br>
 
+- **env** - Lists all {Constants.MAGIC_CLASS_NAME_UPPER} environment variables and their purpose.<br>
+<br>
+
 - **commands** - Lists the available commands, and what they do.<br>
 <br>
 
 - **proxies** - How to use Kqlmagic via proxies.<br>
+<br>
+
+- **sql** - Azure Data Explorer SQL support.<br>
+<br>
+
+- **aria** - How to query Aria's Azure Data Explorer databases.<br>
 <br>
 
 - **client-request-properties** - How to use Client Request properties, and properties list.<br>
@@ -375,6 +431,122 @@ The default mode is: 'write'<br>
 <br>
 """
 
+_HELP_ENV = f"""## Overview
+you can configure {Constants.MAGIC_CLASS_NAME} using the following environment variables:
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL
+Log level. The following levels are supported: 'FATAL', 'ERROR', 'WARNING', 'INFO', and 'DEBUG'<br>
+Default: 'DEBUG' if a filename is specified, otherwise None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE
+Filename for the log messages.<br>
+Default: None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX
+If {Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE is not specified, the filename will be build from the prefix as follows: '{{prefix}}-{{ipykernel-unique-key}}.log'<br>
+Default: '{Constants.MAGIC_PACKAGE_NAME}' if {Constants.MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL is epcified, otherwise None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE
+The mode at which the log filename is oppened. The following modes are supported: 'append' and 'write'<br>
+Default: 'write' if a filename is specified, otherwise None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_CONNECTION_STR
+Set a default connection string. If set, the connection will be set on {Constants.MAGIC_PACKAGE_NAME} load.<br>
+Default: None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_SSO_ENCRYPTION_KEYS
+Specifies details to enable SSO.<br>
+Should be a list of key='value' pairs separated by a semicolon ';'<br>
+The required keys are: "{SsoEnvVarParam.CACHE_NAME}", "{SsoEnvVarParam.SECRET_KEY}", "{SsoEnvVarParam.SECRET_SALT_UUID}", "{SsoEnvVarParam.CRYPTO}", "{SsoEnvVarParam.STORAGE}"<br>
+Default: None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_DEVICE_CODE_NOTIFICATION_EMAIL
+Specifies details to enable email notification. <br>
+Should be a list of key='value' pairs separated by a semicolon ';'<br>
+The required keys are: "{Email.SMTP_PORT}", "{Email.SMTP_ENDPOINT}", "{Email.SEND_FROM}", "{Email.SEND_TO}", "{Email.SEND_FROM_PASSWORD}"<br>
+The optional keys are: "{Email.CONTEXT}"<br>
+Default: None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_EXTRAS_REQUIRE
+Specifies the same list of extras that were used to install. <br>
+if KqlmagicCustom was installed KQLMAGIC_EXTRAS_REQUIRE environment variable should be set to the same list of extras that were used to install (if not set, 'default' will be used)<br>
+for example:<br>
+KQLMAGIC_EXTRAS_REQUIRE=plotly,pandas,sso<br>
+KQLMAGIC_EXTRAS_REQUIRE=default<br>
+KQLMAGIC_EXTRAS_REQUIRE=jupyter-basic,widgets<br>
+On Kqlmagic load will warn on missing packages that were specified in KQLMAGIC_EXTRAS_REQUIRE (if not set, 'default' will be used)<br>
+Features that require a missing dependency will be disabled.<br>
+Default: 'default' (all extras)<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_WARN_MISSING_DEPENDENCIES
+Specify whether to warn on missing dependencies on {Constants.MAGIC_PACKAGE_NAME} load. Valid values are True or False.<br>
+Default: True<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_NOTEBOOK_SERVICE_ADDRESS
+Force the specified backend service address. Only for remote kernels.<br>
+Default: None (auto set by jupyter implementation)<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_AZUREML_COMPUTE
+Specified azureml backend compute host address. If not specified popup windows might not work properly.<br>
+Default: value taken from {Constants.MAGIC_CLASS_NAME_UPPER}_NOTEBOOK_SERVICE_ADDRESS<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_NOTEBOOK_APP
+Force the specified jupyter implementation. valid values are: "auto", "jupyterlab", "azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"<br>
+Default: "auto" (auto detect implementation)<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_LOAD_MODE
+If set to 'silent', banner won't be displayed on {Constants.MAGIC_PACKAGE_NAME} load. valid values: 'silent'<br>
+Default: None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_TEMP_FILES_SERVER_PY_FOLDER 
+Force default location of 'my_files_server.py' code. (folder path)<br>
+Default: None (auto set by jupyter implementation)<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_TEMP_FILES_SERVER
+Specify implementation of file server. valid values are: "auto", "jupyter", "kqlmagic", "disabled"<br>
+Default: "auto" (auto set by jupyter implementation) <br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_FILES_SERVER_WINDOW_VISIBILITY
+Specify whether to show file server process icon. Valid values are "show" or "hide".<br>
+Deafult: "hide"<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_CONFIGURATION
+Override default options. Should be a list of key='value' pairs separated by a semicolon ';'<br>
+Default: None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_KERNEL
+Specify whether {Constants.MAGIC_CLASS_NAME} kernel should be activated. Valid values are True or False.<br>
+Default: False<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_CACHE
+Specifies a folder name for storing query results that can be used as cache for same queries.<br>
+Default:None<br>
+<br>
+
+## {Constants.MAGIC_CLASS_NAME_UPPER}_USE_CACHE
+Specifies a folder that holds cached query results.<br>
+Default: None<br>
+<br>
+"""
+
 
 _HELP_SSO = f"""## Overview
 - To get data from Azure Monitor data resources, the user need to authenticate itself, and if it has the right permission, 
@@ -417,6 +589,70 @@ _HELP_PROXIES = f"""## Overview
 - You can also set the environment variable from within the notebook using %env magic.
 """
 
+_HELP_SAW = f"""## Overview
+- Secure Access Workstation (saw) is limiting which python modules are allowed. {Constants.MAGIC_PACKAGE_NAME}Saw is a variant of Kqlmagic package, some of the Kqlmaguc modules are replaced with similar modules that are allowed on 'saw'.<br>
+<br>
+
+## Install example
+```
+pip install {Constants.MAGIC_PACKAGE_NAME}Saw
+```
+<br>
+
+## Notebook install example
+```python
+!pip install {Constants.MAGIC_PACKAGE_NAME}Saw
+```
+<br>
+
+"""
+
+_HELP_SQL = f"""## Overview 
+- Azure Data Explorer supports a subset of the SQL language. 
+<br>
+
+## Translate SQL to KQL
+The primary language to interact with Kusto is KQL (Kusto Query Language). To make the transition and learning experience easier, 
+you can use Kusto to translate SQL queries to KQL. Send an SQL query to Kusto, prefixing it with the verb 'EXPLAIN'.
+For Example:
+```
+%%kql
+EXPLAIN 
+SELECT COUNT_BIG(*) as C FROM StormEvents
+```
+<br>
+
+## SQL to Kusto cheat sheet
+see https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/sqlcheatsheet
+<br>
+
+## MS-TDS/T-SQL differences between Azure Data Explorer Microsoft SQL Server
+see https://docs.microsoft.com/en-us/azure/data-explorer/kusto/api/tds/sqlknownissues
+<br>
+
+"""
+
+_HELP_ARIA = f"""## Overview
+you can query Aria underlying ADX databases using KQL via Azure Data Explorer
+You have to set the connection string with cluster set to: cluster='https://kusto.aria.microsoft.com'; 
+and the database to the Aria ADX database name GUID
+cluster='https://kusto.aria.microsoft.com';database='<your-GUID';alias='<your-database-friendly-name>'
+<br>
+
+## The All-Seeing Eye of Kusto
+see https://www.aria.ms/2019/02/01/monthly-release/
+<br>
+
+## Aria + Kusto Explorer
+see https://www.aria.ms/2018/02/01/introducing-kusto-explorer/
+<br>
+
+## ADX Help
+see https://www.aria.ms/search/?q=kusto
+<br>
+
+"""
+
 
 _ADX_CLIENT_REQUEST_PROPERTIES = """## Overview
 
@@ -426,49 +662,47 @@ others are used to affect what limits and policies get applied to the request.
 
 ##List of Client Request Properties
 
-- **block_splitting_enabled**: Enables splitting of sequence blocks after aggregation operator. [bool]
-- **database_pattern**: Database pattern overrides database name and picks the 1st database that matches the pattern. '*' means any database that user has access to. [str]
-- **debug_query_externaldata_projection_fusion_disabled**: If set, don't fuse projection into ExternalData operator. [bool]
-- **debug_query_fanout_threads_percent_external_data**: The percentage of threads to fanout execution to for external data nodes. [int]
 - **deferpartialqueryfailures**: If true, disables reporting partial query failures as part of the result set. [bool]
+- **materialized_view_shuffle**: A hint to use shuffle strategy for materialized views that are referenced in the query. The property is an array of materialized views names and the shuffle keys to use. examples: 'dynamic([ { "Name": "V1", "Keys" : [ "K1", "K2" ] } ])' (shuffle view V1 by K1, K2) or 'dynamic([ { "Name": "V1" } ])' (shuffle view V1 by all keys) [dict]
 - **max_memory_consumption_per_query_per_node**: Overrides the default maximum amount of memory a whole query may allocate per node. [int]
 - **maxmemoryconsumptionperiterator**: Overrides the default maximum amount of memory a query operator may allocate. [int]
 - **maxoutputcolumns**: Overrides the default maximum number of columns a query is allowed to produce. [int]
 - **norequesttimeout**: Enables setting the request timeout to its maximum value. [bool]
 - **notruncation**: Enables suppressing truncation of the query results returned to the caller. [bool]
 - **push_selection_through_aggregation**: If true, push simple selection through aggregation [bool]
-- **query_admin_super_slacker_mode**: If true, delegate execution of the query to another node [bool]
 - **query_bin_auto_at**: When evaluating the bin_auto() function, the start value to use. [LiteralExpression]
 - **query_bin_auto_size**: When evaluating the bin_auto() function, the bin size value to use. [LiteralExpression]
 - **query_cursor_after_default**: The default parameter value of the cursor_after() function when called without parameters. [str]
-- **query_cursor_allow_referencing_streaming_ingestion_tables**: Enable usage of cursor functions over databases which have streaming ingestion enabled. [bool]
 - **query_cursor_before_or_at_default**: The default parameter value of the cursor_before_or_at() function when called without parameters. [str]
 - **query_cursor_current**: Overrides the cursor value returned by the cursor_current() or current_cursor() functions. [str]
+- **query_cursor_disabled**: Disables usage of cursor functions in the context of the query. [bool]
 - **query_cursor_scoped_tables**: List of table names that should be scoped to cursor_after_default .. cursor_before_or_at_default (upper bound is optional). [dynamic]
 - **query_datascope**: Controls the query's datascope -- whether the query applies to all data or just part of it. ['default', 'all', or 'hotcache']
 - **query_datetimescope_column**: Controls the column name for the query's datetime scope (query_datetimescope_to / query_datetimescope_from). [str]
 - **query_datetimescope_from**: Controls the query's datetime scope (earliest) -- used as auto-applied filter on query_datetimescope_column only (if defined). [DateTime]
 - **query_datetimescope_to**: Controls the query's datetime scope (latest) -- used as auto-applied filter on query_datetimescope_column only (if defined). [DateTime]
 - **query_distribution_nodes_span**: If set, controls the way sub-query merge behaves: the executing node will introduce an additional level in the query hierarchy for each sub-group of nodes; the size of the sub-group is set by this option. [Int]
-- **query_enable_jit_stream**: If true, enabled JIT streams when sending data from managed code to native code. [bool]
 - **query_fanout_nodes_percent**: The percentage of nodes to fanout execution to. [int]
 - **query_fanout_threads_percent**: The percentage of threads to fanout execution to. [int]
+- **query_force_row_level_security**: If specified, forces Row Level Security rules, even if row_level_security policy is disabled [bool]
 - **query_language**: Controls how the query text is to be interpreted. ['csl','kql' or 'sql']
 - **query_max_entities_in_union**: Overrides the default maximum number of columns a query is allowed to produce. [int]
 - **query_now**: Overrides the datetime value returned by the now(0s) function. [DateTime]
-- **query_results_cache_max_age**: If positive, controls the maximum age of the cached query results which Kusto is allowed to return [TimeSpan]
+- **query_python_debug**: If set, generate python debug query for the enumerated python node (default first). [bool/int]
+- **query_results_apply_getschema** If set, retrieves the schema of each tabular data in the results of the query instead of the data itself. [bool]
+- **query_results_cache_max_age**: If positive, controls the maximum age of the cached query results which Kusto is allowed to return [str]
 - **query_results_progressive_row_count**: Hint for Kusto as to how many records to send in each update (Takes effect only in progressive mode) [int]
 - **query_results_progressive_update_period**: Hint for Kusto as to how often to send progress frames (Takes effect only if in progressive mode) [int]
-- **query_shuffle_broadcast_join**: Enables shuffling over broadcast join.
 - **query_take_max_records**: Enables limiting query results to this number of records. [int]
 - **queryconsistency**: Controls query consistency. ['strongconsistency' or 'normalconsistency' or 'weakconsistency']
+- **request_block_row_level_security**: If specified, blocks access to tables for which row_level_security policy is enabled [bool]
 - **request_callout_disabled**: If specified, indicates that the request cannot call-out to a user-provided service. [bool]
+- **request_description**: Arbitrary text that the author of the request wants to include as the request description. [str]
 - **request_external_table_disabled**: If specified, indicates that the request cannot invoke code in the ExternalTable. [bool]
+- **request_impersonation_disabled**: If specified, indicates that the service shouldn't impersonate the caller's identity. [bool]
 - **request_readonly**: If specified, indicates that the request must not be able to write anything. [bool]
 - **request_remote_entities_disabled**: If specified, indicates that the request cannot access remote databases and clusters. [bool]
 - **request_sandboxed_execution_disabled**: If specified, indicates that the request cannot invoke code in the sandbox. [bool]
-- **response_dynamic_serialization**: Controls the serialization of 'dynamic' values in result sets. ['str', 'json']
-- **response_dynamic_serialization_2**: Controls the serialization of 'dynamic' string and null values in result sets. ['legacy', 'current']
 - **results_progressive_enabled**: If set, enables the progressive query stream
 - **servertimeout**: Overrides the default request timeout. [TimeSpan]
 - **truncationmaxrecords**: Overrides the default maximum number of records a query is allowed to return to the caller (truncation). [int]
@@ -514,18 +748,23 @@ _HELP = {
     "loganalytics": _LOGANALYTICS_URL,
     "azuremonitor": _AZUREMONITOR_URL,
     "kusto": _KUSTO_URL,
+    "adx": _KUSTO_URL,
     "azuredataexplorer": _KUSTO_URL,
     "conn": _HELP_CONN,
     "logging": _HELP_LOGGING,
-    "options": _HELP_OPTIONS,
     "help": _HELP_HELP,
     "usage": _USAGE,
     "commands": _HELP_COMMANDS,
     "cache": _HELP_CACHE,
     "faq": _KQLMAGIC_FAQ_URL,
     "config": "config",
+    "options": "options",
     "sso": _HELP_SSO,
+    "env": _HELP_ENV, 
     "proxies": _HELP_PROXIES,
+    "saw": _HELP_SAW,
+    "sql": _HELP_SQL,
+    "aria": _HELP_ARIA,
     "clientrequestproperties": _ADX_CLIENT_REQUEST_PROPERTIES,
     "requesttags": _REQUEST_TAGS,
     "kqlmagicdownloads": _KQLMAGIC_DOWNLOADS_URL,
@@ -551,11 +790,11 @@ class UrlReference(object):
 
      """
 
-    def __init__(self, name: str, url: str, button_text: str, is_raw:bool=None):
+    def __init__(self, name:str, url:str, button_text:str, is_raw:bool=None):
         self.name = name
         self.url = url 
         self.button_text = button_text
-        self.is_raw = is_raw == True
+        self.is_raw = is_raw is True
 
 
 class MarkdownString(object):
@@ -564,41 +803,75 @@ class MarkdownString(object):
     can present the string as markdown, html, and text
      """
 
-    def __init__(self, markdown_string: str, title: str=None):
+    def __init__(self, markdown_string:str, title:str=None):
         self.markdown_string = markdown_string
-        self.title = title
+        self.title = f" - {title}" if title else ""
 
 
     # Printable unambiguous presentation of the object
-    def __repr__(self):
-        html = markdown(self.markdown_string)
-        return ''.join(BeautifulSoup(html, features="lxml").findAll(text=True))
+    def __repr__(self)->str:
+        return self._markdown_to_text(self.markdown_string)
 
 
-    def _repr_html_(self):
+    def _repr_html_(self)->str:
         return f"""
         <html>
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>{Constants.MAGIC_PACKAGE_NAME} - {self.title}</title>
+        <title>{Constants.MAGIC_PACKAGE_NAME}{self.title}</title>
         </head>
         <body>
-        {markdown(self.markdown_string)}
+        {self._markdown_to_html(self.markdown_string)}
         </body>
         </html>
         """
 
 
-    def _repr_markdown_(self):
-       return self.markdown_string
+    def _repr_markdown_(self)->str:
+        return self.markdown_string
     
 
-    def __str__(self):
+    def __str__(self)->str:
         return self.__repr__()
 
 
-def execute_usage_command() -> MarkdownString:
+    def _strip_markdown_controls(self, markdown_string:str)->str:
+        string = markdown_string.replace("**", "")
+        string = string.replace("```", "")
+        return string
+        
+
+    def _strip_markdown_html_controls(self, markdown_string:str)->str:
+        string = markdown_string.replace("<br>", "\n")
+        return string
+
+
+    def _markdown_to_html(self, markdown_string:str)->str:
+        md = Dependencies.get_module('markdown', dont_throw=True)
+        if md:
+            html = md.markdown(markdown_string)
+        else:
+            string = self._strip_markdown_controls(markdown_string)
+            html = f"<p>{string}</p>"
+        return html
+
+    
+    def _markdown_to_text(self, markdown_string:str)->str:
+        md = Dependencies.get_module('markdown', dont_throw=True)
+        bs4 = Dependencies.get_module('bs4', dont_throw=True)
+        lxml = Dependencies.get_module('lxml', dont_throw=True)
+
+        if md and bs4 and lxml:
+            html = md.markdown(markdown_string)
+            text = ''.join(bs4.BeautifulSoup(html, features="lxml").findAll(text=True))
+        else:
+            text = self._strip_markdown_controls(markdown_string)
+            text = self._strip_markdown_html_controls(text)
+        return text
+
+
+def execute_usage_command()->MarkdownString:
     """ execute the usage command.
     command that returns the usage string that will be displayed to the user.
 
@@ -610,7 +883,7 @@ def execute_usage_command() -> MarkdownString:
     return execute_help_command("usage")
 
 
-def execute_faq_command() -> UrlReference:
+def execute_faq_command()->UrlReference:
     """ execute the faq command.
     command that returns the faq string that will be displayed to the user.
 
@@ -622,7 +895,7 @@ def execute_faq_command() -> UrlReference:
     return execute_help_command("faq")
 
 
-def execute_help_command(topic: str):
+def execute_help_command(topic:str):
     """ execute the help command.
     command that return the help topic string that will be displayed to the user.
 
@@ -633,12 +906,12 @@ def execute_help_command(topic: str):
     """
     help_topic_string = _HELP.get(topic.strip().lower().replace("_", "").replace("-", ""))
     if help_topic_string is None:
-        raise ValueError(f"{topic} unknown help topic")
+        raise ValueError(f'"{topic}" unknown help topic')
     elif help_topic_string.startswith("http"):
         button_text = f"popup {topic} reference "
         return UrlReference(topic, help_topic_string, button_text, topic == "faq")
     elif help_topic_string == '':
         help_topic_string = "Sorry, not implemented yet."
-    elif help_topic_string == 'config':
-        return 'config'
+    elif help_topic_string in ["config", "options"]:
+        return help_topic_string
     return MarkdownString(help_topic_string, title=f"help {topic}")

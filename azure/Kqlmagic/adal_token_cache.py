@@ -4,7 +4,7 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 import string
 import random
@@ -15,7 +15,8 @@ from adal.constants import TokenResponseFields
 
 
 from .my_utils import json_dumps
-from .sso_storage import SsoStorage, get_sso_store
+from .sso_storage import get_sso_store
+from .dict_db_storage import DictDbStorage
 from .log import logger
 
 
@@ -42,11 +43,11 @@ class AdalTokenCacheKey(object):
         return hash((self.authority, self.resource, self.client_id, self.user_id))
 
 
-    def __eq__(self, other):
-        return _string_cmp(self.authority, other.authority) and \
-               _string_cmp(self.resource, other.resource) and \
-               _string_cmp(self.client_id, other.client_id) and \
-               _string_cmp(self.user_id, other.user_id)
+    def __eq__(self, other)->bool:
+        return (_string_cmp(self.authority, other.authority)
+                and _string_cmp(self.resource, other.resource)
+                and _string_cmp(self.client_id, other.client_id)
+                and _string_cmp(self.user_id, other.user_id))
 
 
     def __ne__(self, other):
@@ -67,14 +68,14 @@ def _get_cache_key(entry):
 class AdalTokenCache(object):
 
     @classmethod
-    def get_cache(cls, authority_key, **options):
-        store = get_sso_store(authority_key, **options)
+    def get_cache(cls, cache_selector_key, **options):
+        store = get_sso_store(cache_selector_key, **options)
         if store:
             cache = AdalTokenCache(store)
             return cache
 
 
-    def __init__(self, store: SsoStorage, state=None):
+    def __init__(self, store:DictDbStorage, state=None):
         self._lock = threading.RLock()
 
         self._cache = {}
@@ -144,25 +145,25 @@ class AdalTokenCache(object):
                 "description": "kqlmagic",
                 "version": 1,
                 "timestamp": int(datetime.utcnow().timestamp()),
-                "random_string": self._random_string(), # makes length and content different each time
+                "random_string": self._random_string(),  # makes length and content different each time
                 "cache_values": list(self._cache.values()),
             }
-            # print(f">>> --##-- serialize cache --##--")
             return json_dumps(state_obj)
 
 
     def deserialize(self, state: str):
         '''deserialize cache'''
         with self._lock:
-            # print(f">>> --##-- deserialize state --##--")
             if state:
                 self._cache.clear()
                 state_obj = json.loads(state)
-                if      state_obj.get("description") == "kqlmagic" and \
-                        state_obj.get("version") == 1 and \
-                        state_obj.get("timestamp") < int(datetime.utcnow().timestamp()) and \
-                        state_obj.get("random_string") and len(state_obj.get("random_string")) >= 1 and len(state_obj.get("random_string")) <= 100 and \
-                        state_obj.get("cache_values") :
+                if (state_obj.get("description") == "kqlmagic"
+                        and state_obj.get("version") == 1
+                        and state_obj.get("timestamp") < int(datetime.utcnow().timestamp())
+                        and state_obj.get("random_string") 
+                        and len(state_obj.get("random_string")) >= 1 
+                        and len(state_obj.get("random_string")) <= 100
+                        and state_obj.get("cache_values")):
                     cache_values = state_obj["cache_values"]
                     for val in cache_values:
                         key = _get_cache_key(val)
@@ -172,7 +173,6 @@ class AdalTokenCache(object):
     def read_items(self):
         '''output list of tuples in (key, authentication-result)'''
         with self._lock:
-            # print(f">>> --##-- read_items --##--")
             state = self._store.restore()
             self.deserialize(state)
             return self._cache.items()
@@ -180,15 +180,13 @@ class AdalTokenCache(object):
 
     def _query_cache(self, is_mrrt, user_id, client_id):
         '''query cache for matches'''
-        # print(f">>> --##-- query --##--")
         matches = []
         for k in self._cache:
             v = self._cache[k]
-            #None value will be taken as wildcard match
-            #pylint: disable=too-many-boolean-expressions
-            if ((is_mrrt is None or is_mrrt == v.get(TokenResponseFields.IS_MRRT)) and 
-                    (user_id is None or _string_cmp(user_id, v.get(TokenResponseFields.USER_ID))) and 
-                    (client_id is None or _string_cmp(client_id, v.get(TokenResponseFields._CLIENT_ID)))):
+            # None value will be taken as wildcard match
+            # pylint: disable=too-many-boolean-expressions
+            if ((is_mrrt is None or is_mrrt == v.get(TokenResponseFields.IS_MRRT))
+                    and (user_id is None or _string_cmp(user_id, v.get(TokenResponseFields.USER_ID))) 
+                    and (client_id is None or _string_cmp(client_id, v.get(TokenResponseFields._CLIENT_ID)))):
                 matches.append(v)
         return matches
-

@@ -154,6 +154,13 @@ class Kqlmagic(Magics, Configurable):
         To override default tenant, tenant=value should be specified in connection string"""
     )
 
+    try_azcli_login_by_profile = Bool(
+        default_value=False, 
+        config=True,
+        help=f"""Try first to get token from Azure CLI by profile.\n
+        To override default tenant, tenant=value should be specified in connection string."""
+    )
+
     try_azcli_login_subscription = Unicode(
         default_value=None, 
         allow_none=True,

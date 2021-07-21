@@ -189,6 +189,7 @@ class AuthenticationMethod(object):
     # external tokens
     azcli_login                 = "azcli_login"
     azcli_login_subscription    = "azcli_login_subscription"
+    azcli_login_by_profile      = "azcli_login_by_profile"
     managed_service_identity    = "managed_service_identity"
     vscode_login                = "vscode_login"
     aux_token                   = "token"
@@ -335,6 +336,8 @@ class _MyAadHelper(AadHelper):
             details["subscription"] = self._options.get("try_azcli_login_subscription")
         elif self._current_authentication_method == AuthenticationMethod.azcli_login:
             details["tenant"] = self._authority
+        elif self._current_authentication_method == AuthenticationMethod.azcli_login_by_profile:
+            details["tenant"] = self._authority
         elif self._current_authentication_method == AuthenticationMethod.vscode_login:
             details["tenant"] = self._authority
         elif self._current_authentication_method == AuthenticationMethod.managed_service_identity:
@@ -383,6 +386,11 @@ class _MyAadHelper(AadHelper):
             if self._current_token is None:
                 if self._options.get("try_azcli_login"):
                     token = self._get_azcli_token()
+                    self._current_token = self._validate_and_refresh_token(token)
+
+            if self._current_token is None:
+                if self._options.get("try_azcli_login_by_profile"):
+                    token = self._get_azcli_token_by_profile()
                     self._current_token = self._validate_and_refresh_token(token)
 
             if self._current_token is None:
@@ -652,7 +660,7 @@ class _MyAadHelper(AadHelper):
             raise AuthenticationError(e, **kwargs)
 
 
-    def _acquire_msal_token_silent(self, client_app_type=None, msal_client_app=None, scopes=None, username=None, sso_flow_code=None):
+    def _acquire_msal_token_silent(self, client_app_type=None, msal_client_app=None, scopes=None, username=None, sso_flow_code=None)->dict:
         token = None
         account = None
         client_app_type = client_app_type or self._current_client_app_type
@@ -892,23 +900,44 @@ class _MyAadHelper(AadHelper):
                 from azure.identity import AzureCliCredential  # pylint: disable=no-name-in-module, import-error
                 azure_cli = AzureCliCredential()
                 t = azure_cli.get_token(f"{self._resource}/.default")
-                if t:
+                if t is not None and t.token is not None:
                     token = {"access_token": t.token, "token_type": "bearer"}
         except:
             pass
 
         try:
             if token is None:
-                from azure.common.credentials import get_cli_profile  # pylint: disable=no-name-in-module, import-error
-                profile = get_cli_profile()
-                credential, _subscription, _tenant = profile.get_raw_token(resource=self._resource, subscription=subscription, tenant=tenant)
-                token_type, access_token, token = credential  # pylint: disable=unused-variable
-                self._migrate_to_msal_app(token)
+                token = self._get_azcli_token_by_profile(subscription)
+                self._current_authentication_method = AuthenticationMethod.azcli_login_subscription if subscription is not None else AuthenticationMethod.azcli_login
+        except:
+            pass
+        
+        sys.stderr = old_stderr or sys.stderr
+
+        logger().debug(f"_MyAadHelper::_get_azcli_token {'failed' if token is None else 'succeeded'} to get token - subscription: '{subscription}', tenant: '{tenant}'")
+        return token
+
+
+    def _get_azcli_token_by_profile(self, subscription:str=None)->str:
+        "retrieve token from azcli login"
+        token = None
+        tenant = self._authority if subscription is None else None
+        self._current_authentication_method = AuthenticationMethod.azcli_login_by_profile
+        
+        old_stderr = sys.stderr
+        sys.stderr = StringIO()
+
+        try:
+            from azure.common.credentials import get_cli_profile  # pylint: disable=no-name-in-module, import-error
+            profile = get_cli_profile()
+            credential, _subscription, _tenant = profile.get_raw_token(resource=self._resource, subscription=subscription, tenant=tenant)
+            token_type, access_token, token = credential  # pylint: disable=unused-variable
+            self._migrate_to_msal_app(token)
         except:
             pass
         sys.stderr = old_stderr or sys.stderr
 
-        logger().debug(f"_MyAadHelper::_get_azcli_token {'failed' if token is None else 'succeeded'} to get token - subscription: '{subscription}', tenant: '{tenant}'")
+        logger().debug(f"_MyAadHelper::_get_azcli_token_by_profile {'failed' if token is None else 'succeeded'} to get token - subscription: '{subscription}', tenant: '{tenant}'")
         return token
 
 
@@ -933,7 +962,7 @@ class _MyAadHelper(AadHelper):
         return token
 
 
-    def _migrate_to_msal_app(self, token:dict)->str:
+    def _migrate_to_msal_app(self, token:dict):
         if token is not None:
             refresh_token = self._get_token_refresh_token(token)
             if refresh_token is not None:
@@ -946,7 +975,7 @@ class _MyAadHelper(AadHelper):
                 app = msal.PublicClientApplication(client_id, authority=authority_uri)
                 result = app.acquire_token_by_refresh_token(refresh_token, scopes)  # pylint: disable=no-member
                 if "error" in result:
-                    self._warn_on_token_validation_failure(f"failed to migrate to ken to msal app: {result}")
+                    self._warn_on_token_validation_failure(f"failed to migrate token to msal app: {result}")
                 else:
                     valid_token = self._acquire_msal_token_silent(client_app_type=ClientAppType.public, msal_client_app=app, scopes=scopes, username=username)
                     if valid_token is not None:
@@ -956,7 +985,7 @@ class _MyAadHelper(AadHelper):
                         self._current_username = username
 
 
-    def _validate_and_refresh_token(self, token:dict)->str:
+    def _validate_and_refresh_token(self, token:dict)->dict:
         "validate token is valid to use now. Now is between not_before and expires_on. If exipred try to refresh"
         valid_token = None    
         if token is not None:
@@ -1110,6 +1139,8 @@ class _MyAadHelper(AadHelper):
         elif self._current_authentication_method is AuthenticationMethod.managed_service_identity:
             kwargs = self._options.get("try_msi")
         elif self._current_authentication_method is AuthenticationMethod.azcli_login:
+            pass
+        elif self._current_authentication_method is AuthenticationMethod.azcli_login_by_profile:
             pass
         elif self._current_authentication_method is AuthenticationMethod.vscode_login:
             pass

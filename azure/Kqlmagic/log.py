@@ -138,39 +138,70 @@ class Logger(object):
 
 
     def critical(self, msg:str, *args, **kwargs)->None:
-        log_stack_trace = kwargs.pop("log_stack_trace", None)
-        msg = self._log_message(msg, log_stack_trace)
-        self._logging.critical(msg, *args, **kwargs)
+            try:
+                log_stack_trace = kwargs.pop("log_stack_trace", None)
+                msg = self._log_message(msg, log_stack_trace)
+                self._logging.critical(msg, *args, **kwargs)
+            except Exception as e:
+                self._logException(e, "critical")
 
 
     def error(self, msg:str, *args, **kwargs)->None:
-        log_stack_trace = kwargs.pop("log_stack_trace", None)
-        msg = self._log_message(msg, log_stack_trace)
-        self._logging.error(msg, *args, **kwargs)
+        try:
+            log_stack_trace = kwargs.pop("log_stack_trace", None)
+            msg = self._log_message(msg, log_stack_trace)
+            self._logging.error(msg, *args, **kwargs)
+        except Exception as e:
+            self._logException(e, "error")
 
 
     def warn(self, msg:str, *args, **kwargs)->None:
-        log_stack_trace = kwargs.pop("log_stack_trace", None)
-        msg = self._log_message(msg, log_stack_trace)
-        self._logging.warning(msg, *args, **kwargs)
+        try:
+            log_stack_trace = kwargs.pop("log_stack_trace", None)
+            msg = self._log_message(msg, log_stack_trace)
+            self._logging.warning(msg, *args, **kwargs)
+        except Exception as e:
+            self._logException(e, "warn")
 
 
     def info(self, msg:str, *args, **kwargs)->None:
-        log_stack_trace = kwargs.pop("log_stack_trace", None)
-        msg = self._log_message(msg, log_stack_trace)
-        self._logging.info(msg, *args, **kwargs)
+        try:
+            log_stack_trace = kwargs.pop("log_stack_trace", None)
+            msg = self._log_message(msg, log_stack_trace)
+            self._logging.info(msg, *args, **kwargs)
+        except Exception as e:
+            self._logException(e, "info")
 
 
     def debug(self, msg:str, *args, **kwargs)->None:
-        log_stack_trace = kwargs.pop("log_stack_trace", None)
-        msg = self._log_message(msg, log_stack_trace)
-        self._logging.debug(msg, *args, **kwargs)
+        try:
+            log_stack_trace = kwargs.pop("log_stack_trace", None)
+            msg = self._log_message(msg, log_stack_trace)
+            self._logging.debug(msg, *args, **kwargs)
+        except Exception as e:
+            self._logException(e, "debug")
 
 
     def exception(self, msg:str, *args, **kwargs)->None:
-        log_stack_trace = kwargs.pop("log_stack_trace", None)
-        msg = self._log_message(msg, log_stack_trace)
-        self._logging.exception(msg, *args, **kwargs)
+        try:
+            log_stack_trace = kwargs.pop("log_stack_trace", None)
+            msg = self._log_message(msg, log_stack_trace)
+            self._logging.exception(msg, *args, **kwargs)
+        except Exception as e:
+            self._logException(e, "exception")
+
+
+    def _logException(self, ex:Exception, level:str, **kwargs)->None:
+        try:
+            log_stack_trace = kwargs.pop("log_stack_trace", None)
+            msg = f"failed to log level {level} record"
+            try:
+                msg = self._log_message(msg, log_stack_trace)
+            except:
+                pass
+            self._logging.exception(msg, exc_info=ex)
+        except:
+            pass
 
 
 current_logger:Logger = None

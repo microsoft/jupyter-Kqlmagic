@@ -90,6 +90,7 @@ class AuthenticationMethod(object):
 
     # external tokens
     azcli_login = "azcli_login"
+    azcli_login_by_profile = "azcli_login_by_profile"
     azcli_login_subscription = "azcli_login_subscription"
     managed_service_identity = "managed_service_identity"
     aux_token = "token"
@@ -225,6 +226,8 @@ class _MyAadHelper(AadHelper):
             details["subscription"] = self._options.get("try_azcli_login_subscription")
         elif self._current_authentication_method == AuthenticationMethod.azcli_login:
             details["tenant"] = self._authority
+        elif self._current_authentication_method == AuthenticationMethod.azcli_login_by_profile:
+            details["tenant"] = self._authority
         elif self._current_authentication_method == AuthenticationMethod.managed_service_identity:
             details["msi_params"] = self._options.get("try_msi")
         elif self._current_authentication_method == AuthenticationMethod.aad_application_certificate:
@@ -265,6 +268,11 @@ class _MyAadHelper(AadHelper):
 
             if self._current_token is None:
                 if self._options.get("try_azcli_login"):
+                    token = self._get_azcli_token()
+                    self._current_token = self._validate_and_refresh_token(token)
+
+            if self._current_token is None:
+                if self._options.get("try_azcli_login_by_profile"):
                     token = self._get_azcli_token()
                     self._current_token = self._validate_and_refresh_token(token)
 
@@ -800,6 +808,8 @@ class _MyAadHelper(AadHelper):
         elif self._current_authentication_method is AuthenticationMethod.managed_service_identity:
             kwargs = self._options.get("try_msi")
         elif self._current_authentication_method is AuthenticationMethod.azcli_login:
+            pass
+        elif self._current_authentication_method is AuthenticationMethod.azcli_login_by_profile:
             pass
         elif self._current_authentication_method is AuthenticationMethod.azcli_login_subscription:
             kwargs = {"subscription": self._options.get("try_azcli_login_subscription")}

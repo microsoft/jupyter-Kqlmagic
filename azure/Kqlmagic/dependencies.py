@@ -82,7 +82,7 @@ class Dependencies(object):
         ('pygments.lexers.data', 'pygments', OPTIONAL_TAG, "json objects won't be decorated with colors", 'pygments'),
         ('pygments.formatters.terminal', 'pygments', OPTIONAL_TAG, "json objects won't be decorated with colors", 'pygments'),
         ('pyperclip', 'pyperclip', OPTIONAL_TAG, "copy/paste feature will be disabled in device code authentication", VERSION_IN_MODULE),
-        ('azure.common.credentials', 'azure-common', OPTIONAL_TAG, "-try_azcli_login and -try_azcli_login_subscription authentication options will be dsiabled", 'azure.common'),
+        ('azure.common.credentials', 'azure-common', OPTIONAL_TAG, "-try_azcli_login, -try_azcli_login_subscription and -try_azcli_login_by_profile authentication options will be dsiabled", 'azure.common'),
         ('msrestazure.azure_active_directory', 'msrestazure', OPTIONAL_TAG, "-try_msi authentication options will be dsiabled", 'msrestazure'),
         ('psutil', 'psutil', OPTIONAL_TAG, "some jupyter variants may not be detected correctly", VERSION_IN_MODULE),
 

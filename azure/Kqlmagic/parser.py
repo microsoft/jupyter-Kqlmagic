@@ -929,6 +929,7 @@ class Parser(object):
         "ssodbgcinterval": {"flag": "sso_db_gc_interval", "type": "int"},
 
         "tryazclilogin": {"flag": "try_azcli_login", "type": "bool"},
+        "tryazcliloginbyprofile": {"flag": "try_azcli_login_by_profile", "type": "bool"},
         "tryvscodelogin": {"flag": "try_vscode_login", "type": "bool"},
         "tryazcliloginsubscription": {"flag": "try_azcli_login_subscription", "type": "str", "allow_none": True},
         "trytoken": {"flag": "try_token", "type": "dict", "allow_none": True},

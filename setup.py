@@ -24,7 +24,7 @@ from setuptools import setup, find_packages
 #      - KqlmagicCustom - DEPENDENCIES NEED TO BE EXPLICITLY SPECIFIED
 #==============================================================================
 # NEXT CODE LINE SHOULD NOT BE TOUCHED/MODIFIED MANUALLY, MAKE SURE IT APPEARS ONLY ONCE
-_IS_CUSTOM_SETUP = True # MODIFIED BY A SHELL PREPROCESSOR SCRIPT
+_IS_CUSTOM_SETUP = False # MODIFIED BY A SHELL PREPROCESSOR SCRIPT
 #==============================================================================
 #
 #
@@ -90,7 +90,8 @@ def get_version():
         'alpha': '3 - Alpha',
         'beta':  '4 - Beta',
         'rc':    '4 - Beta',
-        'final': '5 - Production/Stable'
+        'final': '5 - Production/Stable',
+        'post':  '5 - Production/Stable'
     }[version_info[3]]
     return version, devstatus
 

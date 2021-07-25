@@ -24,7 +24,7 @@ from setuptools import setup, find_packages
 #      - KqlmagicCustom - DEPENDENCIES NEED TO BE EXPLICITLY SPECIFIED
 #==============================================================================
 # NEXT CODE LINE SHOULD NOT BE TOUCHED/MODIFIED MANUALLY, MAKE SURE IT APPEARS ONLY ONCE
-_IS_CUSTOM_SETUP = False # MODIFIED BY A SHELL PREPROCESSOR SCRIPT
+_IS_CUSTOM_SETUP = True # MODIFIED BY A SHELL PREPROCESSOR SCRIPT
 #==============================================================================
 #
 #

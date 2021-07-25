@@ -933,6 +933,7 @@ class _MyAadHelper(AadHelper):
             credential, _subscription, _tenant = profile.get_raw_token(resource=self._resource, subscription=subscription, tenant=tenant)
             token_type, access_token, token = credential  # pylint: disable=unused-variable
             self._migrate_to_msal_app(token)
+            self._current_msal_client_app = None
         except:
             pass
         sys.stderr = old_stderr or sys.stderr
@@ -972,12 +973,46 @@ class _MyAadHelper(AadHelper):
                 client_id = self._get_token_client_id(token) or self._get_client_id_from_token(token) or self._client_id
                 username = self._get_token_user_id(token) or self._get_username_from_token(token)
 
+                _tk = {x:"XXXXX" if x.lower().endswith("token") else token[x] for x in token}
+                claims = self._get_token_claims(self._get_token_access_token(token))
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app token: {json.dumps(_tk)}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app accessToken claims: {json.dumps(claims)}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app _get_token_scope: {self._get_token_scope(token)}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app _get_token_authority: {self._get_token_authority(token)}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app _get_authority_from_token: {self._get_authority_from_token(token)}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app _get_token_client_id: {self._get_token_client_id(token)}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app _get_client_id_from_token: {self._get_client_id_from_token(token)}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app _get_token_user_id: {self._get_token_user_id(token)}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app _get_username_from_token: {self._get_username_from_token(token)}")
+
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app scopes: {scopes}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app authority_uri: {authority_uri}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app client_id: {client_id}")
+                logger().debug(f"_MyAadHelper::_migrate_to_msal_app username: {username}")
+
+
+                # print(f">>> token {json.dumps(_tk)}")
+                # print(f">>> accessToken claims {json.dumps(claims)}")
+                # print(f">>> _get_token_scope: {self._get_token_scope(token)}")
+                # print(f">>> _get_token_authority: {self._get_token_authority(token)}")
+                # print(f">>> _get_authority_from_token: {self._get_authority_from_token(token)}")
+                # print(f">>> _get_token_client_id: {self._get_token_client_id(token)}")
+                # print(f">>> _get_client_id_from_token: {self._get_client_id_from_token(token)}")
+                # print(f">>> _get_token_user_id: {self._get_token_user_id(token)}")
+                # print(f">>> _get_username_from_token: {self._get_username_from_token(token)}")
+
                 app = msal.PublicClientApplication(client_id, authority=authority_uri)
                 result = app.acquire_token_by_refresh_token(refresh_token, scopes)  # pylint: disable=no-member
                 if "error" in result:
                     self._warn_on_token_validation_failure(f"failed to migrate token to msal app: {result}")
                 else:
                     valid_token = self._acquire_msal_token_silent(client_app_type=ClientAppType.public, msal_client_app=app, scopes=scopes, username=username)
+                    _vtk = {x:"XXXXX" if x.lower().endswith("token") else valid_token[x] for x in valid_token}
+                    vclaims = self._get_token_claims(self._get_token_access_token(valid_token))
+                    logger().debug(f"_MyAadHelper::_migrate_to_msal_app migratedToken: {json.dumps(_vtk)}")
+                    logger().debug(f"_MyAadHelper::_migrate_to_msal_app migratedAccessToken claims: {json.dumps(vclaims)}")
+                    # print(f">>> migratedToken {json.dumps(_vtk)}")
+                    # print(f">>> migratedAccessToken claims {json.dumps(vclaims)}")
                     if valid_token is not None:
                         self._current_msal_client_app = app
                         self._current_client_app_type = ClientAppType.public
@@ -991,6 +1026,7 @@ class _MyAadHelper(AadHelper):
         if token is not None:
             if self._current_msal_client_app is not None:
                 valid_token = self._acquire_msal_token_silent()
+                # print(">>> _acquire_msal_token_silent")
             else:
                 scopes = self._get_token_scope(token) or self._scopes
                 not_before = self._get_token_not_before(token) or self._get_not_before_from_token(token)

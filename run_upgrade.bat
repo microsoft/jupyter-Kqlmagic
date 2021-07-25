@@ -8,7 +8,7 @@ echo ----- clean folders to be used by setuptools and wheel
 rmdir /Q /S build
 rmdir /Q /S dist
 REM
-REM valid values are: for  Kqlmagic False, and for KqlmagicCustom True
+REM valid values are: for Kqlmagic False, and for KqlmagicCustom True
 echo ----- modify setup.py: _IS_CUSTOM_SETUP = False
 python modify_setup_py_is_custom.py False
 PAUSE
@@ -19,8 +19,6 @@ if errorlevel 1 (
     exit /b 1
 )
 REM
-echo ----- create a dist_info (to review setup before )
-python setup.py sdist bdist_wheel
 echo ----- create sdist bdist_wheel
 python setup.py sdist bdist_wheel
 if errorlevel 1 (

@@ -470,6 +470,9 @@ def check_path(foldername:str, kernel_id:str, filename:str)->Response:
         elif not os.path.exists(f"{base_folder}/{foldername}/{kernel_id}/{filename}"):
             error_message = f"File {base_folder}/{foldername}/{kernel_id}/{filename} not found"
 
+        elif f"/{foldername}/{kernel_id}/{filename}".replace("\\", "/").find(f"/{os.pardir}/") >= 0:
+            error_message = f"File {base_folder}/{foldername}/{kernel_id}/{filename} contains not allowed /{os.pardir}/"
+
         if error_message is not None:
             err_resp = make_response(error_message, 404)
             logger.error(f"check_path failed, {error_message}. code: 404.")

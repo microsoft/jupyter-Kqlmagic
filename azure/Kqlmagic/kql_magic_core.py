@@ -203,7 +203,9 @@ class Kqlmagic_core(object):
 
 
     # Object constructor
-    def __init__(self, default_options:Configurable=None, shell=None, global_ns:dict={}, local_ns:dict={}, config=None, dont_start=False)->None:
+    def __init__(self, default_options:Configurable=None, shell=None, global_ns:dict=None, local_ns:dict=None, config=None, dont_start=False)->None:
+        global_ns = global_ns or {}
+        local_ns = local_ns or {}
         self.default_options = default_options
         self.shell = shell
         self.global_ns = global_ns
@@ -640,7 +642,8 @@ class Kqlmagic_core(object):
                 pass
 
 
-    def _set_temp_files_server(self, options:Dict[str,Any]={})->None:
+    def _set_temp_files_server(self, options:Dict[str,Any]=None)->None:
+        options = options or {}
         if (options.get("temp_files_server") == "kqlmagic"
             or (options.get('notebook_app') in ["visualstudiocode", "azuredatastudio", "nteract"]
                 and options.get("kernel_location") == "local"
@@ -651,7 +654,8 @@ class Kqlmagic_core(object):
             self._abort_temp_files_server(options)
 
 
-    def _start_temp_files_server(self, options:Dict[str,Any]={})->None:
+    def _start_temp_files_server(self, options:Dict[str,Any]=None)->None:
+        options = options or {}
         self.is_temp_files_server_on = False
         if self.temp_files_server_manager is None and options.get("temp_folder_name") is not None:
             server_py_path = get_env_var(f"{Constants.MAGIC_CLASS_NAME_UPPER}_TEMP_FILES_SERVER_PY_FOLDER")
@@ -691,7 +695,7 @@ class Kqlmagic_core(object):
             Display.showfiles_url_base_path = Display.showfiles_file_base_path
 
 
-    def execute(self, line:str, cell:str=None, local_ns:Dict[str,Any]={},
+    def execute(self, line:str, cell:str=None, local_ns:Dict[str,Any]=None,
                 override_vars:Dict[str,str]=None, override_options:Dict[str,Any]=None, override_query_properties:Dict[str,Any]=None, override_connection:str=None, override_result_set:ResultSet=None):
         """Query Kusto or ApplicationInsights using kusto query language (kql). Repository specified by a connect string.
 
@@ -786,6 +790,7 @@ class Kqlmagic_core(object):
             %kql kusto://cluster('myCluster')
             # Note set current (default) cluster to kusto.
         """
+        local_ns = local_ns or {}
         self.execution_depth += 1
         if self.last_execution is not None and self.last_execution.get("log") is None:
             log_messages = logger().getCurrentLogMessages()
@@ -1017,7 +1022,8 @@ class Kqlmagic_core(object):
         return user_ns
 
 
-    def execute_bug_report_command(self, param:str=None, options:dict={})->UrlReference:
+    def execute_bug_report_command(self, param:str=None, options:dict=None)->UrlReference:
+        options = options or {}
         self.last_execution = self.prev_execution
         logger().debug(f"execute_bug_report_command - param: {param}")
         connections_info = Connection.get_connections_info()
@@ -1088,7 +1094,8 @@ class Kqlmagic_core(object):
             f"Open Issue #{issue_id}")
 
 
-    def execute_conn_command(self, param:str=None, options:dict={})->None:
+    def execute_conn_command(self, param:str=None, options:dict=None)->None:
+        options = options or {}
         logger().debug(f"execute_conn_command - param: {param}")
         if param is None:
             connection_list = Connection.get_connection_list_formatted()
@@ -1226,7 +1233,8 @@ Each option can be set as follow:<br>
             Display.showInfoMessage(msg)
 
 
-    def _add_help_to_jupyter_help_menu(self, user_ns:Dict[str,Any], start_time:float=None, options:dict={})->None:
+    def _add_help_to_jupyter_help_menu(self, user_ns:Dict[str,Any], start_time:float=None, options:dict=None)->None:
+        options = options or {}
         if Help_html.showfiles_base_url is None and self.default_options.notebook_app not in ["azuredatastudio", "ipython", "visualstudiocode", "nteract"]:
             if start_time is not None:
                 self._discover_notebook_url_start_time = start_time

@@ -176,9 +176,10 @@ class KqlTableResponse(object):
         return self.data_table.rows_count > 0
 
 
-    def to_dataframe(self, raise_errors=True, options={}):
+    def to_dataframe(self, raise_errors=True, options=None):
         """Returns Pandas data frame."""
-
+        
+        options = options or {}
         pandas = Dependencies.get_module("pandas")
 
         if self.data_table.columns_count == 0 or self.data_table.rows_count == 0:

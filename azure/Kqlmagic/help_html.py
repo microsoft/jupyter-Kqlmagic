@@ -18,7 +18,8 @@ class Help_html(object):
 
 
     @staticmethod
-    def flush(window_location:str, options:dict={}):
+    def flush(window_location:str, options:dict=None):
+        options = options or {}
         base_url = None
         # local machine jupyter
         if window_location.startswith(("http://localhost", "https://localhost", "http://127.0.0.", "https://127.0.0.")):           

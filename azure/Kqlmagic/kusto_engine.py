@@ -119,7 +119,8 @@ class KustoEngine(KqlEngine):
             return self.client
 
 
-    def get_deep_link(self, query:str, options:Dict[str,Any]={})->str:
+    def get_deep_link(self, query:str, options:Dict[str,Any]=None)->str:
+        options = options or {}
         client = self.get_client()
         http_query = []
         web_or_app = 0 if options.get("query_link_destination") == "Kusto.Explorer" else 1  # default "Kusto.WebExplorer"

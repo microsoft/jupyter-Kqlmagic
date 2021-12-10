@@ -244,11 +244,12 @@ class ResultSet(list, ColumnGuesserMixin):
 
 
     # Object constructor
-    def __init__(self, metadata:Dict[str,Any], queryResult, fork_table_id:int=0, fork_table_resultSets={}):
+    def __init__(self, metadata:Dict[str,Any], queryResult, fork_table_id:int=0, fork_table_resultSets=None):
 
         #         self.current_colors_palette = ['rgb(184, 247, 212)', 'rgb(111, 231, 219)', 'rgb(127, 166, 238)', 'rgb(131, 90, 241)']
 
         self.fork_table_id = fork_table_id
+        fork_table_resultSets = fork_table_resultSets or {}
         self._fork_table_resultSets = fork_table_resultSets
         # set by caller
 
@@ -931,10 +932,11 @@ class ResultSet(list, ColumnGuesserMixin):
     ]
 
 
-    def _getChartHtml(self, window_mode:bool=False, options:Dict[str,Any]={})->Dict[str,Any]:
+    def _getChartHtml(self, window_mode:bool=False, options:Dict[str,Any]=None)->Dict[str,Any]:
         "get query result in a char format as an HTML string"
         # https://kusto.azurewebsites.net/docs/queryLanguage/query_language_renderoperator.html
 
+        options = options or {}
         if not self.is_chart():
             return {}
 
@@ -1043,7 +1045,8 @@ class ResultSet(list, ColumnGuesserMixin):
         return {}
 
 
-    def _plotly_fig_to_image(self, fig, filename:str, options:Dict[str,Any]={})->bytes:
+    def _plotly_fig_to_image(self, fig, filename:str, options:Dict[str,Any]=None)->bytes:
+        options = options or {}
         try:
             if filename:  # requires plotly orca package
                 fig.write_image(
@@ -1404,7 +1407,8 @@ class ResultSet(list, ColumnGuesserMixin):
         return self._CHART_X_TYPE.get(properties.get(VisualizationKeys.VISUALIZATION), "first")
     
 
-    def _get_plotly_chart_properties(self, properties:Dict[str,Any], tabs: list, options:Dict[str,Any]={})->Dict[str,Any]:
+    def _get_plotly_chart_properties(self, properties:Dict[str,Any], tabs: list, options:Dict[str,Any]=None)->Dict[str,Any]:
+        options = options or {}
         chart_properties = {}
         if properties.get(VisualizationKeys.VISUALIZATION) == VisualizationValues.BAR_CHART:
             chart_properties["xlabel"] = self._get_plotly_ylabel(properties.get(VisualizationKeys.X_TITLE), tabs)
@@ -1427,7 +1431,8 @@ class ResultSet(list, ColumnGuesserMixin):
         return chart_properties
 
 
-    def _figure_or_figurewidget(self, data, layout:Dict[str,Any], window_mode:bool, options:dict={}):
+    def _figure_or_figurewidget(self, data, layout:Dict[str,Any], window_mode:bool, options:dict=None):
+        options = options or {}
         plotly_layout = options.get("plotly_layout")
         if plotly_layout is not None:
             for property in plotly_layout:
@@ -1444,13 +1449,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return fig
 
 
-    def _render_areachart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
+    def _render_areachart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]=None)->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Area graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
-
+        
+        options = options or {}
         go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
@@ -1488,13 +1494,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_stackedareachart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
+    def _render_stackedareachart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]=None)->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Stacked area graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
 
+        options = options or {}
         go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
@@ -1539,13 +1546,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_timechart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
+    def _render_timechart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]=None)->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Line graph. 
         First column is x-axis, and should be datetime. Other columns are y-axes.
         """
 
+        options = options or {}
         go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
@@ -1592,13 +1600,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_piechart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
+    def _render_piechart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]=None)->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Pie chart. 
         First column is color-axis, second column is numeric.
         """
 
+        options = options or {}
         go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
@@ -1656,13 +1665,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_barchart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
+    def _render_barchart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]=None)->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Bar chart. 
         First column is x-axis, and can be text, datetime or numeric. Other columns are numeric, displayed as horizontal strips.
         """
 
+        options = options or {}
         go = Dependencies.get_module('plotly.graph_objs')
         sub_tables = self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(sub_tables) < 1:
@@ -1700,13 +1710,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_linechart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
+    def _render_linechart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]=None)->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Line graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
 
+        options = options or {}
         go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:
@@ -1742,13 +1753,14 @@ class ResultSet(list, ColumnGuesserMixin):
         return {"data": data, "layout": layout}
 
 
-    def _render_scatterchart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]={})->Dict[str,Any]:
+    def _render_scatterchart_plotly(self, properties:Dict[str,Any], key_word_sep:str=" ", options:Dict[str,Any]=None)->Dict[str,Any]:
         """Generates a pylab plot from the result set.
 
         Points graph. 
         First column is x-axis, and should be a numeric column. Other numeric columns are y-axes.
         """
 
+        options = options or {}
         go = Dependencies.get_module('plotly.graph_objs')
         self._build_chart_sub_tables(properties, x_type=self._get_plotly_chart_x_type(properties))
         if len(self.chart_sub_tables) < 1:

@@ -234,7 +234,8 @@ class Dependencies(object):
 
 
     @classmethod
-    def warn_missing_dependencies(cls, options:Dict[str,Any]={})->None:
+    def warn_missing_dependencies(cls, options:Dict[str,Any]=None)->None:
+        options = options or {}
         if not isNullLogger:
             for item in cls.dependencies:
                 module_name = item[0]
@@ -295,7 +296,8 @@ class Dependencies(object):
 
 
     @classmethod
-    def warn_missing_env_variables(cls, options:Dict[str,Any]={})->None:
+    def warn_missing_env_variables(cls, options:Dict[str,Any]=None)->None:
+        options = options or {}
         if options.get("notebook_app") in ["azureml", "azuremljupyternotebook", "azuremljupyterlab"]:
             if options.get("notebook_service_address") is None:
                 var_name = f"{Constants.MAGIC_CLASS_NAME_UPPER}_AZUREML_COMPUTE"

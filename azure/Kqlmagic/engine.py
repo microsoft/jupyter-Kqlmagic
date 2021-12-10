@@ -89,7 +89,8 @@ class Engine(object):
         raise NotImplementedError(self.__class__.__name__ + ".get_conn_name")
 
 
-    def get_deep_link(self, query:str, options:Dict[str,Any]={})->str:
+    def get_deep_link(self, query:str, options:Dict[str,Any]=None)->str:
+        options = options or {}
         raise NotImplementedError(self.__class__.__name__ + ".get_deep_link")
 
 

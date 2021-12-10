@@ -36,7 +36,8 @@ class ActivateKernelCommand(object):
 
 
     @staticmethod
-    def execute(to_activate:bool, options={}):
+    def execute(to_activate:bool, options=None):
+        options = options or {}
         ActivateKernelCommand.suppress_results = options.get("suppress_results")
         if ActivateKernelCommand.config.is_magic:
             is_kqlmagic_kernel = ActivateKernelCommand._activate_kernel(to_activate)

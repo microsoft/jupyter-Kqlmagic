@@ -227,7 +227,8 @@ class Display(object):
 
 
     @staticmethod
-    def get_show_deeplink_webbrowser_html_obj(window_name, deep_link_url:str, close_window_timeout_in_secs: int, options={}):
+    def get_show_deeplink_webbrowser_html_obj(window_name, deep_link_url:str, close_window_timeout_in_secs: int, options=None):
+        options = options or {}
         close_itself_timeout_in_secs = 0
         html_str = Display._get_Launch_page_html(window_name, deep_link_url, close_window_timeout_in_secs, close_itself_timeout_in_secs, False, options=options)
         file_name = Display._get_name()
@@ -237,7 +238,8 @@ class Display(object):
 
 
     @staticmethod
-    def get_show_deeplink_html_obj(window_name, deep_link_url:str, close_window_timeout_in_secs: int, options={}):
+    def get_show_deeplink_html_obj(window_name, deep_link_url:str, close_window_timeout_in_secs: int, options=None):
+        options = options or {}
         if options.get("kernel_location") == "local":
             url = Display.get_show_deeplink_webbrowser_html_obj(window_name, deep_link_url, close_window_timeout_in_secs, options=options)
             webbrowser.open(url, new=1, autoraise=True)
@@ -250,7 +252,8 @@ class Display(object):
 
 
     @staticmethod
-    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, content=None, options={}):
+    def get_show_window_html_obj(window_name, file_path, button_text=None, onclick_visibility=None, isText:bool=None, palette:dict=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, content=None, options=None):
+        options = options or {}
         html_str = None
         mode = options.get("popup_interaction", "auto")
         if mode == "auto":
@@ -281,7 +284,8 @@ class Display(object):
     #
     ############################################################################
     @staticmethod
-    def _get_file_path_url(file_path, options={}):
+    def _get_file_path_url(file_path, options=None):
+        options = options or {}
         url = None
         if file_path.startswith("http"):
             url = file_path
@@ -295,7 +299,8 @@ class Display(object):
         return url
 
     @staticmethod
-    def _get_file_path_file_url(file_path, options={}):
+    def _get_file_path_file_url(file_path, options=None):
+        options = options or {}
         url = None
         path_uri = adjust_path_to_uri(f"{Display.showfiles_file_base_path}/{file_path}")
         url = (f"file:///{path_uri}")
@@ -304,7 +309,8 @@ class Display(object):
 
 
     @staticmethod
-    def _get_window_ref_html(isPopupMode, window_name, file_path, ref_text=None, isText=None, palette=None, ref_palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, options={}):
+    def _get_window_ref_html(isPopupMode, window_name, file_path, ref_text=None, isText=None, palette=None, ref_palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, options=None):
+        options = options or {}
         url = Display._get_file_path_url(file_path, options=options)
         popup_window_name = window_name
 
@@ -347,7 +353,8 @@ class Display(object):
 
 
     @staticmethod
-    def to_json_styled_class(item, style=None, options={}):
+    def to_json_styled_class(item, style=None, options=None):
+        options = options or {}
         json_display_style = style or options.get("json_display")
         if json_display_style != "raw" and (isinstance(item, list) or isinstance(item, dict) or type(item).__name__ == "KqlRow"):
             if json_display_style == "formatted":
@@ -380,7 +387,8 @@ class Display(object):
 
 
     @staticmethod
-    def _get_popup_window_html(url, window_name, close_window_timeout_in_secs, options={}):
+    def _get_popup_window_html(url, window_name, close_window_timeout_in_secs, options=None):
+        options = options or {}
         window_params = "fullscreen=no,directories=no,location=no,menubar=no,resizable=yes,scrollbars=yes,status=no,titlebar=no,toolbar=no,"
         window_name = window_name.replace(".", "_").replace("-", "_").replace("/", "_").replace(":", "_").replace(" ", "_")
 
@@ -420,7 +428,8 @@ class Display(object):
         return html_str
 
     @staticmethod
-    def _get_window_html(window_name, file_path_or_data, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, close_itself_timeout_in_secs=None, content=None, options={}):
+    def _get_window_html(window_name, file_path_or_data, button_text=None, onclick_visibility=None, isText=None, palette=None, before_text=None, after_text=None, close_window_timeout_in_secs=None, close_itself_timeout_in_secs=None, content=None, options=None):
+        options = options or {}
         # if isText is True, file_path_or_data is the text
         host_or_text = 'text' if isText else (options.get("notebook_service_address") or "")
         if host_or_text != 'text' and options.get("popup_interaction") == "memory_button":
@@ -584,7 +593,8 @@ class Display(object):
         return html_str
 
     @staticmethod
-    def _get_Launch_page_html(window_name, file_path_or_data, close_window_timeout_in_secs, close_itself_timeout_in_secs, isText, options={}):
+    def _get_Launch_page_html(window_name, file_path_or_data, close_window_timeout_in_secs, close_itself_timeout_in_secs, isText, options=None):
+        options = options or {}
         # if isText is True, file_path_or_data is the text
         host_or_text = 'text' if isText else (options.get("notebook_service_address") or "")
         if host_or_text != 'text' and options.get("popup_interaction") == "memory_button":

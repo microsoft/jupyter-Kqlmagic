@@ -28,7 +28,8 @@ DEFAULT_PORT = "5000"
 
 class FilesServerManagement(object):
 
-    def __init__(self, server_py_code_path, server_url, base_folder, folders, options={}):
+    def __init__(self, server_py_code_path, server_url, base_folder, folders, options=None):
+        options = options or {}
         protocol, host, port = self.parse_server_url(server_url)
         self._server_py_code_path = server_py_code_path
         self._protocol = protocol or DEFAULT_PROTOCOL

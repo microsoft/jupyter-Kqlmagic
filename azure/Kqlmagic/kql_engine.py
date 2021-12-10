@@ -159,7 +159,8 @@ class KqlEngine(Engine):
         return self.conn_name
 
 
-    def get_deep_link(self, query:str, options:Dict[str,Any]={})->str:
+    def get_deep_link(self, query:str, options:Dict[str,Any]=None)->str:
+        options = options or {}
         return None
 
 

@@ -942,8 +942,9 @@ class _MyAadHelper(AadHelper):
         return token
 
 
-    def _get_msi_token(self, msi_params={})->str:
+    def _get_msi_token(self, msi_params=None)->str:
         "retrieve token from managed service identity"
+        msi_params = msi_params or {}
         token = None
         self._current_authentication_method = AuthenticationMethod.managed_service_identity
 

@@ -50,12 +50,13 @@ class AllowSingleLineCell(object):
         new_lines = lines
         if len(lines) == 1:
             first_line = lines[0]
-            cell_magic_name = first_line.split(None, 1)[0]
-            if cell_magic_name in [Constants.CELL_MAGIC_PREFIX]:
-                cell_magic_name = first_line.split(None, 1)[0]
-                if not first_line.endswith("\n"):
-                    first_line = first_line + "\n"
-                new_lines = [first_line, "\n"]
+            first_line_tokens = first_line.split(None, 1)
+            if len(first_line_tokens) > 0:
+                cell_magic_name = first_line_tokens[0]
+                if cell_magic_name in [Constants.CELL_MAGIC_PREFIX]:
+                    if not first_line.endswith("\n"):
+                        first_line = first_line + "\n"
+                    new_lines = [first_line, "\n"]
         return new_lines
 
 

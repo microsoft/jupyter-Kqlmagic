@@ -17,6 +17,13 @@ import dateutil.parser
 from .constants import ExtendedPropertiesKeys
 
 
+try:
+    collectionsAbc = collections.abc
+    print("collections.abc")
+except AttributeError:
+    collectionsAbc = collections
+
+
 
 # Regex for TimeSpan
 _TIMESPAN_PATTERN = re.compile(r"(-?)((?P<d>[0-9]*).)?(?P<h>[0-9]{2}):(?P<m>[0-9]{2}):(?P<s>[0-9]{2}(\.[0-9]+)?$)")
@@ -48,7 +55,7 @@ class KqlResult(dict):
         return val
 
 
-class KqlResponseTable(collections.Iterator):
+class KqlResponseTable(collectionsAbc.Iterator):
     """ Iterator over returned rows """
 
     def __init__(self, id, response_table):

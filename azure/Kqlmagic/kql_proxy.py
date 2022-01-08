@@ -8,6 +8,11 @@ import json
 from datetime import datetime
 import collections
 
+try:
+    collectionsAbc = collections.abc
+except AttributeError:
+    collectionsAbc = collections
+
 
 import dateutil.parser
 
@@ -15,7 +20,7 @@ import dateutil.parser
 from .dependencies import Dependencies
 
 
-class KqlRow(collections.Iterator):
+class KqlRow(collectionsAbc.Iterator):
 
     def __init__(self, row, col_num, **options):
         self.options = options
@@ -68,7 +73,7 @@ class KqlRow(collections.Iterator):
         return self.row.__repr__()
 
 
-class KqlRowsIter(collections.Iterator):
+class KqlRowsIter(collectionsAbc.Iterator):
     """ Iterator over returned rows, limited by size """
 
     def __init__(self, table, row_num, col_num, **options):

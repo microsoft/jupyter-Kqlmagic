@@ -19,7 +19,6 @@ from .constants import ExtendedPropertiesKeys
 
 try:
     collectionsAbc = collections.abc
-    print("collections.abc")
 except AttributeError:
     collectionsAbc = collections
 

@@ -136,7 +136,7 @@ class IPythonAPI(object):
 
     @classmethod
     def try_kernel_reconnect(cls, **options)->bool:
-        if options is None or options.get("notebook_app") not in ["jupyterlab", "visualstudiocode", "azuredatastudio", "nteract"]:
+        if options is None or options.get("notebook_app") not in ["jupyterlab", "visualstudiocode", "azuredatastudio", "azuredatastudiosaw", "nteract"]:
             result = cls.try_kernel_execute("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}""")
             time.sleep(1)
             return result

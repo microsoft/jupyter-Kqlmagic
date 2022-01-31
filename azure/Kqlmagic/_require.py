@@ -137,6 +137,8 @@ _SSO_REQUIRES = list_union(_KQLMAGIC_SSO_REQUIRES, _AZCLI_SSO_REQUIRES, _VSCODE_
 _EXTRA_REQUIRES = list_union(_PLOT_REQUIRES, _DATAFRAME_REQUIRES, _SSO_REQUIRES, _IPYWIDGETS_REQUIRES)
 # ---------------------------------------------------
 
+_SAW_REQUIRES = list_union(_AUTH_REQUIRES, _JUPYTER_REQUIRES, _IPYTHON_REQUIRES, _IPYWIDGETS_REQUIRES, _DATAFRAME_PANDAS_REQUIRES, _JSON_COLOR_REQUIRES)
+
 
 # the most slim configuration
 _NAKED_REQUIRES = []
@@ -172,6 +174,8 @@ EXTRAS_REQUIRE      = {
     'default': _DEFAULT_REQUIRES,
 
     'naked': _NAKED_REQUIRES,
+
+    'saw': _SAW_REQUIRES,
 
     'jupyter-basic': _JUPYTER_BASIC_REQUIRES,
     'ipython-basic': _IPYTHON_BASIC_REQUIRES,

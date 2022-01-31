@@ -247,11 +247,12 @@ global_msal_client_app_sso = {}
 
 class _MyAadHelper(AadHelper):
 
-    def __init__(self, kcsb, default_clientid, msal_client_app=None, msal_client_app_sso=None, **options):
+    def __init__(self, kcsb, default_clientid, msal_client_app=None, msal_client_app_sso=None, http_client=None, **options):
         global global_msal_client_app
         global global_msal_client_app_sso
 
         super(_MyAadHelper, self).__init__(kcsb, default_clientid, msal_client_app, msal_client_app_sso, **options)
+        self._http_client = http_client
         self._username = None
         if all([kcsb.aad_user_id, kcsb.password]):
             self._authentication_method = AuthenticationMethod.aad_username_password
@@ -449,7 +450,9 @@ class _MyAadHelper(AadHelper):
 
                     device_code_login_notification = self._options.get("device_code_login_notification")
                     if device_code_login_notification == "auto":
-                        if self._options.get("notebook_app") in ["ipython"]:
+                        if self._options.get("notebook_app") in ["visualstudiocodesaw"]:
+                            device_code_login_notification = "terminal"
+                        elif self._options.get("notebook_app") in ["ipython"]:
                             device_code_login_notification = "popup_interaction"
                         elif self._options.get("notebook_app") in ["visualstudiocode", "azuredatastudio"]:
                             device_code_login_notification = "popup_interaction"
@@ -1002,7 +1005,7 @@ class _MyAadHelper(AadHelper):
                 # print(f">>> _get_token_user_id: {self._get_token_user_id(token)}")
                 # print(f">>> _get_username_from_token: {self._get_username_from_token(token)}")
 
-                app = msal.PublicClientApplication(client_id, authority=authority_uri)
+                app = msal.PublicClientApplication(client_id, authority=authority_uri, http_client=self._http_client)
                 result = app.acquire_token_by_refresh_token(refresh_token, scopes)  # pylint: disable=no-member
                 if "error" in result:
                     self._warn_on_token_validation_failure(f"failed to migrate token to msal app: {result}")
@@ -1075,9 +1078,9 @@ class _MyAadHelper(AadHelper):
         msal = Dependencies.get_module("msal", dont_throw=True)
         if msal:
             if self._client_app_type == ClientAppType.public:
-                client_app = msal.PublicClientApplication(self._client_id, authority=self._authority_uri, token_cache=cache)
+                client_app = msal.PublicClientApplication(self._client_id, authority=self._authority_uri, token_cache=cache, http_client=self._http_client)
             elif self._client_app_type == ClientAppType.confidential:
-                client_app = msal.ConfidentialClientApplication(self._client_id, authority=self._authority_uri, client_credential=self._client_credential, token_cache=cache)
+                client_app = msal.ConfidentialClientApplication(self._client_id, authority=self._authority_uri, client_credential=self._client_credential, token_cache=cache, http_client=self._http_client)
         return client_app
 
 

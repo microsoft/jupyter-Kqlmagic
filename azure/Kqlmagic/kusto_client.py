@@ -10,8 +10,6 @@ import uuid
 import json
 
 
-from .dependencies import Dependencies
-# from .my_aad_helper import _MyAadHelper, ConnKeysKCSB
 from .my_aad_helper_msal import _MyAadHelper, ConnKeysKCSB
 from .kql_response import KqlQueryResponse, KqlError
 from .constants import Constants, ConnStrKeys, Cloud
@@ -280,8 +278,8 @@ class KustoClient(KqlClient):
                 "timeout": options.get("timeout"),
             }
         }
-        requests = Dependencies.get_module("requests")
-        response = requests.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
+
+        response = self._http_client.post(endpoint, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
 
         logger().debug(f"KustoClient::execute - response - status: {response.status_code}, headers: {response.headers}, payload: {response.text}")
 
@@ -294,7 +292,7 @@ class KustoClient(KqlClient):
             "status_code": response.status_code
         }
 
-        if response.status_code != requests.codes.ok:  # pylint: disable=E1101
+        if response.status_code < 200  or response.status_code >= 300:  # pylint: disable=E1101
             try:
                 parsed_error = json.loads(response.text)
             except:

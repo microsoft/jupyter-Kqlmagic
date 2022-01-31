@@ -98,12 +98,10 @@ from functools import cmp_to_key
 from typing import Any, Dict, Tuple, Iterable
 
 
-import requests
-
-
 from .constants import Constants
 from .help import MarkdownString
 from ._version import __version__
+from .http_client import HttpClient
 
 
 _IGNORE_POST_VERSION_PATTERN = r'[.]?(post|rev|r)[0-9]*$'
@@ -386,7 +384,8 @@ def _retreive_package_from_pypi(package_name:str)->Dict[str,Any]:
     """
 
     api_url = f"https://pypi.org/pypi/{package_name}/json"
-    response = requests.get(api_url)
+    http_client = HttpClient()
+    response = http_client.get(api_url)
 
     #
     # handle response

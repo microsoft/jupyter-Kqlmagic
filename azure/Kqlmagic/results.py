@@ -195,8 +195,8 @@ def _nonbreaking_spaces(match_obj):
 class DisplayRows(list):
 
     def __init__(self, rows:list, limit:int):
-        self.limit = min(limit or len(rows), len(rows))
-        self.rows = rows
+        self.rows = [] if rows is None else rows
+        self.limit = len(self.rows) if limit is None else min(max(0, limit), len(self.rows))
         self.row_index = 0
 
 
@@ -549,29 +549,38 @@ class ResultSet(list, ColumnGuesserMixin):
     def _getPrettyTableHtml(self)->Dict[str,str]:
         "get query result in a table format as an HTML string"
 
-        display_limit = 0 if not self.options.get("display_limit") else self.options.get("display_limit")
-        table = DisplayRows(self, display_limit)
-        prettytable = Dependencies.get_module('prettytable', dont_throw=True)
-        if prettytable:
-            if self.pretty is None:
-                # table printing style to any of prettytable's defined styles (currently DEFAULT, MSWORD_FRIENDLY, PLAIN_COLUMNS, RANDOM)
-                prettytable_style = prettytable.__dict__[self.options.get("prettytable_style", "DEFAULT").upper()]
-                self.pretty = PrettyTable(self.field_names, style=prettytable_style) if len(self.field_names) > 0 else None
-            self.pretty.add_rows(table)
-            result = self.pretty.get_html_string()
-            _cell_with_spaces_pattern = re.compile(r"(<td>)( {2,})")
-            result = _cell_with_spaces_pattern.sub(_nonbreaking_spaces, result)
-        else:
-            tabulate = Dependencies.get_module('tabulate', dont_throw=True)
-            if tabulate:
-                result = tabulate.tabulate(table, self.field_names, tablefmt="html")
-            else:
-                prettytable = Dependencies.get_module('prettytable')
-                return {}
+        display_limit = self.options.get("display_limit")
+        if display_limit is None:
+            display_limit = len(self)
 
-        if display_limit > 0 and len(self) > display_limit:
-            result = f'{result}\n<span style="font-style:italic;text-align:center;">{len(self)} rows, truncated to display_limit of {display_limit}</span>'
-        return {"body": result}
+        if display_limit >= 0:
+            table = DisplayRows(self, display_limit)
+            prettytable = Dependencies.get_module('prettytable', dont_throw=True)
+            if prettytable:
+                if self.pretty is None:
+                    # table printing style to any of prettytable's defined styles (currently DEFAULT, MSWORD_FRIENDLY, PLAIN_COLUMNS, RANDOM)
+                    prettytable_style = prettytable.__dict__[self.options.get("prettytable_style", "DEFAULT").upper()]
+                    self.pretty = PrettyTable(self.field_names, style=prettytable_style) if len(self.field_names) > 0 else None
+
+                self.pretty.add_rows(table)
+                result = self.pretty.get_html_string()
+                _cell_with_spaces_pattern = re.compile(r"(<td>)( {2,})")
+                result = _cell_with_spaces_pattern.sub(_nonbreaking_spaces, result)
+            else:
+                tabulate = Dependencies.get_module('tabulate', dont_throw=True)
+                if tabulate:
+                    result = tabulate.tabulate(table, self.field_names, tablefmt="html")
+                else:
+                    prettytable = Dependencies.get_module('prettytable')
+                    return {}
+
+            if len(self) > display_limit:
+                result = f'{result}\n<span style="font-style:italic;text-align:center;">{len(self)} rows, truncated to display_limit of {display_limit}</span>'
+            
+            return {"body": result}
+        else:
+            return {}
+
 
 
     def need_suppress_next_workaround(self)->bool:
@@ -595,11 +604,14 @@ class ResultSet(list, ColumnGuesserMixin):
         if not options.get("popup_window") and len(self) == 1 and len(self[0]) == 1 and (isinstance(self[0][0], dict) or isinstance(self[0][0], list)):
             content = Display.to_json_styled_class(self[0][0], options=options)
         else:
-            if options.get("table_package", "").lower() in ["pandas", "pandas_html_table_schema"]:
+            display_limit = options.get("display_limit")
+            if type(display_limit) == int and display_limit < 0:
+                content = Display.toHtml(**{}, title='table')
+
+            elif options.get("table_package", "").lower() in ["pandas", "pandas_html_table_schema"]:
                 pd = Dependencies.get_module("pandas")
 
                 df = self.to_dataframe()
-                display_limit = options.get("display_limit")
                 if display_limit is not None:
                     df = df.head(display_limit)
 
@@ -610,7 +622,6 @@ class ResultSet(list, ColumnGuesserMixin):
                 except:
                     pass
                 pd.set_option('display.large_repr', "truncate")
-
 
                 if options.get("table_package", "") == "pandas_html_table_schema" and not options.get("popup_window"):
                     df_copied = False
@@ -625,7 +636,7 @@ class ResultSet(list, ColumnGuesserMixin):
 
                     pandas_display_html_table_schema = pd.options.display.html.table_schema
                     pd.options.display.html.table_schema = True
-                    if options.get("notebook_app") in ["azuredatastudio"]:
+                    if options.get("notebook_app") in ["azuredatastudio", "azuredatastudiosaw"]:
                         pandas__repr_data_resource_ = self._patch_pandas__repr_data_resource_()
                         pandas__repr_data_resource_patched = True
                     content = df

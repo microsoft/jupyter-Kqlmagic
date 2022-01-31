@@ -9,7 +9,6 @@ import uuid
 import json
 
 
-from .dependencies import Dependencies
 from .my_utils import json_dumps 
 from .constants import Constants, ConnStrKeys, Cloud, Schema
 from .kql_response import KqlQueryResponse, KqlSchemaResponse, KqlError
@@ -19,7 +18,6 @@ from ._version import __version__
 from .log import logger
 from .kql_client import KqlClient
 from .exceptions import KqlEngineError
-
 
 class DraftClient(KqlClient):
     """Draft Client
@@ -223,10 +221,10 @@ class DraftClient(KqlClient):
                 "timeout": options.get("timeout"),
             }
         }
-        requests = Dependencies.get_module("requests")
+
         if is_metadata:
             logger().debug(f"DraftClient::execute - GET request - url: {api_url}, headers: {log_request_headers}, timeout: {options.get('timeout')}")
-            response = requests.get(api_url, headers=request_headers, timeout=options.get("timeout"))
+            response = self._http_client.get(api_url, headers=request_headers, timeout=options.get("timeout"))
         else:
             request_payload = {
                 "query": query
@@ -248,7 +246,7 @@ class DraftClient(KqlClient):
             # collect this inormation, in case bug report will be generated
             self.last_query_info["request"]["payload"] = request_payload  # pylint: disable=unsupported-assignment-operation, unsubscriptable-object
 
-            response = requests.post(api_url, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
+            response = self._http_client.post(api_url, headers=request_headers, json=request_payload, timeout=options.get("timeout"))
 
         logger().debug(f"DraftClient::execute - response - status: {response.status_code}, headers: {response.headers}, payload: {response.text}")
         #
@@ -259,7 +257,7 @@ class DraftClient(KqlClient):
             "status_code": response.status_code
         }
 
-        if response.status_code != requests.codes.ok:  # pylint: disable=E1101
+        if response.status_code < 200  or response.status_code >= 300:  # pylint: disable=E1101
             try:
                 parsed_error = json.loads(response.text)
             except:

@@ -9,6 +9,7 @@ import uuid
 
 from .kql_response import KqlQueryResponse, KqlSchemaResponse
 from .aad_helper import AadHelper
+from .http_client import HttpClient
 
 
 class KqlClient(object):
@@ -17,12 +18,14 @@ class KqlClient(object):
     last_query_info:dict = None
 
     _aad_helper:AadHelper
+    _http_client:HttpClient
 
     _session_guid:str = str(uuid.uuid4())
 
 
     def __init__(self)->None:
         self._aad_helper = None
+        self._http_client = HttpClient()
 
 
     def execute(self, id:str, query:str, accept_partial_results:bool=False, **options)->Union[KqlQueryResponse, KqlSchemaResponse]:

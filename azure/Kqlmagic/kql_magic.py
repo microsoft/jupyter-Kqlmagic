@@ -456,7 +456,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     notebook_app = Enum(
-        ["auto", "jupyterlab", "azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
+        ["auto", "jupyterlab", "azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "azuredatastudiosaw", "nteract"], 
         default_value="auto",
         read_only=True,
         config=True, 
@@ -464,7 +464,7 @@ class Kqlmagic(Magics, Configurable):
     )  # TODO: add "papermill"
 
     test_notebook_app = Enum(
-        ["none", "jupyterlab", "azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"], 
+        ["none", "jupyterlab", "azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "azuredatastudiosaw", "nteract"], 
         default_value="none",
         read_only=True,
         config=True, 

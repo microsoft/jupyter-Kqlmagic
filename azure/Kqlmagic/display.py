@@ -259,7 +259,7 @@ class Display(object):
         if mode == "auto":
             if options.get("notebook_app") in ["ipython"] and options.get("test_notebook_app") in ["none", "ipython"]: 
                 mode = "webbrowser_open_at_kernel"
-            elif options.get("notebook_app") in ["visualstudiocode", "azuredatastudio"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "azuredatastudio"]: 
+            elif options.get("notebook_app") in ["visualstudiocode", "azuredatastudiosaw", "azuredatastudio"] and options.get("test_notebook_app") in ["none", "visualstudiocode", "azuredatastudio", "azuredatastudiosaw"]: 
                 mode = "reference"
             elif options.get("notebook_app") in ["nteract"] and options.get("temp_files_server_address") is None:
                 mode = "reference"

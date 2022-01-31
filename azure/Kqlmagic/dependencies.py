@@ -72,7 +72,7 @@ class Dependencies(object):
 
         ('prettytable', 'prettytable', OPTIONAL_TAG, "won't be able to display tables", VERSION_IN_MODULE),
         # ('tabulate', 'tabulate', OPTIONAL_TAG, "won't be able to display tables", VERSION_IN_MODULE),
-        ('requests', 'requests', OPTIONAL_TAG, "won't be able to query data sources, except local cache", VERSION_IN_MODULE),
+        ('requests', 'requests', OPTIONAL_TAG, "will use urllib, that might have ssl and or proxies restrictions", VERSION_IN_MODULE),
         ('msal', 'msal', OPTIONAL_TAG, "won't be able to authenticate using msal authentication modes, and Kqlmagic sso will be disabled", VERSION_IN_MODULE),
         ('azure.identity', 'azure-identity', OPTIONAL_TAG, "Some authentication options won't be available", VERSION_IN_MODULE),
         ('pandas', 'pandas', OPTIONAL_TAG, "won't be able to use dataframes", VERSION_IN_MODULE),

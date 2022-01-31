@@ -502,7 +502,7 @@ Default: value taken from {Constants.MAGIC_CLASS_NAME_UPPER}_NOTEBOOK_SERVICE_AD
 <br>
 
 ## {Constants.MAGIC_CLASS_NAME_UPPER}_NOTEBOOK_APP
-Force the specified jupyter implementation. valid values are: "auto", "jupyterlab", "azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract"<br>
+Force the specified jupyter implementation. valid values are: "auto", "jupyterlab", "azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "ipython", "visualstudiocode", "azuredatastudio", "nteract", "azuredatastudiosaw"<br>
 Default: "auto" (auto detect implementation)<br>
 <br>
 

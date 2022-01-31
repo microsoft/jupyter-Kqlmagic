@@ -6,6 +6,7 @@
 
 import os
 import sys
+import platform
 import time
 import json
 import hashlib
@@ -317,7 +318,11 @@ class Kqlmagic_core(object):
         app = "auto"
         if app == "auto":  # ELECTRON_RUN_AS_NODE
             notebook_service_address = self.default_options.notebook_service_address or ""
-            if notebook_service_address == "https://notebooks.azure.com" or notebook_service_address.endswith(".notebooks.azure.com"):
+            python_branch = platform.python_branch()
+            if python_branch.endswith("/msft-spython"):
+                app = "azuredatastudiosaw"
+                _kernel_location = "local"
+            elif notebook_service_address == "https://notebooks.azure.com" or notebook_service_address.endswith(".notebooks.azure.com"):
                 app = "azurenotebook"
                 _kernel_location = "remote"
             elif notebook_service_address.endswith((".azureml.net", ".azureml.ms")):
@@ -383,7 +388,9 @@ class Kqlmagic_core(object):
         kernel_location = self.default_options.kernel_location or "auto"
         if kernel_location == "auto":
             kernel_location = _kernel_location or "auto"
-            if kernel_location == "auto":
+            if app in ["azuredatastudiosaw"]:
+                kernel_location = "local"
+            elif kernel_location == "auto":
                 app_info = self.get_app_from_parent()
                 kernel_location = app_info.get("kernel_location", kernel_location)
             if kernel_location == "auto":           
@@ -413,7 +420,7 @@ class Kqlmagic_core(object):
         if temp_folder_location == "auto":
             if kernel_location in ["auto", "remote"]:
                 temp_folder_location = "starting_dir"
-            elif app in ["azuredatastudio", "nteract", "visualstudiocode"]:
+            elif app in ["azuredatastudio", "azuredatastudiosaw", "nteract", "visualstudiocode"]:
                 temp_folder_location = "user_dir"
             elif app in ["azurenotebook", "azureml", "azuremljupyternotebook", "azuremljupyterlab", "jupyternotebook", "jupyterlab"]:
                 temp_folder_location = "starting_dir"
@@ -458,6 +465,8 @@ class Kqlmagic_core(object):
                     name = parent_proc.name().lower()
                     if name.startswith("nteract"):
                         return {"app": "nteract", "kernel_location": "local"}
+                    elif name.startswith("azuredatastudio-saw"):
+                        return {"app": "azuredatastudiosaw", "kernel_location": "local"}
                     elif name.startswith("azuredatastudio"):
                         return {"app": "azuredatastudio", "kernel_location": "local"}
                     cmdline = parent_proc.cmdline()
@@ -469,6 +478,8 @@ class Kqlmagic_core(object):
                                     return {"app": "jupyternotebook"}
                                 elif item.endswith("jupyter-lab.exe"):
                                     return {"app": "jupyterlab"}
+                                elif item.endswith("azuredatastudio-saw.exe"):
+                                    return {"app": "azuredatastudiosaw", "kernel_location": "local"}
                                 elif item.endswith("azuredatastudio.exe"):
                                     return {"app": "azuredatastudio", "kernel_location": "local"}
                                 elif item.endswith("nteract.exe"):
@@ -645,7 +656,7 @@ class Kqlmagic_core(object):
     def _set_temp_files_server(self, options:Dict[str,Any]=None)->None:
         options = options or {}
         if (options.get("temp_files_server") == "kqlmagic"
-            or (options.get('notebook_app') in ["visualstudiocode", "azuredatastudio", "nteract"]
+            or (options.get('notebook_app') in ["visualstudiocode", "azuredatastudio", "azuredatastudiosaw", "nteract"]
                 and options.get("kernel_location") == "local"
                 and options.get("temp_files_server") == "auto")):
             if self.is_temp_files_server_on is None:
@@ -1235,7 +1246,7 @@ Each option can be set as follow:<br>
 
     def _add_help_to_jupyter_help_menu(self, user_ns:Dict[str,Any], start_time:float=None, options:dict=None)->None:
         options = options or {}
-        if Help_html.showfiles_base_url is None and self.default_options.notebook_app not in ["azuredatastudio", "ipython", "visualstudiocode", "nteract"]:
+        if Help_html.showfiles_base_url is None and self.default_options.notebook_app not in ["azuredatastudio", "azuredatastudiosaw", "ipython", "visualstudiocode", "nteract"]:
             if start_time is not None:
                 self._discover_notebook_url_start_time = start_time
             else:
@@ -1672,12 +1683,15 @@ Each option can be set as follow:<br>
                 "ipython": "ipython", 
                 "visualstudiocode": "visualstudiocode",
                 "azuredatastudio": "azuredatastudio",
+                "azuredatastudiosaw": "azuredatastudiosaw",
                 "nteract": "nteract",
                 "lab": "jupyterlab", 
                 "notebook": "jupyternotebook", 
                 "ipy": "ipython", 
                 "vsc": "visualstudiocode",
                 "ads": "azuredatastudio",
+                "saw": "azuredatastudiosaw",
+                "secureadminworkstation": "azuredatastudiosaw",
                 "azurenotebooks": "azurenotebook",
                 # "papermill":"papermill" #TODO: add "papermill"
             }.get(lookup_key)

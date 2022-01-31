@@ -350,6 +350,16 @@ class Profile(object):
                     "support_json_object":      False,
         },
 
+        "azuredatastudiosaw": {
+            "support_javascript":       True,
+            "support_deep_link_script": True,
+            "support_auth_script":      True,
+                    "support_reconnect_script": False,
+            "support_file_url":         True,
+                    "support__help_menu":       False,
+                    "support_json_object":      False,
+        },
+
         "visualstudiocode": {
             "support_javascript":       True,
             "support_deep_link_script": True,

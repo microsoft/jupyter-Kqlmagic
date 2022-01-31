@@ -49,20 +49,26 @@ def _python_info() -> dict:
     except:
         pass
 
-    return {'name': implementation, 'version': implementation_version}
+    try:
+        implementation_branch = platform.python_branch()
+    except:
+        implementation_branch = 'Unknown'
+
+    return {'name': implementation, 'version': implementation_version, 'branch': implementation_branch}
 
 
 def _platform_info() -> dict:
     """Return a dict with the system version and release."""
 
-    platform_system = 'Unknown'
-    platform_release = 'Unknown'
     try:
         platform_system = platform.system()
-        platform_release = platform.release()
-
     except:
-        pass
+        platform_system = 'Unknown'
+
+    try:
+        platform_release = platform.release()
+    except:
+        platform_release = 'Unknown'
 
     return {'system': platform_system, 'release': platform_release}
 

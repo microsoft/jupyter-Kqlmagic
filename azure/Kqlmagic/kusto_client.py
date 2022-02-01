@@ -137,7 +137,8 @@ class KustoClient(KqlClient):
         
         cloud = self.getCloudFromHost(auth_resource)
         client_id = self._ADX_CLIENT_BY_CLOUD[cloud]
-        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), client_id, **options) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
+        http_client = self._http_client if options.get("auth_use_http_client") else None
+        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), client_id, http_client=http_client, **options) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
         self._data_source = data_source
 
 

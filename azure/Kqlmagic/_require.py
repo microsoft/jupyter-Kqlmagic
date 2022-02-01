@@ -25,11 +25,6 @@ def strip_package_name(item):
            return item[:i]
     return item
 
-_INSTALL_REQUIRES  = [
-    'python-dateutil>=2.7.5', # also required by adal, pandas
-    'traitlets>=4.3.2', # must have, basic
-]
-
 # ---------------------------------------------------
 _IPYTHON_REQUIRES    = [
     'ipython>=7.1.1',
@@ -141,15 +136,15 @@ _SSO_REQUIRES = list_union(_KQLMAGIC_SSO_REQUIRES, _AZCLI_SSO_REQUIRES, _VSCODE_
 _EXTRA_REQUIRES = list_union(_PLOT_REQUIRES, _DATAFRAME_REQUIRES, _SSO_REQUIRES, _IPYWIDGETS_REQUIRES)
 # ---------------------------------------------------
 
-_SAW_REQUIRES = []
+_SAW_REQUIRES = list_union(_JUPYTER_REQUIRES, _IPYTHON_REQUIRES, _IPYWIDGETS_REQUIRES, _DATAFRAME_PANDAS_REQUIRES, _AUTH_REQUIRES, _JSON_COLOR_REQUIRES)
 
 
 # the most slim configuration
-_NAKED_REQUIRES = list_union(_INSTALL_REQUIRES)
+_NAKED_REQUIRES = []
 
 # includes all configuration
 
-_PYTHON_BASIC_REQUIRES  = list_union(_INSTALL_REQUIRES, _BASIC_REQUIRES)
+_PYTHON_BASIC_REQUIRES  = list_union(_BASIC_REQUIRES)
 _JUPYTER_BASIC_REQUIRES = list_union(_PYTHON_BASIC_REQUIRES, _JUPYTER_REQUIRES)
 _IPYTHON_BASIC_REQUIRES = list_union(_PYTHON_BASIC_REQUIRES, _IPYTHON_REQUIRES)
 _BASIC_REQUIRES         = list_union(_PYTHON_BASIC_REQUIRES, _JUPYTER_REQUIRES, _IPYTHON_REQUIRES)
@@ -170,6 +165,8 @@ _DEFAULT_REQUIRES = _ALL_REQUIRES
 # ---------------------------------------------------
 # ---------------------------------------------------
 INSTALL_REQUIRES  = [
+    'python-dateutil>=2.7.5', # also required by adal, pandas
+    'traitlets>=4.3.2', # must have, basic
 ]
 
 EXTRAS_REQUIRE      = {

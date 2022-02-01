@@ -19,6 +19,29 @@ from ._version import __version__
 
 requests_module = Dependencies.get_module("requests", dont_throw=True)
 
+class HTTPErrorResponse(object):
+
+    global requests_module
+    if requests_module is None:
+        from urllib.error import HTTPError
+        def __init__(self, http_error: HTTPError)-> None:
+            self._http_error = http_error
+            self._text = self._http_error.read() if hasattr(self._http_error, "read") and callable(self._http_error.read) else ""
+            self._code = self._http_error.code if hasattr(self._http_error, "code") else 500
+            self._headers = self._http_error.headers if hasattr(self._http_error, "headers") else {}
+
+
+        def getcode(self)-> int:
+            return self._code
+
+
+        def info(self)-> dict:
+            return _headers
+
+
+        def read(self)-> bytes:
+            return self._text
+
 
 class Response(object):
     """This describes a minimal http response interface used by this package.
@@ -156,14 +179,14 @@ class HttpClient(object):
 
     def _default_headers(self)-> dict:
         return {
-                'User-Agent': f'{Constants.MAGIC_PACKAGE_NAME}/{__version__}',
-                'Accept-Encoding': 'gzip, deflate',
-                'Accept': '*/*',
-                'Connection': 'keep-alive',
+                # 'User-Agent': f'{Constants.MAGIC_PACKAGE_NAME}/{__version__}',
+                # 'Accept-Encoding': 'gzip, deflate',
+                # 'Accept': '*/*',
+                # 'Connection': 'keep-alive',
             }
 
 
-    def post(self, url: str, params: Union[dict,str]=None, headers: dict=None, data: Union[str,bytes,Any]=None, json: Any=None, timeout: float=None, **kwargs)-> Response:
+    def post(self, url: str, params: Union[dict,str]=None, data: Union[str,bytes,Any]=None, headers: dict=None, json: Any=None, timeout: float=None, **kwargs)-> Response:
         """HTTP post.
         :param string url: target url
         :param dict params: A dict to be url-encoded and sent as query-string.
@@ -227,10 +250,12 @@ class HttpClient(object):
             if self._requests:
                 url = self._build_url(url=url)
                 logger().debug(f"{method} Request: {url}, params: {params}, payload: {data or json}, headers: {headers}")
+                data: bytes = self._get_data(data=data)
                 response = self._requests.request(method, url, params=params, headers=headers, timeout=timeout, data=data, json=json)
             else:
                 import urllib.request
                 from urllib.request import Request
+                from urllib.error import HTTPError
                 ssl_context = None
                 if url.lower().startswith("https"):
                     import ssl
@@ -239,22 +264,25 @@ class HttpClient(object):
                     # ssl_context.verify_mode = ssl.CERT_REQUIRED
                     # ssl_context.check_hostname = True
                 url = self._build_url(url=url, params=params)
-                data: bytes = self._get_data(data=data or json)
+                data: bytes = self._get_data(data=data, json=json)
                 request = Request(url, data=data, headers=headers, method=method)
                 logger().debug(f"{method} Request: {request.get_full_url()}, payload: {request.data}, headers: {request.headers}")
 
-                result = urllib.request.urlopen(request, timeout=timeout, context=ssl_context)
+                try:
+                    result = urllib.request.urlopen(request, timeout=timeout, context=ssl_context)
+                except HTTPError as err:
+                    result = HTTPErrorResponse(err)
+
                 response = Response(url, result)
 
             logger().debug(f"{method} Response: {response.status_code} {response.content}")
-            response.raise_for_status()
             return response
 
         except Exception as err:
             code = err.code if hasattr(err, "code") else None
             reason = err.reason if hasattr(err, "reason") else err.read() if hasattr(err, "read") else None
             logger().debug(f"{method} {url} Response: {code} {reason}")
-            raise err            
+            raise err        
 
 
     def _build_url(self, url: str=None, params: Union[dict,str]=None)-> str:
@@ -286,15 +314,25 @@ class HttpClient(object):
             none_keys = [k for (k, v) in request_headers.items() if v is None]
             for key in none_keys:
                 del request_headers[key]
-        if json or 'Content-Type' not in request_headers:
+        if json and 'Content-Type' not in request_headers:
             request_headers['Content-Type'] = 'application/json'
         return request_headers
 
 
-    def _get_data(self, data: Union[str,bytes,Any]=None)-> bytes:
-        if data is not None and type(data) != bytes:
-            if type(data) == str:
-                data = data.encode('utf-8')
-            else:
-                data = json.dumps(data, allow_nan=False).encode('utf-8')
+    def _get_data(self, data: Union[str,bytes,Any]=None, json: Any=None)-> bytes:
+        if data is not None:
+            if type(data) != bytes:
+                if type(data) == str:
+                    data = data.encode('utf-8')
+                elif type(data) == dict:
+                    data = urlencode(data).encode('utf-8')
+                else:
+                    data = self._json_dumps_encode(data)
+        elif json is not None:
+            data = self._json_dumps_encode(json)
+        return data
+
+
+    def _json_dumps_encode(self, data: Any)-> bytes:
+        data = json.dumps(data, allow_nan=False).encode('utf-8')
         return data

@@ -157,11 +157,12 @@ class OAuth2TokenFields(object):
 
 class _MyAadHelper(AadHelper):
 
-    def __init__(self, kcsb, default_clientid, adal_context=None, adal_context_sso=None, **options):
+    def __init__(self, kcsb, default_clientid, adal_context=None, adal_context_sso=None, http_client=None, **options):
         global global_adal_context
         global global_adal_context_sso
 
         super(_MyAadHelper, self).__init__(kcsb, default_clientid, adal_context, adal_context_sso, **options)
+        self._http_client = http_client
         # to provide stickiness, to avoid switching tokens when not required
         self._current_token = None
         self._current_adal_context = None

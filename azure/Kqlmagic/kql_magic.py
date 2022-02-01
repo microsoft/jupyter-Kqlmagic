@@ -651,6 +651,13 @@ class Kqlmagic(Magics, Configurable):
         Abbreviation: 'atw'"""
     )
 
+    auth_use_http_client = Bool(
+        default_value=False,
+        read_only=True,
+        config=True, 
+        help=f"""When set to True, {Constants.MAGIC_CLASS_NAME} http_client will be used by msal"""
+    )
+
     enable_curly_brackets_params = Bool(
         default_value=False, 
         config=True,

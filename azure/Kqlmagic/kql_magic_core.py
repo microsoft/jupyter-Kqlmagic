@@ -319,7 +319,7 @@ class Kqlmagic_core(object):
         if app == "auto":  # ELECTRON_RUN_AS_NODE
             notebook_service_address = self.default_options.notebook_service_address or ""
             python_branch = platform.python_branch()
-            if python_branch.endswith("/msft-spython"):
+            if python_branch.endswith(Constants.SAW_PYTHON_BRANCH_SUFFIX):
                 app = "azuredatastudiosaw"
                 _kernel_location = "local"
             elif notebook_service_address == "https://notebooks.azure.com" or notebook_service_address.endswith(".notebooks.azure.com"):
@@ -407,9 +407,13 @@ class Kqlmagic_core(object):
             self.default_options.set_trait("kernel_location", kernel_location, force=True, lock=True)
             logger().debug(f"Kqlmagic_core::_init_options - set default option 'kernel_location' to: {kernel_location}")
 
+        auth_use_http_client = self.default_options.auth_use_http_client or app in ["azuredatastudiosaw"]
+        if auth_use_http_client != self.default_options.auth_use_http_client:
+            self.default_options.set_trait("auth_use_http_client", auth_use_http_client, force=True, lock=True)
+
         table_package = self.default_options.table_package or "auto"
         if table_package == "auto":
-            if app in ["azuredatastudio", "nteract", "azureml"] and Dependencies.is_installed("pandas"):
+            if app in ["azuredatastudio", "azuredatastudiosaw", "nteract", "azureml"] and Dependencies.is_installed("pandas"):
                 table_package = "pandas_html_table_schema"
             else:
                 table_package = "prettytable"

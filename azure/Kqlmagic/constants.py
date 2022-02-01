@@ -47,6 +47,8 @@ class Constants(object):
     SSO_ENV_VAR_NAME        =              f"{MAGIC_CLASS_NAME_UPPER}_SSO_ON"
     SSO_DB_KEY_PREFIX       =       f"{MAGIC_CLASS_NAME_LOWER}_store/tokens/"
     SSO_DEFAULT_CACHE_NAME  =               f"{MAGIC_CLASS_NAME_LOWER}_cache"
+
+    SAW_PYTHON_BRANCH_SUFFIX = "/msft-spython"
      
 class PrintColor:
     PURPLE = '\033[95m'

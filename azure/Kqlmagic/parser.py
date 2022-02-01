@@ -927,6 +927,8 @@ class Parser(object):
         "cloud": {"flag": "cloud", "type": "str"},
         "enablesso": {"flag": "enable_sso", "type": "bool"},
         "ssodbgcinterval": {"flag": "sso_db_gc_interval", "type": "int"},
+        
+        "authusehttpclient": {"flag": "auth_use_http_client", "type": "bool"},
 
         "tryazclilogin": {"flag": "try_azcli_login", "type": "bool"},
         "tryazcliloginbyprofile": {"flag": "try_azcli_login_by_profile", "type": "bool"},

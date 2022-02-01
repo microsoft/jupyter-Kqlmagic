@@ -149,7 +149,9 @@ class Dependencies(object):
         if cls.extras_names:
             cls.extras_require_packages = list_union(*[EXTRAS_REQUIRE.get(name, []) for name in cls.extras_names])
         else:
-            cls.extras_require_packages = EXTRAS_REQUIRE.get('default', [])
+            python_branch = platform.python_branch()
+            name = 'saw' if python_branch.endswith(Constants.SAW_PYTHON_BRANCH_SUFFIX) else 'default'
+            cls.extras_require_packages = EXTRAS_REQUIRE.get(name, [])
         cls.extras_require_package_names = list(map(strip_package_name, cls.extras_require_packages))
 
         cls.install_requires_packages = INSTALL_REQUIRES
@@ -190,8 +192,8 @@ class Dependencies(object):
                 raise Exception("debug_disabled_package")
                 
             if cls.is_only_installed_packages and package_name.replace("_", "-") not in  cls.install_package_names and package_name.replace("-", "_") not in  cls.install_package_names:
-                debug_print(f">>> package {package_name} disabled by due to  only install packages set to True")
-                raise Exception(f"package {package_name} disabled by due to  only install packages set to True")
+                debug_print(f">>> package {package_name} disabled by due to only install packages set to True")
+                raise Exception(f"package {package_name} disabled by due to only install packages set to True")
 
             import importlib
             module = importlib.import_module(module_name)

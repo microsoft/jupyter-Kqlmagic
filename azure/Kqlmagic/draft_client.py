@@ -104,7 +104,8 @@ class DraftClient(KqlClient):
         if self._appkey is None and conn_kv.get(ConnStrKeys.ANONYMOUS) is None:
             cloud = options.get("cloud")
             client_id = self._DRAFT_CLIENT_BY_CLOUD[cloud]
-            self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), client_id, **options)
+            http_client = self._http_client if options.get("auth_use_http_client") else None
+            self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, self._data_source), client_id, http_client=http_client, **options)
         else:
             self._aad_helper = None
         logger().debug(f"draft_client.py :: __init__ :  self._aad_helper: {self._aad_helper} ;")

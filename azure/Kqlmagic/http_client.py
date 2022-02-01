@@ -36,7 +36,7 @@ class HTTPErrorResponse(object):
 
 
         def info(self)-> dict:
-            return _headers
+            return self._headers
 
 
         def read(self)-> bytes:

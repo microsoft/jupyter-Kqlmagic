@@ -450,7 +450,7 @@ class _MyAadHelper(AadHelper):
 
                     device_code_login_notification = self._options.get("device_code_login_notification")
                     if device_code_login_notification == "auto":
-                        if self._options.get("notebook_app") in ["visualstudiocodesaw"]:
+                        if self._options.get("notebook_app") in ["azuredatastudiosaw"]:
                             device_code_login_notification = "terminal"
                         elif self._options.get("notebook_app") in ["ipython"]:
                             device_code_login_notification = "popup_interaction"

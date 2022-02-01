@@ -635,7 +635,7 @@ class Kqlmagic_core(object):
                 with urllib.request.urlopen(url) as bytes_reader:
                     data_decoded = bytes_reader.read().decode('utf-8')
                 data_as_markdown = MarkdownString(data_decoded, title=f"what's new")
-                html_str  = data_as_markdown._repr_html_()
+                html_str  = data_as_markdown._force_repr_html_()
 
                 if html_str is not None:
                     self._set_temp_files_server(options=options)
@@ -963,9 +963,12 @@ class Kqlmagic_core(object):
                         result = html_obj
 
                     elif options.get("popup_window"):
+                        _force_repr_html_ = getattr(result, "_force_repr_html_", None)
                         _repr_html_ = getattr(result, "_repr_html_", None)
                         html_str = None
-                        if _repr_html_ is not None and callable(_repr_html_):
+                        if _force_repr_html_ is not None and callable(_force_repr_html_):
+                            html_str = result._force_repr_html_()
+                        elif _repr_html_ is not None and callable(_repr_html_):
                             html_str = result._repr_html_()
                         if html_str is None:
                             _repr_json_ = getattr(result, "_repr_json_", None)

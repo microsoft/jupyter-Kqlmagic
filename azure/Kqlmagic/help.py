@@ -796,12 +796,19 @@ class UrlReference(object):
         self.button_text = button_text
         self.is_raw = is_raw is True
 
+markdown_module = Dependencies.get_module('markdown', dont_throw=True)
+bs4_module = Dependencies.get_module('bs4', dont_throw=True)
+lxml_module = Dependencies.get_module('lxml', dont_throw=True)
 
 class MarkdownString(object):
     """ A class that holds a markdown string.
     
     can present the string as markdown, html, and text
      """
+
+    global markdown_module
+    global bs4_module
+    global lxml_module
 
     def __init__(self, markdown_string:str, title:str=None):
         self.markdown_string = markdown_string
@@ -814,6 +821,11 @@ class MarkdownString(object):
 
 
     def _repr_html_(self)->str:
+        if markdown_module:
+            return self._force_repr_html_()
+
+
+    def _force_repr_html_(self)->str:
         return f"""
         <html>
         <head>
@@ -848,23 +860,19 @@ class MarkdownString(object):
 
 
     def _markdown_to_html(self, markdown_string:str)->str:
-        md = Dependencies.get_module('markdown', dont_throw=True)
-        if md:
-            html = md.markdown(markdown_string)
+        if markdown_module:
+            html = markdown_module.markdown(markdown_string)
         else:
             string = self._strip_markdown_controls(markdown_string)
+            string = string.replace("\n", "<br>")
             html = f"<p>{string}</p>"
         return html
 
     
     def _markdown_to_text(self, markdown_string:str)->str:
-        md = Dependencies.get_module('markdown', dont_throw=True)
-        bs4 = Dependencies.get_module('bs4', dont_throw=True)
-        lxml = Dependencies.get_module('lxml', dont_throw=True)
-
-        if md and bs4 and lxml:
-            html = md.markdown(markdown_string)
-            text = ''.join(bs4.BeautifulSoup(html, features="lxml").findAll(text=True))
+        if markdown_module and bs4_module and lxml_module:
+            html = markdown_module.markdown(markdown_string)
+            text = ''.join(bs4_module.BeautifulSoup(html, features="lxml").findAll(text=True))
         else:
             text = self._strip_markdown_controls(markdown_string)
             text = self._strip_markdown_html_controls(text)

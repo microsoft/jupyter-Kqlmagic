@@ -205,7 +205,7 @@ class Kqlmagic(Magics, Configurable):
     )
 
     device_code_login_notification = Enum(
-        ["auto", "button", "popup_interaction", "browser", "terminal", "terminal_reference", "email"],
+        ["auto", "button", "popup_interaction", "browser", "browser_reference", "terminal", "terminal_reference", "email"],
         default_value="auto", 
         config=True,
         help="""Sets device_code login notification method.\n

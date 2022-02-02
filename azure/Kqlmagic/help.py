@@ -826,7 +826,7 @@ class MarkdownString(object):
 
 
     def _force_repr_html_(self)->str:
-        return f"""
+        return f"""<!DOCTYPE html>
         <html>
         <head>
         <meta charset="utf-8">

@@ -7,11 +7,12 @@
 """A module to acquire tokens from AAD.
 """
 
+import os
 import sys
 import time
 from datetime import timedelta, datetime
 from urllib.parse import urlparse
-import webbrowser
+# import webbrowser
 import json
 from base64 import urlsafe_b64decode
 
@@ -361,7 +362,8 @@ class _MyAadHelper(AadHelper):
                     elif device_code_login_notification == "browser":
                         # this print is not for debug
                         print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
-                        webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                        # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                        os.startfile(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
 
                     elif device_code_login_notification == "terminal":
                         # this print is not for debug

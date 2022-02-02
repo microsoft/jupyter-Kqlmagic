@@ -13,7 +13,7 @@ from io import StringIO
 import time
 from datetime import timedelta, datetime
 from urllib.parse import urlparse
-import webbrowser
+# import webbrowser
 import json
 from base64 import urlsafe_b64decode
 
@@ -451,11 +451,9 @@ class _MyAadHelper(AadHelper):
 
                     device_code_login_notification = self._options.get("device_code_login_notification")
                     if device_code_login_notification == "auto":
-                        if self._options.get("notebook_app") in ["azuredatastudiosaw"]:
-                            device_code_login_notification = "browser" # "terminal"
-                        elif self._options.get("notebook_app") in ["ipython"]:
+                        if self._options.get("notebook_app") in ["ipython"]:
                             device_code_login_notification = "popup_interaction"
-                        elif self._options.get("notebook_app") in ["visualstudiocode", "azuredatastudio"]:
+                        elif self._options.get("notebook_app") in ["visualstudiocode", "azuredatastudio", "azuredatastudiosaw"]:
                             device_code_login_notification = "popup_interaction"
                         elif self._options.get("notebook_app") in ["nteract"]:
 
@@ -467,7 +465,7 @@ class _MyAadHelper(AadHelper):
                                     url = indirect_url
                                     device_code_login_notification = "popup_interaction"
                                 else:
-                                    device_code_login_notification = "browser"
+                                    device_code_login_notification = "browser_reference"
                             else:
                                 device_code_login_notification = "terminal"
                         elif self._options.get("notebook_app") in ["azureml", "azuremljupyternotebook", "azuremljupyterlab"]:
@@ -476,7 +474,7 @@ class _MyAadHelper(AadHelper):
                             device_code_login_notification = "button"
 
                     if (self._options.get("kernel_location") == "local"
-                            or device_code_login_notification in ["browser"]
+                            or device_code_login_notification in ["browser", "browser_reference"]
                             or (device_code_login_notification == "popup_interaction" and self._options.get("popup_interaction") == "webbrowser_open_at_kernel")):
                         # copy code to local clipboard
                         try:
@@ -499,63 +497,47 @@ class _MyAadHelper(AadHelper):
                         info_message =f"An email was sent to {email_notification.send_to} with device_code {device_code} to authenticate"
                         Display.showInfoMessage(info_message, display_handler_name='acquire_token', **self._options)
 
-                    elif device_code_login_notification == "browser":
-                        # this print is not for debug
-                        print(flow[OAuth2DeviceCodeResponseParameters.MESSAGE])
-                        # webbrowser.open(flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
-                        os.startfile(flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                    elif device_code_login_notification in ["browser", "browser_reference", "terminal", "terminal_reference"]:
+                        if device_code_login_notification in ["browser_reference", "terminal_reference"]:
+                            html_str = (
+                                f"""<!DOCTYPE html>
+                                <html><body>
+                                <input  id="kql_MagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size={single_quote(len(device_code))} value={single_quote(device_code)}>
 
-                    elif device_code_login_notification == "terminal":
-                        # this print is not for debug
-                        print(flow[OAuth2DeviceCodeResponseParameters.MESSAGE])
-                        sys.stdout.flush()  # Some terminal needs this to ensure the message is shown
+                                <script>
+                                function kql_MagicCopyCodeFunction() {{
+                                    /* Get the text field */
+                                    var copyText = document.getElementById("kql_MagicCodeAuthInput");
 
-                        # Ideally you should wait here, in order to save some unnecessary polling
-                        # TODO: add flag to prompt
-                        # input("Press Enter after signing in from another device to proceed, CTRL+C to abort.")
+                                    /* Select the text field */
+                                    copyText.select();
 
-                    elif device_code_login_notification == "terminal_reference":
-                        # copy code to local clipboard
-                        try:
-                            pyperclip = Dependencies.get_module("pyperclip", dont_throw=True)
-                            if pyperclip is not None:
-                                pyperclip.copy(device_code)
-                        except:
-                            pass
+                                    /* Copy the text inside the text field */
+                                    document.execCommand("copy");
 
-                        html_str = (
-                            f"""<!DOCTYPE html>
-                            <html><body>
-                            <input  id="kql_MagicCodeAuthInput" type="text" readonly style="font-weight: bold; border: none;" size={single_quote(len(device_code))} value={single_quote(device_code)}>
+                                    /* Alert the copied text */
+                                    // alert("Copied the text: " + copyText.value);
+                                }}
+                                kql_MagicCopyCodeFunction()
+                                </script>
 
-                            <script>
-                            function kql_MagicCopyCodeFunction() {{
-                                /* Get the text field */
-                                var copyText = document.getElementById("kql_MagicCodeAuthInput");
+                                </body></html>"""
+                            )
+                            Display.show_html(html_str, display_handler_name='acquire_token', **self._options)
+                        else:
+                            # this print is not for debug
+                            print(device_code)
+                            sys.stdout.flush()
 
-                                /* Select the text field */
-                                copyText.select();
-
-                                /* Copy the text inside the text field */
-                                document.execCommand("copy");
-
-                                /* Alert the copied text */
-                                // alert("Copied the text: " + copyText.value);
-                            }}
-                            kql_MagicCopyCodeFunction()
-                            </script>
-
-                            </body></html>"""
-                        )
-                        Display.show_html(html_str, display_handler_name='acquire_token', **self._options)
-                        msg = f"Copy code to clipboard and authenticate here: {flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]}"
-                        # this print is not for debug
-                        print(msg)
-                        sys.stdout.flush()  # Some terminal needs this to ensure the message is shown
-
-                        # Ideally you should wait here, in order to save some unnecessary polling
-                        # TODO: add flag to prompt
-                        # input("Press Enter after signing in from another device to proceed, CTRL+C to abort.")
+                        if device_code_login_notification in ["browser", "browser_reference"]:
+                            input(f"Copy code to clipboard and press any key to open browser")
+                            os.startfile(flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                            # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                        else:
+                            msg = f"Copy code to clipboard and authenticate here: {flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]}"
+                            print(msg)
+                            sys.stdout.flush()
+                            input("Press Enter after signing in from another device to proceed, CTRL+C to abort.")
 
                     elif device_code_login_notification == "popup_interaction" and self._options.get("popup_interaction") != "memory_button":
                         before_text = f"<b>{device_code}</b>"

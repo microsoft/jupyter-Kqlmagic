@@ -213,7 +213,10 @@ class Display(object):
         if isinstance(content, str) and len(content) > 0:
             if options is not None and options.get("popup_window", False):
                 file_name = Display._get_name(**options)
-                file_path = Display._html_to_file_path(content, file_name, **options)
+                file_ext = None
+                if options.get("notebook_app") in ["azuredatastudiosaw"]:
+                    file_ext = "txt"
+                file_path = Display._html_to_file_path(content, file_name, file_ext=file_ext, **options)
                 Display.show_window(file_name, file_path, display_handler_name=display_handler_name, **options)
             else:
                 Display.show_html(content, display_handler_name=display_handler_name, **options)
@@ -369,8 +372,8 @@ class Display(object):
 
 
     @staticmethod
-    def _html_to_file_path(html_str, file_name, **options):
-        file_path = f"{Display.showfiles_folder_name}/{file_name}.html"
+    def _html_to_file_path(html_str, file_name, file_ext: str=None, **options):
+        file_path = f"{Display.showfiles_folder_name}/{file_name}.{file_ext or 'html'}"
         full_file_name = adjust_path(f"{Display.showfiles_file_base_path}/{file_path}")
         text_file = open(full_file_name, "wb")
         text_file.write(bytes(html_str, 'utf-8'))

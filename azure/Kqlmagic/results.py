@@ -606,7 +606,10 @@ class ResultSet(list, ColumnGuesserMixin):
         else:
             display_limit = options.get("display_limit")
             if type(display_limit) == int and display_limit < 0:
-                content = Display.toHtml(**{}, title='table')
+                if options.get("notebook_app") in ["azuredatastudiosaw"] and options.get("popup_window"):
+                    content = ""
+                else:
+                    content = Display.toHtml(**{}, title='table')
 
             elif options.get("table_package", "").lower() in ["pandas", "pandas_html_table_schema"]:
                 pd = Dependencies.get_module("pandas")
@@ -644,8 +647,11 @@ class ResultSet(list, ColumnGuesserMixin):
                 else:
                     pandas_display_html_table_schema = pd.options.display.html.table_schema
                     pd.options.display.html.table_schema = False
-                    t = df._repr_html_()
-                    content = Display.toHtml(body=t, title='table')
+                    if options.get("notebook_app") in ["azuredatastudiosaw"] and options.get("popup_window"):
+                        content = df.to_string()
+                    else:
+                        t = df._repr_html_()
+                        content = Display.toHtml(body=t, title='table')
             # prettytable or tabulate in html format
             else:
                 t = self._getPrettyTableHtml()

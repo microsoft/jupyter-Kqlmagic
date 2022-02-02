@@ -411,6 +411,10 @@ class Kqlmagic_core(object):
         if auth_use_http_client != self.default_options.auth_use_http_client:
             self.default_options.set_trait("auth_use_http_client", auth_use_http_client, force=True, lock=True)
 
+        auto_popup_schema = self.default_options.auto_popup_schema and app not in ["azuredatastudiosaw"]
+        if auto_popup_schema != self.default_options.auto_popup_schema:
+            self.default_options.set_trait("auto_popup_schema", auto_popup_schema, force=True, lock=True)
+
         table_package = self.default_options.table_package or "auto"
         if table_package == "auto":
             if app in ["azuredatastudio", "azuredatastudiosaw", "nteract", "azureml"] and Dependencies.is_installed("pandas"):
@@ -636,13 +640,18 @@ class Kqlmagic_core(object):
                 with urllib.request.urlopen(url) as bytes_reader:
                     data_decoded = bytes_reader.read().decode('utf-8')
                 data_as_markdown = MarkdownString(data_decoded, title=f"what's new")
-                html_str  = data_as_markdown._force_repr_html_()
+                file_ext = None
+                if options.get("notebook_app") in ["azuredatastudiosaw"]:
+                    html_str  = data_as_markdown._force_repr_text_()
+                    file_ext = "txt"
+                else:
+                    html_str = data_as_markdown._force_repr_html_()
 
                 if html_str is not None:
                     self._set_temp_files_server(options=options)
                     button_text = "What's New? "
                     file_name = "what_new_history"
-                    file_path = Display._html_to_file_path(html_str, file_name, **options)
+                    file_path = Display._html_to_file_path(html_str, file_name, file_ext=file_ext, **options)
 
                     Display.show_window(
                         file_name, 
@@ -964,30 +973,49 @@ class Kqlmagic_core(object):
                         result = html_obj
 
                     elif options.get("popup_window"):
-                        _force_repr_html_ = getattr(result, "_force_repr_html_", None)
-                        _repr_html_ = getattr(result, "_repr_html_", None)
                         html_str = None
-                        if _force_repr_html_ is not None and callable(_force_repr_html_):
-                            html_str = result._force_repr_html_()
-                        elif _repr_html_ is not None and callable(_repr_html_):
-                            html_str = result._repr_html_()
+                        file_ext = None
+                        if True or options.get("notebook_app") in ["azuredatastudiosaw"]:
+                            if isinstance(result, MarkdownString):
+                                html_str  = result._force_repr_text_()
+                            # elif isinstance(result, "ResultSet"):
+                            #     html_str = result.to_dataframe().to_string()
+                            elif hasattr(result, "_repr_json_") and callable(result._repr_json_):
+                                html_str = result._repr_json_().json.dumps(body_obj, indent=4, sort_keys=True)
+                            elif hasattr(result, "_repr_markdown_") and callable(result._repr_markdown_):
+                                html_str = MarkdownString(result._repr_markdown_())._force_repr_text_()
+                            elif  hasattr(result, "_repr_") and callable(result._repr_):
+                                html_str = result._repr_()
+                            else:
+                                html_str = f"{result}"
+                            
+                            if html_str is not None:
+                                file_ext = "txt"
+
                         if html_str is None:
-                            _repr_json_ = getattr(result, "_repr_json_", None)
-                            body_obj = result._repr_json_() if _repr_json_ is not None and callable(_repr_json_) else result
-                            try:
-                                body = json.dumps(body_obj, indent=4, sort_keys=True)
-                            except:
-                                body = result
-                            html_str =  f"""<!DOCTYPE html>
-                                <html>
-                                <head>
-                                <meta charset="utf-8">
-                                <meta name="viewport" content="width=device-width,initial-scale=1">
-                                <title>{Constants.MAGIC_PACKAGE_NAME} - {command}</title>
-                                </head>
-                                <body><pre><code>{body}</code></pre></body>
-                                </html>
-                                """
+                            _repr_html_ = getattr(result, "_repr_html_", None)
+                            if isinstance(result, MarkdownString):
+                                html_str = result._force_repr_html_()
+                            elif _repr_html_ is not None and callable(_repr_html_):
+                                html_str = result._repr_html_()
+
+                            if html_str is None:
+                                _repr_json_ = getattr(result, "_repr_json_", None)
+                                body_obj = result._repr_json_() if _repr_json_ is not None and callable(_repr_json_) else result
+                                try:
+                                    body = json.dumps(body_obj, indent=4, sort_keys=True)
+                                except:
+                                    body = result
+                                html_str =  f"""<!DOCTYPE html>
+                                    <html>
+                                    <head>
+                                    <meta charset="utf-8">
+                                    <meta name="viewport" content="width=device-width,initial-scale=1">
+                                    <title>{Constants.MAGIC_PACKAGE_NAME} - {command}</title>
+                                    </head>
+                                    <body><pre><code>{body}</code></pre></body>
+                                    </html>
+                                    """
 
                         if html_str is not None:
                             button_text = f"popup {command} "
@@ -997,7 +1025,7 @@ class Kqlmagic_core(object):
                                 popup_text = popup_text or str(param)
                             if popup_text:
                                 button_text += f" {popup_text}"
-                            file_path = Display._html_to_file_path(html_str, file_name, **options)
+                            file_path = Display._html_to_file_path(html_str, file_name, file_ext=file_ext, **options)
                             html_obj = Display.get_show_window_html_obj(file_name, file_path, button_text=button_text, onclick_visibility="visible", options=options)
                             result = html_obj
 

@@ -839,6 +839,9 @@ class MarkdownString(object):
         </html>
         """
 
+    def _force_repr_text_(self)->str:
+        return self._markdown_to_text(self.markdown_string)
+
 
     def _repr_markdown_(self)->str:
         return self.markdown_string

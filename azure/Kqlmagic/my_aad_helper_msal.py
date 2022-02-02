@@ -7,6 +7,7 @@
 """A module to acquire tokens from AAD.
 """
 
+import os
 import sys
 from io import StringIO
 import time
@@ -451,7 +452,7 @@ class _MyAadHelper(AadHelper):
                     device_code_login_notification = self._options.get("device_code_login_notification")
                     if device_code_login_notification == "auto":
                         if self._options.get("notebook_app") in ["azuredatastudiosaw"]:
-                            device_code_login_notification = "terminal"
+                            device_code_login_notification = "browser" # "terminal"
                         elif self._options.get("notebook_app") in ["ipython"]:
                             device_code_login_notification = "popup_interaction"
                         elif self._options.get("notebook_app") in ["visualstudiocode", "azuredatastudio"]:
@@ -501,7 +502,8 @@ class _MyAadHelper(AadHelper):
                     elif device_code_login_notification == "browser":
                         # this print is not for debug
                         print(flow[OAuth2DeviceCodeResponseParameters.MESSAGE])
-                        webbrowser.open(flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                        # webbrowser.open(flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                        os.startfile(flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
 
                     elif device_code_login_notification == "terminal":
                         # this print is not for debug

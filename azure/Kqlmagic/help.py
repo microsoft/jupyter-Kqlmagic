@@ -12,7 +12,7 @@ from .dependencies import Dependencies
 from .constants import Constants, Email, SsoEnvVarParam
 
 
-_KQL_URL                   = "http://aka.ms/kdocs"
+_KQL_URL                   = "https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/"
 _APPINSIGHTS_URL           = "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-overview?toc=/azure/azure-monitor/toc.json"
 _LOGANALYTICS_URL          = "https://docs.microsoft.com/en-us/azure/log-analytics/log-analytics-queries?toc=/azure/azure-monitor/toc.json"
 _AZUREMONITOR_URL          = "https://docs.microsoft.com/en-us/azure/azure-monitor/"
@@ -590,21 +590,10 @@ _HELP_PROXIES = f"""## Overview
 """
 
 _HELP_SAW = f"""## Overview
-- Secure Access Workstation (saw) is limiting which python modules are allowed. {Constants.MAGIC_PACKAGE_NAME}Saw is a variant of Kqlmagic package, some of the Kqlmaguc modules are replaced with similar modules that are allowed on 'saw'.<br>
+- {Constants.MAGIC_PACKAGE_NAME} on Secure Access Workstation (SAW) is available, only if it is already preinstalled on the workstation with Azure Data Studio.<br> 
+  Azure Data Studio on SAW, expose spython (microsoft secure version of python) and a limited list of preinstalled modules.
+  Due to the SAW limitations, {Constants.MAGIC_PACKAGE_NAME} some features are turned off.<br>
 <br>
-
-## Install example
-```
-pip install {Constants.MAGIC_PACKAGE_NAME}Saw
-```
-<br>
-
-## Notebook install example
-```python
-!pip install {Constants.MAGIC_PACKAGE_NAME}Saw
-```
-<br>
-
 """
 
 _HELP_SQL = f"""## Overview 

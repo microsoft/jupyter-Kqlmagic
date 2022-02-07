@@ -910,17 +910,17 @@ class Kqlmagic(Magics, Configurable):
     def stop(unload_ipython_extension=False, kql_stop=False)->None:
         global kql_core_obj, is_non_magic_kql_on, kql_core_count
         if kql_core_obj and kql_core_count > 0:
+            if unload_ipython_extension is True:
+                default_options = kql_core_obj.default_options
+                default_options.set_trait("is_magic", False, force=True)
+
             kql_core_count -= 1
             if kql_core_count == 0:
                 kql_core_obj.stop()
                 kql_core_obj = None
                 is_non_magic_kql_on = False
-            else:
-                if unload_ipython_extension is True:
-                    default_options = kql_core_obj.default_options
-                    default_options.set_trait("is_magic", False, force=True)
-                if kql_stop is True:
-                    is_non_magic_kql_on = False
+            elif kql_stop is True:
+                is_non_magic_kql_on = False
         
 
 def kql(text:str='', options:Dict[str,Any]=None, query_properties:Dict[str,Any]=None, vars:Dict[str,str]=None, connection_string:str=None, global_ns=None, local_ns=None):

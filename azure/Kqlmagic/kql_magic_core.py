@@ -27,7 +27,7 @@ from .ipython_api import IPythonAPI
 from .sso_storage import clear_sso_store
 from ._version import __version__
 from .version import get_pypi_latest_version, is_stable_version, pre_version_label, compare_version, execute_version_command, validate_required_python_version_running
-from .help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString
+from .help import execute_usage_command, execute_help_command, execute_faq_command, UrlReference, MarkdownString, _KQL_URL
 from .constants import Constants, ConnStrKeys, SsoEnvVarParam, Email
 from .dependencies import Dependencies
 from .my_utils import adjust_path, adjust_path_to_uri, json_dumps, get_env_var, is_env_var, get_env_var_list, strip_if_quoted, split_if_collection
@@ -532,7 +532,7 @@ class Kqlmagic_core(object):
             add_kql_ref_to_help = options.get("add_kql_ref_to_help")
             if add_kql_ref_to_help:
                 logger().debug("Kqlmagic::__init__ - add kql reference to help menu")
-                Help_html.add_menu_item("kql Reference", "http://aka.ms/kdocs", **options)
+                Help_html.add_menu_item("kql Reference", _KQL_URL, **options)
 
 
     def _show_banner(self, options:Dict[str,Any])->None:

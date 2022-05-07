@@ -212,6 +212,11 @@ class KustoClient(KqlClient):
         app_tag = options.get("request_app_tag")
         if app_tag is not None:
             app = f"{app};{app_tag}"
+            
+        user_agent = f'{Constants.MAGIC_CLASS_NAME}/{self._WEB_CLIENT_VERSION}'
+        user_agent_tag = options.get("request_user_agent_tag")
+        if user_agent_tag is not None:
+            user_agent = user_agent_tag
 
         query_properties:dict = options.get("query_properties")  or {}
 
@@ -237,9 +242,10 @@ class KustoClient(KqlClient):
             request_payload["properties"] = json_dumps(properties)
 
         request_headers = {
-            "Accept": "application/json",
-            "Accept-Encoding": "gzip,deflate",
-            "Content-Type": "application/json; charset=utf-8",
+            "User-Agent": user_agent,
+            # "Accept": "application/json",
+            # "Accept-Encoding": "gzip,deflate",
+            # "Content-Type": "application/json; charset=utf-8",
             "x-ms-client-version": client_version,
             "x-ms-client-request-id": client_request_id,
             "x-ms-app": app

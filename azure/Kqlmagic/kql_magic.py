@@ -609,6 +609,15 @@ class Kqlmagic(Magics, Configurable):
         Header pattern: {{tag}}\n
         Abbreviation: 'usertag'"""
     )
+    
+    request_user_agent_tag = Unicode(
+        default_value=None, 
+        config=True, 
+        allow_none=True, 
+        help=f"""Tags request 'User-Agent' header.\n
+        Header pattern: {{tag}}\n
+        Abbreviation: 'uatag'"""
+    )
 
     request_cache_max_age = Int(
         default_value=0, 

@@ -12,7 +12,11 @@ from typing import Any, Callable, Iterable
 
 from ._debug_utils import debug_print
 try:
-    import IPython.core.display as ipy_display
+    try:
+        from IPython import display as ipy_display
+    except:
+        import IPython.core.display as ipy_display
+        
     display = ipy_display.display
     HTML = ipy_display.HTML
     Javascript = ipy_display.Javascript

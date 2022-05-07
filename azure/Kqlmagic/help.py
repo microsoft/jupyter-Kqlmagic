@@ -701,7 +701,7 @@ others are used to affect what limits and policies get applied to the request.
 
 _REQUEST_TAGS = f"""## Overview
 
-- Request tags enables to tag **x-ms-app**, **x-ms-user** and **x-ms-client-request-id** request headers with a custom string.<br>
+- Request tags enables to tag **x-ms-app**, **x-ms-user**, **x-ms-client-request-id** and ** ** request headers with a custom string.<br>
 The main scenario for tagging request headers is to detect tagged query requests within collected queries telemetry repository.<br>
 For example within ADX cluster, executing <br>```.show queries```
 <br><br>
@@ -712,7 +712,7 @@ For example within ADX cluster, executing <br>```.show queries```
  The tag will be injected as follows: 
         <br>```x-ms-client-request-id: {Constants.MAGIC_CLASS_NAME}.execute;{{tag}};{{guid}}```<br><br>
     - request_id_tag can be set per query request by setting the the option as follows: <br>```%kql -idtag='{{tag}}' {{query}}```<br>
-    - request_id_tag can be set for all requests by setting the default tag: <br>```aa {Constants.MAGIC_CLASS_NAME}.request_id_tag='{{tag}}'```<br>
+    - request_id_tag can be set for all requests by setting the default tag: <br>```%config {Constants.MAGIC_CLASS_NAME}.request_id_tag='{{tag}}'```<br>
 <br>
 
  - **request_app_tag** (apptag) option tags **x-ms-app** header.<br>
@@ -727,6 +727,13 @@ For example within ADX cluster, executing <br>```.show queries```
         <br>```x-ms-user: {{tag}}```<br><br>
     - request_user_tag can be set per query request by setting the the option as follows: <br>```%kql -usertag='{{tag}}' {{query}}```<br>
     - request_user_tag can be set for all requests by setting the default tag: <br>```%config {Constants.MAGIC_CLASS_NAME}.request_user_tag='{{tag}}'```<br>
+<br>
+ - **request_user_agent_tag** (uatag) option tags **User-Agent** header.<br>
+ The tag will be injected as follows: 
+        <br>```User-Agent: {{tag}}```<br><br>
+    - request_user_agent_tag can be set per query request by setting the the option as follows: <br>```%kql -uatag='{{tag}}' {{query}}```<br>
+    - request_user_agent_tag can be set for all requests by setting the default tag: <br>```%config {Constants.MAGIC_CLASS_NAME}.request_user_agent_tag='{{tag}}'```<br>
+
 """
 
 _HELP = {

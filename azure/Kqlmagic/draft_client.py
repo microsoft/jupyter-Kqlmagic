@@ -181,8 +181,14 @@ class DraftClient(KqlClient):
         app_tag = options.get("request_app_tag")
         if app_tag is not None:
             app = f"{app};{app_tag}"
+            
+        user_agent = f'{Constants.MAGIC_CLASS_NAME}/{self._WEB_CLIENT_VERSION}'
+        user_agent_tag = options.get("request_user_agent_tag")
+        if user_agent_tag is not None:
+            user_agent = user_agent_tag
 
         request_headers = {
+            "User-Agent": user_agent,
             "x-ms-client-version": client_version,
             "x-ms-client-request-id": client_request_id,
             "x-ms-app": app

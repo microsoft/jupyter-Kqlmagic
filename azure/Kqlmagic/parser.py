@@ -945,6 +945,11 @@ class Parser(object):
 
         "usertag": {"abbreviation": "requestusertag"},
         "requestusertag": {"flag": "request_user_tag", "type": "str", "allow_none": True},
+        
+        "uatag": {"abbreviation": "requestuseragenttag"},
+        "useragenttag": {"abbreviation": "requestuseragenttag"},
+        "requestuatag": {"abbreviation": "requestuseragenttag"},
+        "requestuseragenttag": {"flag": "request_user_agent_tag", "type": "str", "allow_none": True},
 
         "maxage": {"abbreviation": "requestcachemaxage"},
         "requestcachemaxage": {"flag": "request_cache_max_age", "type": "int", "allow_none": True},

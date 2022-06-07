@@ -1602,7 +1602,7 @@ Each option can be set as follow:<br>
 
 
     def obfuscate_options(self)->dict:
-        opts = self.default_options.get_default_options()
+        opts = self.default_options.get_default_options_dict()
         for o in opts:
             if o == "device_code_notification_email":
                 val = opts[o]

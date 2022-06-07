@@ -31,6 +31,7 @@ from .exceptions import KqlEngineError
 from .parser import Parser
 from .email_notification import EmailNotification
 from .aad_helper import AadHelper
+from .os_dependent_api import OsDependentAPI
 
 
 class OAuth2DeviceCodeResponseParameters(object):
@@ -531,8 +532,7 @@ class _MyAadHelper(AadHelper):
 
                         if device_code_login_notification in ["browser", "browser_reference"]:
                             input(f"Copy code to clipboard and press any key to open browser")
-                            os.startfile(flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
-                            # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                            OsDependentAPI.webbrowser_open(flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
                         else:
                             msg = f"Copy code to clipboard and authenticate here: {flow[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL]}"
                             print(msg)

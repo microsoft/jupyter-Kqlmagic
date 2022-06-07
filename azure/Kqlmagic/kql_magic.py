@@ -26,6 +26,7 @@ from .ipython_api import IPythonAPI
 from .kql_magic_core import Kqlmagic_core
 from .constants import Constants, Cloud
 from .palette import Palettes, Palette
+from .os_dependent_api import OsDependentAPI
 
 
 
@@ -47,7 +48,8 @@ is_non_magic_kql_on:bool = False
 @magics_class
 class Kqlmagic(Magics, Configurable):
 
-    is_ipython_extension = False
+    is_ipython_extension:bool = False
+    is_kqlmagic_kernel:bool = False
 
     is_magic = Bool(
         default_value=False,
@@ -680,9 +682,14 @@ class Kqlmagic(Magics, Configurable):
 
 
     @staticmethod
-    def get_default_options()->Dict[str,Any]:
+    def get_default_options_dict()->Dict[str,Any]:
         c = kql_core_obj.default_options
         return {name: getattr(c, name) for name in c.class_traits() if c.trait_metadata(name, "config")}
+
+
+    @staticmethod
+    def get_default_options()->Configurable:
+        return kql_core_obj.default_options
 
 
     @validate("auto_dataframe")
@@ -832,6 +839,8 @@ class Kqlmagic(Magics, Configurable):
             default_options = self
         else:
             default_options = kql_core_obj.default_options
+
+        OsDependentAPI(default_options)
 
         if is_magic and is_magics_class and self.is_ipython_extension:
             Magics.__init__(self, shell=shell)

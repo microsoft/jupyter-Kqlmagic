@@ -115,10 +115,14 @@ venv.bak/
 # private notebooks
 /my notebooks
 
+# other temp files
+**/temp_files/**
+
 
 # Kqlmagic tests
 /azure/tests/Kqlmagic_temp_files
 /azure/tests/tests_results.xml
+
 .vscode/launch.json
 .vscode/settings.json
 UpgradeLog.htm

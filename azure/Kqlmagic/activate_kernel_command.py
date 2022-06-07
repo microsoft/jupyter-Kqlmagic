@@ -80,6 +80,7 @@ class ActivateKernelCommand(object):
     @staticmethod
     def add_kqlmagic_cell_prefix(lines:List[str])->List[str]:
         # dont assume cleanup happens before
+        lines = ActivateKernelCommand.remove_options_magic(lines)
         insert_prefix = None
         skip_idx = 0
         for line in lines:
@@ -94,13 +95,30 @@ class ActivateKernelCommand(object):
                     if cell_magic_name == Constants.PYTHON_CELL_MAGIC_PREFIX:
                         skip_idx += 1
                     else:
-                        skip_idx = 0           
+                        skip_idx = 0
+                elif first_line.startswith(Constants.PYTHON_COMMENT_PREFIX):
+                    skip_idx = 0
+                elif first_line.startswith("%connect"):
+                    skip_idx += 1
+                    insert_prefix = Constants.LINE_MAGIC_PREFIX + first_line[len("%connect"):]
                 else:
                     insert_prefix = Constants.CELL_MAGIC_PREFIX + "\n"
                 break
         new_lines = lines[skip_idx:]
         if insert_prefix:
             new_lines.insert(0, insert_prefix)
+        return new_lines
+
+    @staticmethod
+    def remove_options_magic(lines:List[str])->List[str]:
+        new_lines = []
+        for line in lines:
+            _line = line.lstrip()
+            if _line.startswith("%options"):
+                _line = _line[len("%options"):]
+            else:
+                _line = line
+            new_lines.append(_line)
         return new_lines
 
 

@@ -17,6 +17,7 @@ from .ipython_api import display, HTML
 from .ipython_api import IPythonAPI
 from .my_utils import adjust_path, adjust_path_to_uri, json_dumps, single_quote
 from .constants import Constants
+from .os_dependent_api import OsDependentAPI
 
 
 try:
@@ -246,8 +247,7 @@ class Display(object):
         options = options or {}
         if options.get("kernel_location") == "local":
             url = Display.get_show_deeplink_webbrowser_html_obj(window_name, deep_link_url, close_window_timeout_in_secs, options=options)
-            os.startfile(url)
-            # webbrowser.open(url, new=1, autoraise=True)
+            OsDependentAPI.webbrowser_open(url)
             Display.showInfoMessage(f"opened popup window: {window_name}, see your browser")
             return None
         else:
@@ -273,8 +273,7 @@ class Display(object):
         if mode == "webbrowser_open_at_kernel":
             url = Display._get_file_path_url(file_path, options=options)
             # url = urllib.parse.quote(url)
-            os.startfile(url)
-            # webbrowser.open(url, new=1, autoraise=True)
+            OsDependentAPI.webbrowser_open(url)
             html_str = Display._getInfoMessageHtmlStr(f"opened popup window: '{window_name}', see it in your browser", **options)
 
         elif mode in ["button", "memory_button"]:

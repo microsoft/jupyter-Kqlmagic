@@ -107,7 +107,7 @@ class IPythonAPI(object):
         help_links = None
         ip = cls._get_ipython()
         if ip is not None and hasattr(ip, "kernel") and hasattr(ip.kernel, "_trait_values"):
-            help_links = ip.kernel._trait_values["help_links"]
+            help_links = ip.kernel._trait_values.get("help_links")
         return help_links
 
 

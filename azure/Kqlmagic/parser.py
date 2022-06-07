@@ -20,6 +20,8 @@ from .constants import Constants, Schema
 from .my_utils import split_lex, adjust_path, is_env_var, get_env_var, is_collection, strip_if_quoted
 from .engine import Engine
 
+from .commands_table import COMMANDS_TABLE
+
 
 class Parser(object):
 
@@ -376,60 +378,18 @@ class Parser(object):
 
         return parsed_queries
 
-
-    # Note: None as default is valid
-    # commands that have no parameters, typekey should not exit or set to None
-    # default max_params is 1 if type is not None otherwise 0
-    # default min_params is 1 if type is not None otherwise 0
-    _COMMANDS_TABLE = {
-        "version": {"flag": "version", "type": None},
-        "banner": {"flag": "banner", "type": None},
-        "usage": {"flag": "usage", "type": None},
-        "submit": {"flag": "submit", "type": None},  # default
-        "help": {"flag": "help", "type": "str", "default": "help"},
-        "faq": {"flag": "faq", "type": None},
-        "palette": {"flag": "palette", "type": None},
-        "palettes": {"flag": "palettes", "type": None},
-        # "config": {"flag": "config", "type": "str", "default": None},
-        "config": {"flag": "config", "type": "not_quoted_str", "allow_none": True, "max_params": 1, "min_params": 0},
-        "bugreport": {"flag": "bug_report", "type": None},
-        "conn": {"flag": "conn", "type": "str", "default": None},
-        # should be per connection
-        "cache": {"flag": "cache", "type": "str", "allow_none": True},
-        "cachecreate": {"flag": "cache_create", "type": "str", "allow_none": True},
-        "cacheappend": {"flag": "cache_append", "type": "str", "allow_none": True},
-        "cachecreateorappend": {"flag": "cache_create_or_append", "type": "str", "allow_none": True},
-        "cacheremove": {"flag": "cache_remove", "type": "str", "allow_none": True},
-        "cachelist": {"flag": "cache_list", "type": None},
-        "cachestop": {"flag": "cache_stop", "type": None},
-
-        "usecache": {"flag": "use_cache", "type": "str", "allow_none": True},
-        "usecachestop": {"flag": "use_cache_stop", "type": "str", "allow_none": True},
-        "schema": {"flag": "schema", "type": "str", "default": None},
-        "clearssodb": {"flag": "clear_sso_db", "type": None},
-        "py": {"flag": "python", "type": "not_quoted_str", "allow_none": True, "max_params": 2, "min_params": 2},
-        "pyro": {"flag": "python", "type": "not_quoted_str", "allow_none": True, "max_params": 2, "min_params": 2},
-        "pyrw": {"flag": "python", "type": "not_quoted_str", "allow_none": True, "max_params": 2, "min_params": 2},
-        "activatekernel": {"flag": "activate_kernel", "type": None},
-        "deactivatekernel": {"flag": "deactivate_kernel", "type": None},
-
-        "linemagic": {"flag": "line_magic", "type": "not_quoted_str", "allow_none": True, "max_params": 2, "min_params": 2},
-        "cellmagic": {"flag": "cell_magic", "type": "not_quoted_str", "allow_none": True, "max_params": 3, "min_params": 3},
-    }
-
-
     @classmethod
     def _parse_kql_command(cls, section:Dict[str,str], user_ns:Dict[str,Any])->Tuple[str,Dict[str,Any]]:
         code = section.get("body")
         if section.get("name") != Constants.MAGIC_NAME:
             name = section.get("name").replace("_", "").replace("-", "")
             if name in ["py", "pyro", "pyrw"]:
-                obj = cls._COMMANDS_TABLE.get(name)
+                obj = COMMANDS_TABLE.get(name)
                 return ("", {"command": obj.get("flag"), "obj": obj, "params": [section.get("body"), name]})
             else:
                 # line/cell magic
                 name = section.get("type")
-                obj = cls._COMMANDS_TABLE.get(name.replace("_", ""))
+                obj = COMMANDS_TABLE.get(name.replace("_", ""))
                 command_name = obj.get("flag")
 
                 params = []
@@ -477,7 +437,7 @@ class Parser(object):
                 if word.startswith("-"):
                     raise ValueError(f"unknown command --{word}, commands' prefix should be a double hyphen-minus, not a triple hyphen-minus")
                 lookup_key = word.lower().replace("_", "").replace("-", "")
-                obj = cls._COMMANDS_TABLE.get(lookup_key)
+                obj = COMMANDS_TABLE.get(lookup_key)
                 if obj is None:
                     raise ValueError(f"unknown command --{word}")
                 command_name = obj.get("flag")
@@ -528,7 +488,7 @@ class Parser(object):
             params.append(magic_name) # the magic name
 
             if magic_name in ["py", "pyro", "pyrw"]:
-                obj = cls._COMMANDS_TABLE.get(magic_name)
+                obj = COMMANDS_TABLE.get(magic_name)
                 body = params[0] if command_name == "line_magic" else f"{params[0]}\n{params[1]}"
                 return ("", {"command": obj.get("flag"), "obj": obj, "params": [body, magic_name]})
 

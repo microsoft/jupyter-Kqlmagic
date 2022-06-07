@@ -42,12 +42,12 @@ class FilesServerManagement(object):
         self._is_started = False
         self._heartbeat_thread = None
         self._kernel_id = options.get("kernel_id")
-        self._liveness_mode = self._find_liveness_mode(sys.platform)
         self._pid = os.getpid()
+        self._liveness_mode = self._find_liveness_mode(sys.platform)
+
         logger().debug(
             f"FilesServerManagement::startServer init: " 
             f"server_py_code_path: {server_py_code_path}, server_url: {self._server_url}, base_folder: {base_folder}, folders: {folders}, _kernel_id: {self._kernel_id}, liveness_mode: {self._liveness_mode}")
-
 
     def get_notused_port(self, host:str="")->str:
         try:

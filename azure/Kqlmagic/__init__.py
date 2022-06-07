@@ -11,8 +11,8 @@ try:
 except:
     pass
 
-from .magic_extension import load_ipython_extension, unload_ipython_extension
+from .magic_extension import load_ipython_extension, unload_ipython_extension, _register_kqlmagic_magic
 from ._version import __version__
 from .kql_magic import kql, kql_stop
 
-__all__ = ['__version__', 'kql', 'kql_stop', 'load_ipython_extension', 'unload_ipython_extension']
+__all__ = ['__version__', 'kql', 'kql_stop', 'load_ipython_extension', 'unload_ipython_extension', '_register_kqlmagic_magic']

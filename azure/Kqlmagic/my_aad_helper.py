@@ -33,6 +33,7 @@ from .exceptions import KqlEngineError
 from .parser import Parser
 from .email_notification import EmailNotification
 from .aad_helper import AadHelper
+from .os_dependent_api import OsDependentAPI
 
 
 class AuthenticationError(Exception):
@@ -362,8 +363,7 @@ class _MyAadHelper(AadHelper):
                     elif device_code_login_notification == "browser":
                         # this print is not for debug
                         print(code[OAuth2DeviceCodeResponseParameters.MESSAGE])
-                        # webbrowser.open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
-                        os.startfile(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
+                        OsDependentAPI.webbrowser_open(code[OAuth2DeviceCodeResponseParameters.VERIFICATION_URL])
 
                     elif device_code_login_notification == "terminal":
                         # this print is not for debug

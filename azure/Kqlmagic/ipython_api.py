@@ -132,10 +132,13 @@ class IPythonAPI(object):
     @classmethod
     def try_kernel_execute(cls, javascript_statement:str, **options)->bool:
         if display is not None and Javascript is not None:
-            display(Javascript(javascript_statement))
-            return True
-        else:
-            return False
+            try:
+                display(Javascript(javascript_statement))
+                return True
+            except:
+                pass
+
+        return False
 
 
     @classmethod

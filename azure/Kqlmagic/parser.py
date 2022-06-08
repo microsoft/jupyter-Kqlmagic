@@ -873,6 +873,7 @@ class Parser(object):
         "checkmagicversion": {"flag": "check_magic_version", "type": "bool"},
         "showwhatnew": {"flag": "show_what_new", "type": "bool"},
         "showinitbanner": {"flag": "show_init_banner", "type": "bool"},
+        "iskernelintializtion": {"flag": "is_kernel_intializtion", "type": "bool"},
         "warnmissingdependencies": {"flag": "warn_missing_dependencies", "type": "bool"},
         "warnmissingenvvariables": {"flag": "warn_missing_env_variables", "type": "bool"},
         "allowsinglelinecell": {"flag": "allow_single_line_cell", "type": "bool"},

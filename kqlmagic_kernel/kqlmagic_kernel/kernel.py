@@ -9,7 +9,8 @@ import os
 import sys
 from traitlets import Dict, Unicode
 from ipykernel.ipkernel import Kernel
-from ._version import __version__ as kqlmagic_version
+
+from Kqlmagic._version import __version__ as _kqlmagic_version
 
 
 from ._version import __version__
@@ -31,6 +32,7 @@ HELP_LINKS = [
 
 ] # + Kernel.help_link
 
+
 def get_kernel_json():
     """Get the kernel json for the kernel.
     """
@@ -42,6 +44,7 @@ def get_kernel_json():
         data = json.load(fid)
     data['argv'][0] = sys.executable
     return data
+
 
 class KqlmagicKernel(Kernel):
     app_name = 'kqlmagic_kernel'
@@ -55,11 +58,13 @@ class KqlmagicKernel(Kernel):
 
     _language_version = "1"
 
+
     @property
     def language_version(self):
         if self._language_version:
             return self._language_version
         return "1.0"
+
 
     @property
     def language_info(self):
@@ -71,13 +76,13 @@ class KqlmagicKernel(Kernel):
 
     @property
     def banner(self):
-        msg = 'Kqlmagic Kernel v%s running Kqlmagic v%s'
-        return msg % (__version__, kqlmagic_version)
+        return f'Kqlmagic Kernel v{__version__} running Kqlmagic v{_kqlmagic_version}'
 
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._start_kqlmagic()
+
 
     def _start_kqlmagic(self):
         env = os.environ

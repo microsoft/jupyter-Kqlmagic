@@ -29,41 +29,44 @@ class ActivateKernelCommand(object):
         ActivateKernelCommand.is_kqlmagic_kernel_default = config.kqlmagic_kernel
         if config.is_magic is True:
             if config.kqlmagic_kernel:
-                ActivateKernelCommand.execute(True)
+                kernel_init_suppress_output = (not config.show_init_banner) and config.is_kernel_intializtion
+                ActivateKernelCommand.execute(True, kernel_init_suppress_output)
         else:
             config.set_trait("kqlmagic_kernel", False, force=True)
         config.observe(ActivateKernelCommand.observe_is_magic, names=["is_magic"])
 
 
     @staticmethod
-    def execute(to_activate:bool, options=None):
+    def execute(to_activate:bool, kernel_init_suppress_output = False, options=None):
         options = options or {}
         ActivateKernelCommand.suppress_results = options.get("suppress_results")
         if ActivateKernelCommand.config.is_magic:
             is_kqlmagic_kernel = ActivateKernelCommand._activate_kernel(to_activate)
             ActivateKernelCommand.config.set_trait("kqlmagic_kernel", is_kqlmagic_kernel, force=True)
-            if is_kqlmagic_kernel == to_activate:
-                if not options.get("suppress_results"):
-                    msg_title = {
-                        "message": f"""{Constants.MAGIC_CLASS_NAME_LOWER} kernel {'' if to_activate else 'de'}activated""",
-                        "style_options": {
-                            "font-size":"30px"
+            if not kernel_init_suppress_output:
+                if is_kqlmagic_kernel == to_activate:
+                    if not options.get("suppress_results"):
+                        msg_title = {
+                            "message": f"""{Constants.MAGIC_CLASS_NAME_LOWER} kernel {'' if to_activate else 'de'}activated""",
+                            "style_options": {
+                                "font-size":"30px"
+                            }
                         }
-                    }
-                    Display.showInfoMessage(msg_title)
-                    if to_activate:
-                        Display.showInfoMessage([
-                            '- to deactivate submit "--deactivate_kernel" command',
-                            f'- to execute python code use "{Constants.PYTHON_CELL_MAGIC_PREFIX}" cell magic',
-                            '- all python kernel cell and line magics are supported'])            
-            else:
-                Display.showDangerMessage(
-                    f"Failed to {'' if to_activate else 'de'}activate {Constants.MAGIC_CLASS_NAME_LOWER} kernel"
-                )
+                        Display.showInfoMessage(msg_title)
+                        if to_activate:
+                            Display.showInfoMessage([
+                                '- to deactivate submit "--deactivate_kernel" command',
+                                f'- to execute python code use "{Constants.PYTHON_CELL_MAGIC_PREFIX}" cell magic',
+                                '- all python kernel cell and line magics are supported'])            
+                else:
+                    Display.showDangerMessage(
+                        f"Failed to {'' if to_activate else 'de'}activate {Constants.MAGIC_CLASS_NAME_LOWER} kernel"
+                    )
         else:
             ActivateKernelCommand.config.set_trait("kqlmagic_kernel", False, force=True)
-            Display.showDangerMessage(
-                f"{Constants.MAGIC_CLASS_NAME_LOWER} kernel is support only when loaded as a magic"
+            if not kernel_init_suppress_output:
+                Display.showDangerMessage(
+                    f"{Constants.MAGIC_CLASS_NAME_LOWER} kernel is supported only when loaded as a magic"
             )
             
 
@@ -108,6 +111,7 @@ class ActivateKernelCommand(object):
         if insert_prefix:
             new_lines.insert(0, insert_prefix)
         return new_lines
+
 
     @staticmethod
     def remove_options_magic(lines:List[str])->List[str]:

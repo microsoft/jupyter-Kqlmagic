@@ -51,6 +51,13 @@ class Kqlmagic(Magics, Configurable):
     is_ipython_extension:bool = False
     is_kqlmagic_kernel:bool = False
 
+    is_kernel_intializtion = Bool(
+        default_value=False,
+        read_only=True,
+        config=True, 
+        help="""when set, kernel is in init mode.\n"""
+    )
+
     is_magic = Bool(
         default_value=False,
         read_only=True,
@@ -830,6 +837,8 @@ class Kqlmagic(Magics, Configurable):
         kql_core_count += 1
         if kql_core_obj is None:
             Configurable.__init__(self, config=(shell.config if shell is not None else None))
+            
+            
             self._config_traits = self.traits()
             self._read_only_config_trait_names = self._get_read_only_config_trait_names()
             self._set_read_only_config_traits(False)
@@ -839,6 +848,8 @@ class Kqlmagic(Magics, Configurable):
             default_options = self
         else:
             default_options = kql_core_obj.default_options
+
+        default_options.set_trait("is_kernel_intializtion", Kqlmagic.is_kqlmagic_kernel, force=True)
 
         OsDependentAPI(default_options)
 
@@ -852,6 +863,8 @@ class Kqlmagic(Magics, Configurable):
         if kql_core_obj is None:
             kql_core_obj = Kqlmagic_core(global_ns=global_ns, local_ns=local_ns, shell=shell, default_options=self)
             self._set_read_only_config_traits(True)
+
+        default_options.set_trait("is_kernel_intializtion", False, force=True)
 
 
     @property

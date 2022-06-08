@@ -1036,7 +1036,9 @@ class Kqlmagic_core(object):
                     for key, value in  modified_options.items():
                         options[key] = value
 
-            
+                self.shell_user_ns.update({"_": result})
+                self.shell_user_ns.update({"_kql_last_result_": result})
+
             return result
         except Exception as e:
             exception = e.exception if isinstance(e, ShortError) else e  # pylint: disable=no-member

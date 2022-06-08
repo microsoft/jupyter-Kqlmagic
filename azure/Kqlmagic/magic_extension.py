@@ -37,14 +37,14 @@ def _register_kqlmagic_magic(ip, is_kqlmagic_kernel=False):
     """Register Kqlmagic magic in Jupyter."""
 
     if not Kqlmagic.is_kqlmagic_kernel:
+        Kqlmagic._is_kernel_init = True
         logger().debug(f"set_kqlmagic_magic - register magic {Constants.MAGIC_NAME}")
         # must be before registration
         Kqlmagic.is_ipython_extension = True
         Kqlmagic.is_kqlmagic_kernel = is_kqlmagic_kernel
         
         # register magic, also create magic object
-        result = ip.register_magics(Kqlmagic)
-
+        result = ip.register_magics(Kqlmagic)       
         for alias in Constants.MAGIC_ALIASES:
             logger().debug(f"register_kqlmagic_magic - register '{alias}' cell alias for {Constants.MAGIC_NAME}")
             ip.magics_manager.register_alias(alias, Constants.MAGIC_NAME, "cell")

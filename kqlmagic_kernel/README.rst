@@ -69,7 +69,7 @@ If the kernel does not start, run the following command from a terminal:
 
 .. code:: shell
 
-    python -m octave_kernel.check
+    python -m kqlmagic_kernel.check
 
 This can help diagnose problems with setting up integration with Octave.  If in doubt,
 create an issue with the output of that command.

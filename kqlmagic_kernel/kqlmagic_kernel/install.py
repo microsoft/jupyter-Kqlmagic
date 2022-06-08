@@ -25,10 +25,11 @@ kernel_json = {"argv":[sys.executable, "-m", "kqlmagic_kernel", "-f", "{connecti
 def install_my_kernel_spec(user=True, prefix=None):
     with TemporaryDirectory() as td:
         os.chmod(td, 0o755) # Starts off as 700, not user readable
-        with open(os.path.join(td, 'kernel.json'), 'w') as f:
+        path = os.path.join(td, 'kernel.json')
+        with open(path, 'w') as f:
             json.dump(kernel_json, f, sort_keys=True)
             # TODO: Copy resources once they're specified
-
+            
         print('Installing IPython kernel spec')
         KernelSpecManager().install_kernel_spec(td, 'kqlmagic', user=user, replace=True, prefix=prefix)
 

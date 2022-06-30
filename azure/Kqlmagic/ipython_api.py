@@ -131,9 +131,10 @@ class IPythonAPI(object):
 
     @classmethod
     def try_kernel_execute(cls, javascript_statement:str, **options)->bool:
-        if display is not None and Javascript is not None:
+        ip = cls._get_ipython()
+        if ip is not None:
             try:
-                display(Javascript(javascript_statement))
+                ip.run_cell_magic('javascript', '', javascript_statement)
                 return True
             except:
                 pass

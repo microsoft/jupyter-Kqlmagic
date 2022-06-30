@@ -34,23 +34,27 @@ def _get_env_var(var_name:str)->str:
 logger:Logger = None
 
 
-def init_logger(kernel_id:str, log_level:str=None, log_file:str=None, log_file_prefix:str=None, log_file_mode:str=None)->Logger:
+def init_logger(kernel_id:str, log_level:str=None, log_file:str=None, log_file_prefix:str=None, log_file_mode:str=None, log_to_console:bool=None)->Logger:
     global logger
     # create logger
     logger = logging.getLogger("kqlmagic-srv")
-    logger.setLevel(logging.DEBUG)
+    default_log_level = logging.DEBUG
 
     log_level = log_level or _get_env_var(f"{MAGIC_CLASS_NAME_UPPER}_LOG_LEVEL")
     log_file = log_file or _get_env_var(f"{MAGIC_CLASS_NAME_UPPER}_SRV_LOG_FILE")
     log_file_prefix = log_file_prefix or _get_env_var(f"{MAGIC_CLASS_NAME_UPPER}_LOG_FILE_PREFIX")
     log_file_mode = log_file_mode or _get_env_var(f"{MAGIC_CLASS_NAME_UPPER}_LOG_FILE_MODE")
 
+    log_to_console_str = _get_env_var(f"{MAGIC_CLASS_NAME_UPPER}_SRV_LOG_TO_CONSOLE")
+    log_to_console = (log_to_console is None) or ((log_to_console_str is not None) and log_to_console_str.lower() == "true")
+
     # create file log handler
     create_file_logger_error_message = None
+    file_handler = None
     try:
         if log_level or log_file or log_file_mode or log_file_prefix:
 
-            log_level = log_level or logging.DEBUG
+            log_level = log_level or default_log_level
             log_file = log_file or f"{log_file_prefix or 'kqlmagic'}-srv-{kernel_id}.log"
             # handler's default mode is 'a' (append)
             log_file_mode = (log_file_mode or "w").lower()[:1]
@@ -71,12 +75,17 @@ def init_logger(kernel_id:str, log_level:str=None, log_file:str=None, log_file_p
         create_file_logger_error_message = f"failed to create file log handler. log_level: {log_level}, log_file: {log_file}, " \
                                            f"log_file_prefix: {log_file_prefix}, log_file_mode: {log_file_mode}, error: {e}"
 
-    # create console log handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(log_level or logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
+    if log_to_console:
+        # create console log handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(log_level or default_log_level)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
+    elif file_handler is None:
+        # create null log handler
+        null_handler = logging.NullHandler()
+        logger.addHandler(null_handler)
 
     if create_file_logger_error_message is not None:
         logger.error(f"{create_file_logger_error_message}, continue log to console only.")

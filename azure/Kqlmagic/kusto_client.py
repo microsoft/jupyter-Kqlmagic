@@ -20,6 +20,31 @@ from .my_utils import json_dumps
 from .kql_client import KqlClient
 
 
+class AadContext(object):
+    """
+    Object that contains the Aad parts
+    """
+
+    def __init__(self, conn_kv:Dict[str,str], auth_resource:str, client_id:str, options:Dict[str,any]):
+        self.kcsb = ConnKeysKCSB(conn_kv, auth_resource)
+        self.client_id = client_id
+        self.options = options
+
+
+    def __eq__(self, other:any)-> bool:
+        if not isinstance(other, AadContext):
+            return False
+        if self.client_id != other.client_id:
+            return False
+        if self.kcsb != other.kcsb:
+            return False
+        return True
+
+
+    def __hash__(self):
+        return hash((self.client_id, self.kcsb))
+
+
 class KustoClient(KqlClient):
     """
     Kusto client wrapper for Python."""
@@ -80,6 +105,8 @@ class KustoClient(KqlClient):
         "de":  Cloud.BLACKFOREST
     }
 
+    _aad_helpers:Dict[AadContext,_MyAadHelper] = dict()
+
 
     def __init__(self, cluster_name:str, conn_kv:Dict[str,str], **options)->None:
         """
@@ -137,9 +164,35 @@ class KustoClient(KqlClient):
         
         cloud = self.getCloudFromHost(auth_resource)
         client_id = self._ADX_CLIENT_BY_CLOUD[cloud]
-        http_client = self._http_client if options.get("auth_use_http_client") else None
-        self._aad_helper = _MyAadHelper(ConnKeysKCSB(conn_kv, auth_resource), client_id, http_client=http_client, **options) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
+        self._aad_helper = self._get_aad_helper(conn_kv, auth_resource, client_id, **options) if conn_kv.get(ConnStrKeys.ANONYMOUS) is None else None
         self._data_source = data_source
+
+
+    def _get_aad_helper(self, conn_kv:Dict[str,str], new_auth_resource:str, client_id:str, **options):
+        for aad_context, aad_helper in self._aad_helpers.items():
+            aad_auth_resource = aad_context.kcsb.data_source
+            auth_resource = self._get_auth_resource(new_auth_resource, aad_auth_resource)
+            new_context = AadContext(conn_kv, auth_resource, client_id, options)
+            if (new_context == aad_context):
+                return aad_helper
+        
+        new_context = AadContext(conn_kv, new_auth_resource, client_id, options)
+        http_client = self._http_client if options.get("auth_use_http_client") else None
+        new_aad_helper = _MyAadHelper(new_context.kcsb, client_id, http_client=http_client, **options)
+        self._aad_helpers[new_context] = new_aad_helper
+        return new_aad_helper
+
+
+    def _get_auth_resource(self, new_auth_resource:str, aad_auth_resource:str)->str:
+        aad_parts = aad_auth_resource.split(".")
+        new_parts = new_auth_resource.split(".")
+        if len(aad_parts) == len(new_parts):
+            aad_suffix = ".".join(aad_parts[1:])
+            new_suffix = ".".join(new_parts[1:])
+            if aad_suffix == new_suffix:
+                return aad_auth_resource
+
+        return new_auth_resource
 
 
     @property

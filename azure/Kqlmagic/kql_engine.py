@@ -41,6 +41,7 @@ class KqlEngine(Engine):
         super(KqlEngine, self).__init__()
         self.bind_url = None
         self._parsed_conn = {}
+        self._keys_set = set()
         self.database_name = None
         self.client_database_name = None
         self.database_friendly_name = None
@@ -324,10 +325,10 @@ class KqlEngine(Engine):
     def _check_for_unknown_keys(self, matched_keys_set:set, keys_combinations:List[List[str]])->None:
         # check for unknown keys
         all_keys = set(itertools.chain(*keys_combinations))
-        unknonw_keys_set = matched_keys_set.difference(all_keys)
-        if len(unknonw_keys_set) > 0:
-            logger().debug(f"kql_engine.py - _check_for_unknown_keys - the following keys are unknow: {unknonw_keys_set}")
-            raise ValueError(f"detected unknown keys: {unknonw_keys_set}")
+        unknown_keys_set = matched_keys_set.difference(all_keys)
+        if len(unknown_keys_set) > 0:
+            logger().debug(f"kql_engine.py - _check_for_unknown_keys - the following keys are unknow: {unknown_keys_set}")
+            raise ValueError(f"detected unknown keys: {unknown_keys_set}")
 
 
     def _check_for_mandatory_key(self, matched_keys_set:set, mandatory_key:str)->None:
@@ -343,32 +344,29 @@ class KqlEngine(Engine):
         logger().debug(f"kql_engine.py - _find_combination - found these valid_combinations: {valid_combinations}")
 
         # in case of ambiguity, assume it is based on current connection, resolve by copying missing values from current
-        if len(valid_combinations) > 1:
+        if len(valid_combinations) > 1 and current is not None and matched_keys_set.issubset(current._keys_set):
             failed = False
             saved_parsed_conn_kv = parsed_conn_kv.copy()
             saved_matched_keys_set = matched_keys_set.copy()
-            if current is not None:
-                inherited = False
-                for k, v in current._parsed_conn.items():
-                    if k not in matched_keys_set and k not in self._NOT_INHERITABLE_KEYS:
-                        parsed_conn_kv[k] = v
-                        matched_keys_set.add(k)
-                        inherited = True
-                        
-                if inherited:
-                    for k in self._CREDENTIAL_KEYS.intersection(matched_keys_set):
-                        if parsed_conn_kv[k] != current._parsed_conn.get(k):
-                            failed = True
-                            # raise KqlEngineError("missing keys.")
+            inherited = False
+            for k, v in current._parsed_conn.items():
+                if k not in matched_keys_set and k not in self._NOT_INHERITABLE_KEYS:
+                    parsed_conn_kv[k] = v
+                    matched_keys_set.add(k)
+                    inherited = True
+                    
+            if inherited:
+                for k in self._CREDENTIAL_KEYS.intersection(matched_keys_set):
+                    if parsed_conn_kv[k] != current._parsed_conn.get(k):
+                        failed = True
+                        # raise KqlEngineError("missing keys.")
 
-                    if failed:
-                        parsed_conn_kv = saved_parsed_conn_kv
-                        matched_keys_set= saved_matched_keys_set
-
-            valid_combinations = [c for c in valid_combinations if matched_keys_set.issubset(c)]
-
-
-        logger().debug(f"kql_engine.py - _find_combination - inherited from current and now valid_combinations is: {valid_combinations}")
+                if failed:
+                    parsed_conn_kv = saved_parsed_conn_kv
+                    matched_keys_set = saved_matched_keys_set
+            if not failed:
+                logger().debug(f"kql_engine.py - _find_combination - chose current combination_keys_list is: {current._keys_set}")
+                return current._keys_set
 
         # only one combination can be accepted
         if len(valid_combinations) == 0:
@@ -389,9 +387,9 @@ class KqlEngine(Engine):
         return set(combination_keys_list)
 
 
-    def _inherit_keys(self, current, matched_keys_set:set, parsed_conn_kv:Dict[str,str], keys_set:set)->None:
+    def _inherit_keys(self, current, matched_keys_set:set, parsed_conn_kv:Dict[str,str])->None:
         # in case inheritable fields are missing inherit from current if exist
-        inherit_keys_set = self._INHERITABLE_KEYS.intersection(keys_set).difference(matched_keys_set)
+        inherit_keys_set = self._INHERITABLE_KEYS.intersection(self._keys_set).difference(matched_keys_set)
         if len(inherit_keys_set) > 1:
             if current is not None:
                 for k in inherit_keys_set:
@@ -402,18 +400,18 @@ class KqlEngine(Engine):
         logger().debug(f"kql_engine.py - _inherit_keys - add inherited to combination_keys_set and now inherit_keys_set: {inherit_keys_set}")
 
 
-    def _check_for_required_keys(self, matched_keys_set:set, keys_set:set)->None:
+    def _check_for_required_keys(self, matched_keys_set:set)->None:
         # make sure that all required keys are in set
-        secret_key_set = self._SECRET_KEYS.intersection(keys_set)
-        missing_set = keys_set.difference(matched_keys_set).difference(secret_key_set).difference(self._OPTIONAL_KEYS)
+        secret_key_set = self._SECRET_KEYS.intersection(self._keys_set)
+        missing_set = self._keys_set.difference(matched_keys_set).difference(secret_key_set).difference(self._OPTIONAL_KEYS)
         if len(missing_set) > 0:
             logger().debug(f"kql_engine.py - _check_for_required_keys - the following required key is missing : {missing_set}")
             raise KqlEngineError(f"missing {missing_set}")
 
 
-    def _check_for_special_combination(self, matched_keys_set:set, keys_set:set)->None:
+    def _check_for_special_combination(self, matched_keys_set:set)->None:
         # special case although tenant in _OPTIONAL_KEYS
-        if ConnStrKeys.TENANT not in matched_keys_set and ConnStrKeys.CLIENTID in keys_set:
+        if ConnStrKeys.TENANT not in matched_keys_set and ConnStrKeys.CLIENTID in self._keys_set:
             logger().debug("kql_engine.py - _check_for_special_combination - special case- if clientId exists but tenant doesnt")
             raise KqlEngineError("missing tenant key/value")
 
@@ -461,9 +459,9 @@ class KqlEngine(Engine):
         logger().debug(f"kql_engine.py - _set_and_check_for_alias - setting attributes - alias: {self.alias}")
 
 
-    def _retreive_and_set_secret(self, matched_keys_set:set, parsed_conn_kv:Dict[str,str], keys_set:set)->None:
+    def _retreive_and_set_secret(self, matched_keys_set:set, parsed_conn_kv:Dict[str,str])->None:
         # in case secret is missing, get it from user
-        secret_key_set = self._SECRET_KEYS.intersection(keys_set)
+        secret_key_set = self._SECRET_KEYS.intersection(self._keys_set)
         if len(secret_key_set) == 1:
             s = secret_key_set.pop()
             if s not in matched_keys_set or parsed_conn_kv[s] == f"<{s}>":
@@ -473,9 +471,9 @@ class KqlEngine(Engine):
                 logger().debug(f"kql_engine.py - _retreive_and_set_secret - getting secret key from user: {s}")
 
 
-    def _create_and_set_bind_url(self, parsed_conn_kv:Dict[str,str], keys_set:set, uri_schema_name:str)->None:
+    def _create_and_set_bind_url(self, parsed_conn_kv:Dict[str,str], uri_schema_name:str)->None:
         items = []
-        for key in keys_set:
+        for key in self._keys_set:
             if key not in self._EXCLUDE_FROM_URL_KEYS:
                 items.append(f"{key}('{parsed_conn_kv.get(key)}')")
         self.bind_url = f"{uri_schema_name}://{'.'.join(items)}"
@@ -494,21 +492,21 @@ class KqlEngine(Engine):
 
             self._check_for_unknown_keys(matched_keys_set, keys_combinations)
             self._check_for_mandatory_key(matched_keys_set, mandatory_key)
-            keys_set = self._find_combination_set(current, matched_keys_set, parsed_conn_kv, keys_combinations)
+            self._keys_set = self._find_combination_set(current, matched_keys_set, parsed_conn_kv, keys_combinations)
 
-            self._inherit_keys(current, matched_keys_set, parsed_conn_kv, keys_set)
+            self._inherit_keys(current, matched_keys_set, parsed_conn_kv)
 
-            self._check_for_required_keys(matched_keys_set, keys_set)
-            self._check_for_special_combination(matched_keys_set, keys_set)
+            self._check_for_required_keys(matched_keys_set)
+            self._check_for_special_combination(matched_keys_set)
             self._check_for_restricted_values(matched_keys_set, parsed_conn_kv)
 
             self._set_and_check_for_cluster_name(parsed_conn_kv, uri_schema_name)
             self._set_and_check_for_database_name(parsed_conn_kv, mandatory_key)
             self._set_and_check_for_alias(parsed_conn_kv, self.database_friendly_name)
 
-            self._retreive_and_set_secret(matched_keys_set, parsed_conn_kv, keys_set)
+            self._retreive_and_set_secret(matched_keys_set, parsed_conn_kv)
 
-            self._create_and_set_bind_url(parsed_conn_kv, keys_set, uri_schema_name)
+            self._create_and_set_bind_url(parsed_conn_kv, uri_schema_name)
 
             return parsed_conn_kv
         except Exception as exception:

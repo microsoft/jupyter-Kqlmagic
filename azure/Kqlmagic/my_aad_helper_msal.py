@@ -154,8 +154,6 @@ class ConnKeysKCSB(object):
     """
 
     def __init__(self, conn_kv, data_source):
-        self.conn_kv = conn_kv
-        self.data_source = data_source
         self.translate_map = {
             "authority_id":                       ConnStrKeys.TENANT,
             "aad_url":                            ConnStrKeys.AAD_URL,
@@ -166,13 +164,28 @@ class ConnKeysKCSB(object):
             "application_certificate":            ConnStrKeys.CERTIFICATE,
             "application_certificate_thumbprint": ConnStrKeys.CERTIFICATE_THUMBPRINT,
         }
+        
+        self.kcsb = {k: conn_kv.get(self.translate_map.get(k), None) for k in self.translate_map}
+        self.kcsb["data_source"] = data_source
+
+        self._json_dumps = json.dumps(self.kcsb, sort_keys=True)
+        self._hash = hash(self._json_dumps)
 
 
     def __getattr__(self, kcsb_attr_name):
-        if kcsb_attr_name == "data_source":
-            return self.data_source
-        key = self.translate_map.get(kcsb_attr_name)
-        return self.conn_kv.get(key)
+        return self.kcsb.get(kcsb_attr_name, None)
+
+
+    def __eq__(self, other:any)-> bool:
+        return isinstance(other, ConnKeysKCSB) and self._json_dumps == other._json_dumps
+
+    
+    def __hash__(self):
+        return self._hash
+
+
+    def __str__(self)->str:
+        return self._json_dumps
 
 
 class ClientAppType(object):
@@ -307,7 +320,7 @@ class _MyAadHelper(AadHelper):
 
         self._authority = kcsb.authority_id or "common"
 
-        self._aad_login_url = self._get_aad_login_url(kcsb.conn_kv.get(ConnStrKeys.AAD_URL))
+        self._aad_login_url = self._get_aad_login_url(kcsb.aad_url)
 
         self._authority_uri = f"{self._aad_login_url}/{self._authority}"
 

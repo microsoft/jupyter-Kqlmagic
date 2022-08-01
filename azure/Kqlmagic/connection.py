@@ -62,14 +62,14 @@ class Connection(object):
         last_current_engine:Engine = cls._last_current_by_engine_class.get(engine_class.__name__)
 
         if engine_class not in [KustoEngine, AriaEngine]:
-            engine = engine_class(conn_str, user_ns, **options, _current=last_current_engine)
+            engine = engine_class(conn_str, user_ns, current=last_current_engine, **options)
 
         else:
             if "://" in conn_str:
-                if last_current_engine:
+                if last_current_engine is not None:
                     last_cluster_friendly_name = last_current_engine.get_cluster_friendly_name()
                     last_current_engine = cls._engine_by_id.get(f"@{last_cluster_friendly_name}")
-                cluster_engine = engine_class(conn_str, user_ns, **options, _current=last_current_engine, conn_class=Connection)
+                cluster_engine = engine_class(conn_str, user_ns, current=last_current_engine, conn_class=Connection, **options)
 
                 cluster_friendly_name = cluster_engine.get_cluster_friendly_name()
 
@@ -131,7 +131,10 @@ class Connection(object):
         id = engine.get_id()
         cls._current_engine = cls._engine_by_id.get(id) or engine
         cls._engine_by_id[id] = cls._current_engine
+
         name = name or engine.get_conn_name()
+        cls._engine_by_id[name] = cls._current_engine
+
         cls._id_by_name[name] = id
         cls._id_by_name[engine.bind_url] = id
         return cls._current_engine

@@ -592,7 +592,7 @@ _HELP_PROXIES = f"""## Overview
 _HELP_SAW = f"""## Overview
 - {Constants.MAGIC_PACKAGE_NAME} on Secure Access Workstation (SAW) is available, only if it is already preinstalled on the workstation with Azure Data Studio.<br> 
   Azure Data Studio on SAW, expose spython (microsoft secure version of python) and a limited list of preinstalled modules.
-  Due to the SAW limitations, {Constants.MAGIC_PACKAGE_NAME} some features are turned off.<br>
+  Due to the SAW limitations, some features are turned off.<br>
 <br>
 """
 

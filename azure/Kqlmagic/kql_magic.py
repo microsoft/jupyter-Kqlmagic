@@ -488,6 +488,13 @@ class Kqlmagic(Magics, Configurable):
         help="Current notebook kernel_id"
     )
 
+    enable_add_items_to_help = Bool(
+        default_value=True,
+        read_only=True,
+        config=True, 
+        help=f"""On {Constants.MAGIC_CLASS_NAME} load, enable to add items to Help menu."""
+    )
+
     add_kql_ref_to_help = Bool(
         default_value=True,
         read_only=True,

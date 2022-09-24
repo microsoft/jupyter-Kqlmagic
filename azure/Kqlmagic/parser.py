@@ -867,6 +867,7 @@ class Parser(object):
         "exportfoldername": {"flag": "export_folder_name", "type": "str"},
         "addkqlreftohelp": {"flag": "add_kql_ref_to_help", "type": "bool"},
         "addschematohelp": {"flag": "add_schema_to_help", "type": "bool"},
+        "enableadditemstohelp": {"flag": "enable_add_items_to_help", "type": "bool"},
         "notebookapp": {"flag": "notebook_app", "type": "str"},
         "debug": {"flag": "debug", "type": "bool"},
 

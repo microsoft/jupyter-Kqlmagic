@@ -275,7 +275,6 @@ class Kqlmagic_core(object):
         logger().debug("Kqlmagic_core::_start - end")
 
 
-
     def _set_temp_files_folder(self, **options)->None:
         folder_name = options.get("temp_folder_name")
         if folder_name is not None:
@@ -1284,7 +1283,9 @@ Each option can be set as follow:<br>
 
     def _add_help_to_jupyter_help_menu(self, user_ns:Dict[str,Any], start_time:float=None, options:dict=None)->None:
         options = options or {}
-        if Help_html.showfiles_base_url is None and self.default_options.notebook_app not in ["azuredatastudio", "azuredatastudiosaw", "ipython", "visualstudiocode", "nteract"]:
+        if (Help_html.showfiles_base_url is None 
+            and self.default_options.enable_add_items_to_help
+            and self.default_options.notebook_app not in ["azuredatastudio", "azuredatastudiosaw", "ipython", "visualstudiocode", "nteract"]):
             if start_time is not None:
                 self._discover_notebook_url_start_time = start_time
             else:
@@ -1806,7 +1807,7 @@ Each option can be set as follow:<br>
                 connection_str = connection_str[1:-1]
             
             try:
-                Connection(connection_str, {}, **options)
+                engine = Connection.get_engine(connection_str, {}, **options)
                 logger().debug(f"_set_default_connections - set default connection_str to: {connection_str}")
 
             except Exception as err:

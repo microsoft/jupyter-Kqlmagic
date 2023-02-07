@@ -129,3 +129,5 @@ UpgradeLog.htm
 C:\MyProjects\KqlmagicAtMicrosoftGithub\jupyter-Kqlmagic\azure\tests\Kqlmagic_temp_files
 azure/Kqlmagic/kql_magic_old.py
 /notebooks/kqlmagic/temp_files
+
+.fake

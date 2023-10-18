@@ -1,3 +1,5 @@
+Version 102 - Added option: 'show_query' (abbreviation 'sq', default False) - Print parametrized query in the out cell with the result - Aug 27, 2019
+Version 101 - Support Souvereign: added cloud option; added datasourceurl and aadurl connection string properties; added clientid to all connection variations. Fixed multiple options with connection string; fixed &nbsp;
 added queryproperties option and "+" specific query properties for Kusto queries (supports all set customers properties) - 0.1.96
 fix query caching  to support non standard database names; support separate logging; log Kqlmagic steps; log requests; log adal request; add env KQLMAGIC [-LOG_LEVEL, _LOG_FILE, _LOG_FILE_PREFIX, _LOG_FILE_MODE]; add experimental sso, to enable KQLMAGIC_ENABLE_SSO=TRUE; fix parametrized dataframe types long and real; - 0.1.95 - Apr 06, 2019
 fix http://kusto.aria.microsoft.com and other not standard cluster name 

@@ -4,56 +4,72 @@
 # license information.
 # --------------------------------------------------------------------------
 
-import time
-from IPython.core.display import display
-from IPython.core.magics.display import Javascript
+
+from .ipython_api import IPythonAPI
 
 
 class Help_html(object):
     """
+    adds entries to jupyter help
     """
 
-    notebooks_host = None
     showfiles_base_url = None
     _pending_helps = {}
 
-    @staticmethod
-    def flush(window_location, **kwargs):
-        if window_location.startswith("http://localhost") or window_location.startswith("https://localhost"):
-            start = window_location[8:].find("/") + 9
-            parts = window_location[start:].split("/")
-            parts.pop()
-            Help_html.showfiles_base_url = window_location[:start] + "/".join(parts)
-        else:
-            if Help_html.notebooks_host:
-                host = Help_html.notebooks_host or ""
-                start = host.find("//") + 2
-                suffix = "." + host[start:]
-            else:
-                suffix = ".notebooks.azure.com"
-            end = window_location.find(suffix)
-            start = window_location.find("//")
-            # azure notebook environment, assume template: https://library-user.libray.notebooks.azure.com
-            if start > 0 and end > 0:
-                library, user = window_location[start + 2 : end].split("-")
-                azure_notebooks_host = Help_html.notebooks_host or "https://notebooks.azure.com"
-                Help_html.showfiles_base_url = azure_notebooks_host + "/api/user/" + user + "/library/" + library + "/html"
-            # assume just a remote kernel, as local
-            else:
-                parts = window_location.split("/")
-                parts.pop()
-                Help_html.showfiles_base_url = "/".join(parts)
 
+    @staticmethod
+    def flush(window_location:str, options:dict=None):
+        options = options or {}
+        base_url = None
+        # local machine jupyter
+        if window_location.startswith(("http://localhost", "https://localhost", "http://127.0.0.", "https://127.0.0.")):           
+            # example: http://localhost:8888/notebooks/my%20notebooks/legend.ipynb
+            parts = window_location.split("/")
+            parts.pop()  # remove notebook name 
+            del parts[3]  # remove '/notebooks'
+            base_url = "/".join(parts)
+
+        # know remote service address
+        else:
+            notebook_service_address = options.get("notebook_service_address")
+            if notebook_service_address is not None:
+                # azure notebooks service
+                if notebook_service_address.endswith("notebooks.azure.com"):
+                    start = notebook_service_address.find("//") + 2
+                    host_suffix = "." + notebook_service_address[start:]
+
+                    start = window_location.find("//")
+                    end = window_location.find(host_suffix)
+                    # azure notebook environment, assume template: https://library-user.notebooks.azure.com
+                    if start > 0 and end > 0 and ('-' in window_location):
+                        library_user_segment = window_location[start + 2: end]
+                        if '-' in library_user_segment:
+                            library, user = library_user_segment.split("-", 1)
+                            base_url = f"{notebook_service_address}/api/user/{user}/library/{library}/html"
+
+                # other remote services (assume support /tree)
+                if base_url is None:
+                    parts = notebook_service_address.split("/")
+                    base_url = "/".join(parts[:3])  + '/tree'
+                
+            # default (assume support /tree)
+            if base_url is None:
+                # assume a remote kernel url pattern  as local
+                parts = window_location.split("/")
+                base_url = "/".join(parts[:3])  + '/tree'
+
+        Help_html.showfiles_base_url = base_url
         refresh = False
         for text, url in Help_html._pending_helps.items():
-            Help_html.add_menu_item(text, url, False, **kwargs)
+            Help_html.add_menu_item(text, url, False, **options)
             refresh = True
         Help_html._pending_helps = {}
         if refresh:
-            Help_html._reconnect(**kwargs)
+            IPythonAPI.try_kernel_reconnect(**options)
+
 
     @staticmethod
-    def add_menu_item(text, file_path: str, reconnect=True, **kwargs):
+    def add_menu_item(text, file_path: str, reconnect=True, **options):
         if not text:
             return
 
@@ -64,33 +80,11 @@ class Help_html(object):
         if file_path.startswith("http"):
             url = file_path
         elif Help_html.showfiles_base_url is not None:
-            url = Help_html.showfiles_base_url + "/" + file_path
+            url = f"{Help_html.showfiles_base_url}/{file_path}"
         else:
             url = None
 
         if url:
-            ip = get_ipython()  # pylint: disable=E0602
-            help_links = ip.kernel._trait_values["help_links"]
-            found = False
-            for link in help_links:
-                # if found update url
-                if link.get("text") == text:
-                    if link.get("url") != url:
-                        link["url"] = url
-                    else:
-                        reconnect = False
-                    found = True
-                    break
-            if not found:
-                help_links.append({"text": text, "url": url})
-            # print('help_links: ' + str(help_links))
-            if reconnect:
-                Help_html._reconnect(**kwargs)
+            IPythonAPI.try_add_to_help_links(text, url, reconnect, **options)
         elif Help_html._pending_helps.get(text) is None:
             Help_html._pending_helps[text] = file_path
-
-    @staticmethod
-    def _reconnect(**kwargs):
-        if kwargs is None or kwargs.get("notebook_app") != "jupyterlab":
-            display(Javascript("""try {IPython.notebook.kernel.reconnect();} catch(err) {;}"""))
-            time.sleep(1)

@@ -20,7 +20,7 @@ Example
 .. code-block:: python
 
     Install latest version of package
-    In [1]: !pip Kqlmagic --no-cache-dir --upgrade
+    In [1]: !pip install Kqlmagic --no-cache-dir --upgrade
 
 .. code-block:: python
 
@@ -58,6 +58,7 @@ Links
 -----
 
 * `How to install the package <https://github.com/Microsoft/jupyter-Kqlmagic#install>`_.
+* `How to install the package on a Secure Access Workstation (SAW) <https://github.com/Microsoft/jupyter-Kqlmagic#Install%20on%20Secure%20Access%20Workstation%20(SAW)>`_.
 * `How to load the magic extension <https://github.com/Microsoft/jupyter-Kqlmagic#load>`_.
 * `GitHub Repository <https://github.com/Microsoft/jupyter-Kqlmagic/tree/master>`_.
 

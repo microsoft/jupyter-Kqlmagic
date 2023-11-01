@@ -41,7 +41,7 @@ def get_valid_filename_with_spaces(name:str)->str:
     """
     # name = str(name).strip().replace(' ', '_')
     name = str(name).strip()
-    return re.sub(r'(?u)[^-\w. ]', '', name)
+    return re.sub(r'(?u)[^-\w.@ ]', '', name)
 
 
 # Expression to match some_token and some_token="with spaces" (and similarly

@@ -8,6 +8,7 @@
 """
 
 import os
+import traceback
 import sys
 from io import StringIO
 import time
@@ -16,6 +17,7 @@ from urllib.parse import urlparse
 # import webbrowser
 import json
 from base64 import urlsafe_b64decode
+from notebookutils import mssparkutils
 
 
 import dateutil.parser
@@ -208,6 +210,7 @@ class AuthenticationMethod(object):
     managed_service_identity    = "managed_service_identity"
     vscode_login                = "vscode_login"
     aux_token                   = "token"
+    fabric                      = "fabric"
 
     client_app_type = {
         aad_username_password:       ClientAppType.public,
@@ -370,7 +373,6 @@ class _MyAadHelper(AadHelper):
 
 
     def acquire_token(self):
-        """Acquire tokens from AAD."""
         acquire_token_result = None
         previous_token = self._current_token
         try:
@@ -383,6 +385,11 @@ class _MyAadHelper(AadHelper):
                 self._current_client_app_type = None
                 self._current_scopes = None
                 self._current_username = None
+
+            if self._current_token is None:
+                if self._resource.find("data.microsoft.com") > 0 or self._resource.find("fabric.microsoft.com") > 0:
+                    token = self._get_fabric_token()
+                    self._current_token = self._validate_and_refresh_token(token)
 
             if self._current_token is None:
                 if self._options.get("try_token") is not None:
@@ -432,7 +439,7 @@ class _MyAadHelper(AadHelper):
                     self._current_token = self._acquire_msal_token_silent()
 
             if self._current_token is None:
-                logger().debug("No suitable token exists in cache. Let's get a new one from AAD.")
+                logger().debug("*No suitable token exists in cache. Let's get a new one from AAD(default)*")
                 self._current_msal_client_app = self._msal_client_app_sso or self._msal_client_app
 
                 if self._authentication_method is AuthenticationMethod.aad_username_password:
@@ -850,6 +857,29 @@ class _MyAadHelper(AadHelper):
 
         return authority_uri
 
+    def _get_fabric_token(self)->str:
+        logger().debug("*_MyAadHelper::_get_fabric_token enter*")
+        token = None
+        logger().debug("*_MyAadHelper::_get_fabric_token enter - 2")
+        self._current_authentication_method = AuthenticationMethod.fabric
+        logger().debug("*_MyAadHelper::_get_fabric_token enter - 3")
+        old_stderr = sys.stderr
+        sys.stderr = StringIO()
+        logger().debug("*_MyAadHelper::_get_fabric_token enter - 4")
+        try:
+            logger().debug(f"_MyAadHelper::_get_fabric_token enter getting token for resource {self._resource}")
+            ## An access token JWT is returned from the API call
+            t = mssparkutils.credentials.getToken(self._resource)
+            if t:
+                token = {"access_token": t, "token_type": "bearer"}
+                sys.stderr = old_stderr or sys.stderr
+                return token
+        except Exception as error:
+            traceback.print_stack()
+            logger().debug(f"_MyAadHelper::_get_fabric_token error getting token with error {error}")
+            pass
+        logger().debug(f"_MyAadHelper::_get_fabric_token {'failed' if token is None else 'succeeded'} to get token")
+        return token
 
     def _get_aux_token(self, token:dict)->str:
         "retrieve token from aux token"

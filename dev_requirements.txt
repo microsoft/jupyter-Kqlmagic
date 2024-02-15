@@ -5,3 +5,4 @@ nose>=1.3.7
 twine>=1.12.1
 black;python_version == '3.6'
 wheel>=0.43.0
+dummy-notebookutils>=1.5.1

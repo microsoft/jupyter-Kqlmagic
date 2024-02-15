@@ -8,7 +8,6 @@
 """
 
 import os
-import traceback
 import sys
 from io import StringIO
 import time
@@ -875,7 +874,6 @@ class _MyAadHelper(AadHelper):
                 sys.stderr = old_stderr or sys.stderr
                 return token
         except Exception as error:
-            traceback.print_stack()
             logger().debug(f"_MyAadHelper::_get_fabric_token error getting token with error {error}")
             pass
         logger().debug(f"_MyAadHelper::_get_fabric_token {'failed' if token is None else 'succeeded'} to get token")

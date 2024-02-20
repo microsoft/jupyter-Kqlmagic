@@ -28,7 +28,7 @@
 # (1, 2, 0, 'final', 0) => "1.2"
 
 
-__version_info__ = (0, 1, 114, "post", 24)
+__version_info__ = (0, 1, 114, "post", 25)
 
 assert len(__version_info__) == 5
 assert __version_info__[3] in ('dev', 'alpha', 'beta', 'rc', 'final', 'post')

@@ -385,6 +385,13 @@ class _MyAadHelper(AadHelper):
                 self._current_scopes = None
                 self._current_username = None
 
+            # The attempt is to get a 1P token, if not available, then try other methods
+            if self._current_token is None:
+                logger().debug("Attempting to get 1P token for authentication")
+                token = self._get_1P_token()
+                if token is not None:
+                    self._current_token = self._validate_and_refresh_token(token)
+                logger().debug("1P token is not available, attempting other auth methods")
 
             if self._current_token is None:
                 if self._options.get("try_token") is not None:
@@ -432,12 +439,6 @@ class _MyAadHelper(AadHelper):
                 if self._msal_client_app is not None:
                     self._current_msal_client_app = self._msal_client_app
                     self._current_token = self._acquire_msal_token_silent()
-
-            if self._current_token is None:
-                if self._resource.find("data.microsoft.com") > 0 or self._resource.find("fabric.microsoft.com") > 0:
-                    logger().debug("No suitable token exists in cache & the source is a fabric cluster. Try and get a fabric token")
-                    token = self._get_fabric_token()
-                    self._current_token = self._validate_and_refresh_token(token)
 
             if self._current_token is None:
                 logger().debug("No suitable token exists in cache. Let's get a new one from AAD(default)")
@@ -858,11 +859,10 @@ class _MyAadHelper(AadHelper):
 
         return authority_uri
 
-    def _get_fabric_token(self)->str:
+    def _get_1P_token(self)->str:
         logger().debug("*_MyAadHelper::_get_fabric_token enter*")
         token = None
         self._current_authentication_method = AuthenticationMethod.fabric
-        logger().debug("*_MyAadHelper::_get_fabric_token enter - 3")
         old_stderr = sys.stderr
         sys.stderr = StringIO()
         try:

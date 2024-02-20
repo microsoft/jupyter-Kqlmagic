@@ -385,14 +385,6 @@ class _MyAadHelper(AadHelper):
                 self._current_scopes = None
                 self._current_username = None
 
-            # The attempt is to get a 1P token, if not available, then try other methods
-            if self._current_token is None:
-                logger().debug("Attempting to get 1P token for authentication")
-                token = self._get_1P_token()
-                if token is not None:
-                    self._current_token = self._validate_and_refresh_token(token)
-                logger().debug("1P token is not available, attempting other auth methods")
-
             if self._current_token is None:
                 if self._options.get("try_token") is not None:
                     token = self._get_aux_token(token=self._options.get("try_token"))
@@ -422,6 +414,15 @@ class _MyAadHelper(AadHelper):
                 if self._options.get("try_vscode_login"):
                     token = self._get_vscode_token()
                     self._current_token = self._validate_and_refresh_token(token)
+
+            # The attempt is to get a 1P token, if not available, then use device code login
+            if self._current_token is None:
+                logger().debug("Attempting to get 1P token for authentication")
+                token = self._get_1P_token()
+                if token is not None:
+                    self._current_token = self._validate_and_refresh_token(token)
+                logger().debug("1P token is not available, attempting other auth methods")
+
 
             if self._current_token is None:
                 self._current_authentication_method = self._authentication_method

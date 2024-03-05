@@ -143,7 +143,7 @@ class KustoEngine(KqlEngine):
 
     def _get_databases_by_pretty_name(self, **options)->Tuple[List[str],Dict[str,str]]:
         query = ".show databases"
-        kql_response = self.execute(query, database="NetDefaultDB", **options)
+        kql_response = self.execute(query, database=self.database_name or "NetDefaultDB", **options)
         table = kql_response.tables[0]
         databases_by_pretty_name = {row['PrettyName']: row['DatabaseName'] for row in table.fetchall() if row['PrettyName']}
         database_name_list = [row['DatabaseName'] for row in table.fetchall()]

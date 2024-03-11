@@ -868,16 +868,16 @@ class _MyAadHelper(AadHelper):
         sys.stderr = StringIO()
         try:
             logger().debug(f"_MyAadHelper::_get_fabric_token enter getting token for resource {self._resource}")
-            ## An access token JWT is returned from the API call
+            # An access token JWT is returned from the API call
+            # In non-fabric environments there is no token returned. This does not throw an error, but just returns None
             t = mssparkutils.credentials.getToken(self._resource)
             if t:
                 token = {"access_token": t, "token_type": "bearer"}
                 sys.stderr = old_stderr or sys.stderr
-                return token
         except Exception as error:
             logger().debug(f"_MyAadHelper::_get_fabric_token error getting token with error {error}")
-            pass
-        logger().debug(f"_MyAadHelper::_get_fabric_token {'failed' if token is None else 'succeeded'} to get token")
+            token = None
+        logger().info(f"_MyAadHelper::_get_fabric_token {'failed' if token is None else 'succeeded'} to get token")
         return token
 
     def _get_aux_token(self, token:dict)->str:

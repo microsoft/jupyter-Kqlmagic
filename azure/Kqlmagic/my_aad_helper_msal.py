@@ -7,13 +7,11 @@
 """A module to acquire tokens from AAD.
 """
 
-import os
 import sys
 from io import StringIO
 import time
 from datetime import timedelta, datetime
 from urllib.parse import urlparse
-# import webbrowser
 import json
 from base64 import urlsafe_b64decode
 from notebookutils import mssparkutils
@@ -27,7 +25,7 @@ from .constants import Cloud
 from .log import logger
 from .display import Display
 from .constants import ConnStrKeys
-from .msal_token_cache import MsalTokenCache 
+from .msal_token_cache import MsalTokenCache
 from .exceptions import KqlEngineError
 from .parser import Parser
 from .email_notification import EmailNotification
@@ -59,12 +57,12 @@ class TokenResponseFieldsV1(object):
     EXPIRES_IN = 'expiresIn'
     RESOURCE = 'resource'
     USER_ID = 'userId'
-    
+
     # not from the wire, but amends for token cache
     _AUTHORITY = '_authority'
     _CLIENT_ID = '_clientId'
     IS_MRRT = 'isMRRT'
-        
+
     ERROR = 'error'
     ERROR_DESCRIPTION = 'errorDescription'
 
@@ -165,7 +163,7 @@ class ConnKeysKCSB(object):
             "application_certificate":            ConnStrKeys.CERTIFICATE,
             "application_certificate_thumbprint": ConnStrKeys.CERTIFICATE_THUMBPRINT,
         }
-        
+
         self.kcsb = {k: conn_kv.get(self.translate_map.get(k), None) for k in self.translate_map}
         self.kcsb["data_source"] = data_source
 
@@ -180,7 +178,7 @@ class ConnKeysKCSB(object):
     def __eq__(self, other:any)-> bool:
         return isinstance(other, ConnKeysKCSB) and self._json_dumps == other._json_dumps
 
-    
+
     def __hash__(self):
         return self._hash
 
@@ -246,8 +244,8 @@ _CLOUD_DSTS_AAD_DOMAINS = {
     # Define dSTS domains whitelist based on its Supported Environments & National Clouds list here
     # https://microsoft.sharepoint.com/teams/AzureSecurityCompliance/Security/SitePages/dSTS%20Fundamentals.aspx
     Cloud.PUBLIC:       'dsts.core.windows.net',
-    Cloud.MOONCAKE:     'dsts.core.chinacloudapi.cn',  
-    Cloud.BLACKFOREST:  'dsts.core.cloudapi.de', 
+    Cloud.MOONCAKE:     'dsts.core.chinacloudapi.cn',
+    Cloud.BLACKFOREST:  'dsts.core.cloudapi.de',
     Cloud.FAIRFAX:      'dsts.core.usgovcloudapi.net'
 }
 _CLOUD_DSTS_AAD_DOMAINS[Cloud.CHINA] = _CLOUD_DSTS_AAD_DOMAINS[Cloud.MOONCAKE]
@@ -332,7 +330,6 @@ class _MyAadHelper(AadHelper):
 
         self._set_msal_client_app(msal_client_app=msal_client_app, msal_client_app_sso=msal_client_app_sso)
 
-
     def get_details(self):
         details = {
             "scopes": self._current_scopes or self._scopes,
@@ -369,7 +366,6 @@ class _MyAadHelper(AadHelper):
             details["password"] = '*****' if self._password else 'NOT-SET'
 
         return details
-
 
     def acquire_token(self):
         acquire_token_result = None
@@ -418,10 +414,11 @@ class _MyAadHelper(AadHelper):
             # The attempt is to get a 1P token, if not available, then use device code login
             if self._current_token is None:
                 logger().debug("Attempting to get 1P token for authentication")
-                token = self._get_1P_token()
+                token = self._get_1p_token()
                 if token is not None:
                     self._current_token = self._validate_and_refresh_token(token)
-                logger().debug("1P token is not available, attempting other auth methods")
+                logger().debug("1P token is not available(this is available on Fabric and Synapse environments only)"
+                               ", attempting other auth methods")
 
 
             if self._current_token is None:
@@ -449,7 +446,7 @@ class _MyAadHelper(AadHelper):
                     # See this page for constraints of Username Password Flow.
                     # https://github.com/AzureAD/microsoft-authentication-library-for-python/wiki/Username-Password-Authentication
                     acquire_token_result = self._current_msal_client_app.acquire_token_by_username_password(
-                        self._username, self._password, scopes=self._scopes)                        
+                        self._username, self._password, scopes=self._scopes)
 
                 elif self._authentication_method is AuthenticationMethod.aad_application_key:
                     acquire_token_result = self._current_msal_client_app.acquire_token_for_client(scopes=self._scopes)
@@ -685,8 +682,8 @@ class _MyAadHelper(AadHelper):
                     account = accounts[0]
         if client_app_type == ClientAppType.confidential or account:
             logger().debug("Account(s) exists in cache, probably with token too. Let's try.")
-            token = msal_client_app.acquire_token_silent(scopes, account) 
-        return token 
+            token = msal_client_app.acquire_token_silent(scopes, account)
+        return token
 
 
     #
@@ -822,7 +819,7 @@ class _MyAadHelper(AadHelper):
         client_id = claims.get("client_id") or claims.get("appid") or claims.get("azp")
         return client_id
 
-    
+
     def _get_resources_from_token(self, token:dict)->list:
         "retrieve resource list from access token claims"
         resources = None
@@ -860,8 +857,8 @@ class _MyAadHelper(AadHelper):
 
         return authority_uri
 
-    def _get_1P_token(self)->str:
-        logger().debug("*_MyAadHelper::_get_fabric_token enter*")
+    def _get_1p_token(self) -> dict:
+        logger().debug("_MyAadHelper::_get_1P_token enter")
         token = None
         self._current_authentication_method = AuthenticationMethod.fabric
         old_stderr = sys.stderr
@@ -873,14 +870,14 @@ class _MyAadHelper(AadHelper):
             t = mssparkutils.credentials.getToken(self._resource)
             if t:
                 token = {"access_token": t, "token_type": "bearer"}
-                sys.stderr = old_stderr or sys.stderr
         except Exception as error:
             logger().debug(f"_MyAadHelper::_get_fabric_token error getting token with error {error}")
             token = None
+        sys.stderr = old_stderr
         logger().info(f"_MyAadHelper::_get_fabric_token {'failed' if token is None else 'succeeded'} to get token")
         return token
 
-    def _get_aux_token(self, token:dict)->str:
+    def _get_aux_token(self, token:dict)->dict:
         "retrieve token from aux token"
         self._current_authentication_method = AuthenticationMethod.aux_token
         try:
@@ -892,7 +889,7 @@ class _MyAadHelper(AadHelper):
         return token
 
 
-    def _get_vscode_token(self)->str:
+    def _get_vscode_token(self)->dict:
         token = None
         tenant = None if self._authority == "common" else self._authority
         self._current_authentication_method = AuthenticationMethod.vscode_login
@@ -903,7 +900,7 @@ class _MyAadHelper(AadHelper):
             from azure.identity import VisualStudioCodeCredential  # pylint: disable=no-name-in-module, import-error
             # in AppData/Roaming/Code/User/settings.json the key "azure.cloud" should be set to "AzureCloud"
             # should match the key: "VS Code Azure/AzureCloud" in windows CredentialManager (Control Pannel)
-            
+
             vscode = VisualStudioCodeCredential(tenant_id=tenant, authority=self._get_aad_login_url())
             t = vscode.get_token(f"{self._resource}/.default")
             if t:
@@ -918,7 +915,7 @@ class _MyAadHelper(AadHelper):
         return token
 
 
-    def _get_azcli_token(self, subscription:str=None)->str:
+    def _get_azcli_token(self, subscription:str=None)->dict:
         "retrieve token from azcli login"
         token = None
         tenant = self._authority if subscription is None else None
@@ -944,19 +941,19 @@ class _MyAadHelper(AadHelper):
                 self._current_authentication_method = AuthenticationMethod.azcli_login_subscription if subscription is not None else AuthenticationMethod.azcli_login
         except: # pylint: disable=bare-except
             pass
-        
+
         sys.stderr = old_stderr or sys.stderr
 
         logger().debug(f"_MyAadHelper::_get_azcli_token {'failed' if token is None else 'succeeded'} to get token - subscription: '{subscription}', tenant: '{tenant}'")
         return token
 
 
-    def _get_azcli_token_by_profile(self, subscription:str=None)->str:
+    def _get_azcli_token_by_profile(self, subscription:str=None)->dict:
         "retrieve token from azcli login"
         token = None
         tenant = self._authority if subscription is None else None
         self._current_authentication_method = AuthenticationMethod.azcli_login_by_profile
-        
+
         old_stderr = sys.stderr
         sys.stderr = StringIO()
 
@@ -975,7 +972,7 @@ class _MyAadHelper(AadHelper):
         return token
 
 
-    def _get_msi_token(self, msi_params=None)->str:
+    def _get_msi_token(self, msi_params=None)->dict:
         "retrieve token from managed service identity"
         msi_params = msi_params or {}
         token = None
@@ -1056,7 +1053,7 @@ class _MyAadHelper(AadHelper):
 
     def _validate_and_refresh_token(self, token:dict)->dict:
         "validate token is valid to use now. Now is between not_before and expires_on. If exipred try to refresh"
-        valid_token = None    
+        valid_token = None
         if token is not None:
             if self._current_msal_client_app is not None:
                 valid_token = self._acquire_msal_token_silent()
@@ -1091,7 +1088,7 @@ class _MyAadHelper(AadHelper):
     def _create_client_app_key(self):
         client_app_key = {
             "client_app_type": self._client_app_type,
-            "client_id": self._client_id, 
+            "client_id": self._client_id,
             "authority_uri": self._authority_uri
         }
         if self._client_app_type == ClientAppType.confidential:
@@ -1221,7 +1218,7 @@ class _MyAadHelper(AadHelper):
             for key in self._options.get("try_token"):
                 if key in [TokenResponseFieldsV1.ACCESS_TOKEN, TokenResponseFieldsV2.ACCESS_TOKEN, OAuth2TokenFields.ACCESS_TOKEN, TokenResponseFieldsV1.REFRESH_TOKEN, TokenResponseFieldsV2.REFRESH_TOKEN, OAuth2TokenFields.REFRESH_TOKEN, TokenResponseFieldsV2.ID_TOKEN, OAuth2TokenFields.ID_TOKEN]:
                     # obfuscated
-                    token_dict[key] = f"..."                   
+                    token_dict[key] = f"..."
                 else:
                     token_dict[key] = self._options.get("try_token")[key]
             kwargs = token_dict

@@ -102,7 +102,7 @@ _IPYWIDGETS_REQUIRES = [
 ]
 
 _KQLMAGIC_FERNET_SSO_REQUIRES = [
-    'cryptography>=2.7', # also required by adal
+    'cryptography>=2.7', # also required by adal/msal
     'password-strength>=0.0.3',
 ]
 
@@ -165,7 +165,7 @@ _DEFAULT_REQUIRES = _ALL_REQUIRES
 # ---------------------------------------------------
 # ---------------------------------------------------
 INSTALL_REQUIRES  = [
-    'python-dateutil>=2.7.5', # also required by adal, pandas
+    'python-dateutil>=2.7.5', # also required by adal/msal, pandas
     'traitlets>=4.3.2', # must have, basic
 ]
 

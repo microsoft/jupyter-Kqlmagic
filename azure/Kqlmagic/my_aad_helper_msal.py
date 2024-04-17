@@ -700,8 +700,12 @@ class _MyAadHelper(AadHelper):
         if token.get(TokenResponseFieldsV1.EXPIRES_ON) is not None:
             expires_on = token.get(TokenResponseFieldsV1.EXPIRES_ON)
         elif token.get(OAuth2TokenFields.EXPIRES_ON) is not None:
-            # The date is represented as the number of seconds from "1970-01-01T0:0:0Z UTC" (corresponds to the token's exp claim).
-            expires_on = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(token.get(OAuth2TokenFields.EXPIRES_ON)))
+            try:
+                # The date is represented as the number of seconds from "1970-01-01T0:0:0Z UTC" (corresponds to the token's exp claim).
+                expires_on = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(token.get(OAuth2TokenFields.EXPIRES_ON)))
+            except:
+                # this happens if the expires_on field is empty or is not a float (i.e datetime)
+                expires_on = None
         return expires_on
 
 

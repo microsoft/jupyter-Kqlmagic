@@ -1028,7 +1028,7 @@ class Parser(object):
         else:
             try:
                 value = eval(string, None, user_ns)
-            except:
+            except: # pylint: disable=bare-except
                 # if no user_ns it means parse is for environment var, and it just may be an unquoted object
                 if user_ns:
                     raise
@@ -1037,7 +1037,7 @@ class Parser(object):
         # check value is of the right type
         try:
             return cls._convert(dict_name, obj, key, value)
-        except:
+        except: # pylint: disable=bare-except
             raise
 
 

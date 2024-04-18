@@ -113,9 +113,9 @@ venv.bak/
 /private_local
 
 # dependencies
-/Scripts
-/share
-/etc
+**/Scripts/**
+**/share/**
+**/etc/**
 
 # private notebooks
 /my notebooks

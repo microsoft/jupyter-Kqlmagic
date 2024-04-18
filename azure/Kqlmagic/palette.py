@@ -108,7 +108,7 @@ class Palette(list):
                     try:
                         range = slice(*[int(value) if value else None for value in se_parts])
                         base_name = base_name[:start]
-                    except:
+                    except: # pylint: disable=bare-except
                         pass
 
         # custom

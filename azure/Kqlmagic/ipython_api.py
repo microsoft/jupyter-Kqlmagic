@@ -14,14 +14,14 @@ from ._debug_utils import debug_print
 try:
     try:
         from IPython import display as ipy_display
-    except:
+    except: # pylint: disable=bare-except
         import IPython.core.display as ipy_display
         
     display = ipy_display.display
     HTML = ipy_display.HTML
     Javascript = ipy_display.Javascript
     JSON = ipy_display.JSON
-except:
+except: # pylint: disable=bare-except
     display = None
     HTML = None
     Javascript = None
@@ -57,13 +57,13 @@ class IPythonAPI(object):
                 import re
                 try:
                     import ipykernel as kernel
-                except:
+                except: # pylint: disable=bare-except
                     from IPython.lib import kernel
 
                 connection_file = kernel.get_connection_file()
                 cls.kernel_id = re.search('kernel-(.*).json', connection_file).group(1)
 
-            except:
+            except: # pylint: disable=bare-except
                 import uuid
                 cls.kernel_id = f"{uuid.uuid4()}"
 
@@ -91,13 +91,13 @@ class IPythonAPI(object):
             if "IPython" in sys.modules:
                 try:
                     from IPython import get_ipython
-                except:
+                except: # pylint: disable=bare-except
                     get_ipython = None
                     
                 if get_ipython is not None:
                     try:
                         cls.ip = get_ipython()  # pylint: disable=undefined-variable 
-                    except:
+                    except: # pylint: disable=bare-except
                         pass
         return cls.ip
 
@@ -136,7 +136,7 @@ class IPythonAPI(object):
             try:
                 ip.run_cell_magic('javascript', '', javascript_statement)
                 return True
-            except:
+            except: # pylint: disable=bare-except
                 pass
 
         return False
@@ -203,7 +203,7 @@ class IPythonAPI(object):
             try:
                 import atexit
                 atexit.register(func, *args)  
-            except:
+            except: # pylint: disable=bare-except
                 return False
 
 
@@ -215,7 +215,7 @@ class IPythonAPI(object):
             try:
                 ip.magic(f"matplotlib {matplotlib_magic_command}")
                 return True
-            except:
+            except: # pylint: disable=bare-except
                 return False
 
 
@@ -248,11 +248,11 @@ class IPythonAPI(object):
         try:
             try:
                 import ipykernel as kernel
-            except:
+            except: # pylint: disable=bare-except
                 from IPython.lib import kernel
             conn_info = kernel.get_connection_info(unpack=False)
 
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         return conn_info
@@ -265,7 +265,7 @@ class IPythonAPI(object):
             ip = cls._get_ipython()
             if ip is not None:
                 tr_cell = ip.input_transformer_manager.transform_cell(cell)
-        except:
+        except: # pylint: disable=bare-except
             pass
         return tr_cell
 
@@ -276,7 +276,7 @@ class IPythonAPI(object):
             ip = cls._get_ipython()
             if ip is not None:
                 return transformer_func in ip.input_transformers_cleanup
-        except:
+        except: # pylint: disable=bare-except
             pass
         return False
 
@@ -289,7 +289,7 @@ class IPythonAPI(object):
             if ip is not None:
                 ip.input_transformers_cleanup.append(transformer_func)
                 return True
-        except:
+        except: # pylint: disable=bare-except
             pass
         return False
 
@@ -302,7 +302,7 @@ class IPythonAPI(object):
                 if cls.is_in_input_transformers_cleanup(transformer_func):
                     ip.input_transformers_cleanup.remove(transformer_func)
                 return True
-        except:
+        except: # pylint: disable=bare-except
             pass
         return False
 

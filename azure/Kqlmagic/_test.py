@@ -38,7 +38,7 @@ class TestClass(TestCommand):
     def run_tests(self):
         try:
             import pytest # type: ignore reportMissingImports # pylint: disable=import-error
-        except: 
+        except: # pylint: disable=bare-except
             pass
         else:
             errno = pytest.main(self.pytest_args)

@@ -155,7 +155,7 @@ class ParentProcessIdValueMonitor(Thread):
     when the parent process no longer exists.
     """
 
-    def __init__(self, platform:str)->None:
+    def __init__(self, platform:str, parent_id:int)->None:
         super(ParentProcessIdValueMonitor, self).__init__()
         if platform == 'win32':
             raise Exception("specified liveness_mode: 'ppid' is not supported by 'win32' platform")
@@ -209,7 +209,7 @@ def _get_import_module(module_name:str, message:str=None, package_name:str=None,
             message = f"module was disabled by {MAGIC_CLASS_NAME_UPPER}_TEST_DISABLE_MODULES{message}"
             raise Exception(message)
         return module
-    except:
+    except: # pylint: disable=bare-except
         if dont_throw:
             pass
         else:
@@ -503,7 +503,7 @@ def init_parent_monitor(platform:str, parent_id_str:str, liveness_mode:str)->Uni
                 return ParentHeartbeatMonitor()
 
             elif liveness_mode == "parent_process_id_value":
-                return ParentProcessIdValueMonitor(platform)
+                return ParentProcessIdValueMonitor(platform, parent_id)
 
             elif liveness_mode == "parent_process_state":
                 return ParentProcessStateMonitor(parent_id)
@@ -519,8 +519,8 @@ def init_parent_monitor(platform:str, parent_id_str:str, liveness_mode:str)->Uni
                     return ParentProcessStateMonitor(parent_id)
                 else:
                     try:
-                        return ParentProcessIdValueMonitor(platform)
-                    except:
+                        return ParentProcessIdValueMonitor(platform, parent_id)
+                    except: # pylint: disable=bare-except
                         return ParentProcessStateMonitor(parent_id)
             else:
                 raise Exception(f"unknown liveness mode: {liveness_mode}")
@@ -619,7 +619,7 @@ if __name__ == "__main__":
         try:
             if logger is not None:
                 logger.error(f"{error_message}.")
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         time.sleep(5 * 60 * 1.0)

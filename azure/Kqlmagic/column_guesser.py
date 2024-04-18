@@ -190,12 +190,12 @@ class ColumnGuesserMixin(object):
             elif tab.col_y_min is None:
                 try:
                     tab.col_y_min = min(min(filter(lambda x: x is not None, tab.values())), 0) * 1.1
-                except:
+                except: # pylint: disable=bare-except
                     tab.col_y_min = None
             elif tab.col_y_max is None:
                 try:
                     tab.col_y_max = max(filter(lambda x: x is not None, tab.values())) * 1.1
-                except:
+                except: # pylint: disable=bare-except
                     tab.col_y_max = None
 
         return self.chart_sub_tables

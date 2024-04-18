@@ -245,7 +245,7 @@ class KqlEngine(Engine):
                         raise KqlEngineError("Database wasn't found in cluster.")
             except NotImplementedError:
                 pass
-            except:
+            except: # pylint: disable=bare-except
                 raise
 
             self.options["validate_database_name_done"] = True

@@ -181,7 +181,7 @@ def _create_fernet_obj(key_vals:dict, crypto_key:str) -> FernetCrypto:
 
         try:
             salt = uuid.UUID(secret_salt_uuid, version=4)            
-        except:
+        except: # pylint: disable=bare-except
             raise SsoWarning(
                 f"Warning: SSO is not activated due to {SsoEnvVarParam.SECRET_SALT_UUID} key "
                 f"in environment variable {Constants.SSO_KEYS_ENV_VAR_NAME} is not set to a valid uuid")
@@ -205,7 +205,7 @@ def _create_osx_keychain_fernet_obj(key_vals:dict) -> FernetCrypto:
     if platform.system() == 'Darwin':
         try:
             from msal_extensions.osx import Keychain, KeychainError
-        except:
+        except: # pylint: disable=bare-except
             raise SsoWarning(f"Warning: SSO is not activated due to {SsoCrypto.OSX_KEYCHAIN} cryptography failed to import Keychain, KeychainError from msal_extensions.osx")
         else:
             cache_name = _get_cache_name(key_vals)
@@ -241,7 +241,7 @@ def _create_linux_libsecret_fernet_obj(key_vals:dict) -> FernetCrypto:
     if platform.system() == 'Linux':
         try:
             from msal_extensions.libsecret import LibSecretAgent, trial_run
-        except:
+        except: # pylint: disable=bare-except
             raise SsoWarning(
                 f"Warning: SSO is not activated due to {SsoCrypto.LINUX_LIBSECRET} cryptography failed to import LibSecretAgent, trial_run from msal_extensions.libsecret")
         else:

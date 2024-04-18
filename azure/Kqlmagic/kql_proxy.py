@@ -241,7 +241,7 @@ class KqlTableResponse(object):
             d = dateutil.parser.isoparse(d) if type(d) == str else d
             return isinstance(d, datetime) and abs((d - START_EPOCH_DATETIME).total_seconds()) < MAX_DIFF_FROM_EPOCH_IN_SECS
 
-        except:
+        except: # pylint: disable=bare-except
             return False
 
 

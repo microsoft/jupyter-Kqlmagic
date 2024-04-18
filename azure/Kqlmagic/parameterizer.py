@@ -55,7 +55,7 @@ class CurlyBracketsParamsDict(dict):
                 value = eval(key, self)
                 for k in self._eval_params_dict:
                     self._used_params_dict[k] = self._eval_params_dict[k]
-            except:
+            except: # pylint: disable=bare-except
                 
                 value = f'{{{key}}}'
             finally:
@@ -175,7 +175,7 @@ class Parameterizer(object):
                 if isinstance(v, Decimal)
                 else str(v)
             )
-        except:
+        except: # pylint: disable=bare-except
             val = f"'{v}'"
         return str(val)
 
@@ -284,7 +284,7 @@ class Parameterizer(object):
                             if ty in [dict, list, set, tuple]:
                                 try:
                                     json_dumps(val)
-                                except:
+                                except: # pylint: disable=bare-except
                                     ty = str
                                     break
                 if ty == str:

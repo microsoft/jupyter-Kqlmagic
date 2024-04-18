@@ -137,7 +137,7 @@ def adjust_path(_path:str)->str:
 def safe_str(s) -> str:
     try:
         return f"{s}"
-    except:
+    except: # pylint: disable=bare-except
         return "<failed safe_str()>"
 
 
@@ -231,7 +231,7 @@ def get_env_var_list(var_name:str, keep_quotes:bool=False)->List[str]:
                 items = [strip_if_quoted(item)[1] for item in items]
 
         return items
-    except:
+    except: # pylint: disable=bare-except
         raise SyntaxError(f"failed to parse environment variable {var_name}={os.getenv(var_name)} ")
 
 
@@ -247,7 +247,7 @@ def get_env_var_bool(var_name:str, default:bool=None)->bool:
                 return string == "true"
         else:
             return default
-    except:
+    except: # pylint: disable=bare-except
         pass
     raise SyntaxError(f"failed to parse environment variable {var_name}={os.getenv(var_name)} ")
 
@@ -273,7 +273,7 @@ def strip_if_quoted(string:str)->Tuple[str,bool]:
         if type(string) is str and len(string) > 1 and string[0] == string[-1] and string[0] in ("'", '"'):
             string = ast.literal_eval(string).strip()
             was_quoted = True
-    except:
+    except: # pylint: disable=bare-except
         pass
 
     return was_quoted, string

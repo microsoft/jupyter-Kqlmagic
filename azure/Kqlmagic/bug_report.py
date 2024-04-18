@@ -46,12 +46,12 @@ def _python_info() -> dict:
         else:
             implementation_version = 'Unknown'
 
-    except:
+    except: # pylint: disable=bare-except
         pass
 
     try:
         implementation_branch = platform.python_branch()
-    except:
+    except: # pylint: disable=bare-except
         implementation_branch = 'Unknown'
 
     return {'name': implementation, 'version': implementation_version, 'branch': implementation_branch}
@@ -62,12 +62,12 @@ def _platform_info() -> dict:
 
     try:
         platform_system = platform.system()
-    except:
+    except: # pylint: disable=bare-except
         platform_system = 'Unknown'
 
     try:
         platform_release = platform.release()
-    except:
+    except: # pylint: disable=bare-except
         platform_release = 'Unknown'
 
     return {'system': platform_system, 'release': platform_release}

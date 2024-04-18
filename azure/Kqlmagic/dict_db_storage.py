@@ -120,13 +120,13 @@ class DictDbStorage(object):
             value = self._crypto_obj.decrypt(state_encrypted.get("data"))
             return value
 
-        except:
+        except: # pylint: disable=bare-except
             try: 
                 self.db_key_conflict = True
 
                 self._crypto_obj.verify(state_encrypted) 
                 Display.showWarningMessage("Warning: SSO disabled, due to cache_name conflict")
 
-            except:  # the token has bad form
+            except: # pylint: disable=bare-except
                 Display.showWarningMessage("Warning: SSO disabled, due to cache_name conflict (invalid data in db)")
                 # del self.db[self.db_key]

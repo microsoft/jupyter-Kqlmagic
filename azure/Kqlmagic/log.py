@@ -197,10 +197,10 @@ class Logger(object):
             msg = f"failed to log level {level} record"
             try:
                 msg = self._log_message(msg, log_stack_trace)
-            except:
+            except: # pylint: disable=bare-except
                 pass
             self._logging.exception(msg, exc_info=ex)
-        except:
+        except: # pylint: disable=bare-except
             pass
 
 

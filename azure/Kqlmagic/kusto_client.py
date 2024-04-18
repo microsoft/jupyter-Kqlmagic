@@ -355,7 +355,7 @@ class KustoClient(KqlClient):
         if response.status_code < 200  or response.status_code >= 300:  # pylint: disable=E1101
             try:
                 parsed_error = json.loads(response.text)
-            except:
+            except: # pylint: disable=bare-except
                 parsed_error = response.text
             # collect this information, in case bug report will be generated
             self.last_query_info["response"]["error"] = parsed_error  # pylint: disable=unsupported-assignment-operation, unsubscriptable-object
@@ -366,7 +366,7 @@ class KustoClient(KqlClient):
         if kql_response.has_exceptions() and not accept_partial_results:
             try:
                 error_message = json_dumps(kql_response.get_exceptions())
-            except:
+            except: # pylint: disable=bare-except
                 error_message = str(kql_response.get_exceptions())
             raise KqlError(error_message, response, kql_response)
 

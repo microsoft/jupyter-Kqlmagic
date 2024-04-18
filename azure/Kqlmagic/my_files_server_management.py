@@ -58,7 +58,7 @@ class FilesServerManagement(object):
             port = s.getsockname()[1]
             s.close()
             return str(port)
-        except:
+        except: # pylint: disable=bare-except
             pass
 
 
@@ -77,7 +77,7 @@ class FilesServerManagement(object):
             else:
                 try:
                     port = str(int(parts[0]))
-                except:
+                except: # pylint: disable=bare-except
                     host = parts[0]
         return protocol, host, port
 
@@ -164,7 +164,7 @@ class FilesServerManagement(object):
             if requests:
                 requests.get(ping_url)
             result = True
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         logger().debug(f"FilesServerManagement::pingServer: url: {ping_url}, result: {result}")
@@ -180,7 +180,7 @@ class FilesServerManagement(object):
             if requests:
                 requests.get(heartbeat_url)
                 result = True
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         logger().debug(f"FilesServerManagement::heartbeat: url: {heartbeat_url}, result: {result}")
@@ -209,7 +209,7 @@ class HeartbeatThread(threading.Thread):
                     logger().debug(f"HeartbeatThread::HeartbeatThread: exit")
                     break
                 self._files_server_management.heartbeat()
-            except:
+            except: # pylint: disable=bare-except
                 pass
             time.sleep(1.0)
 
@@ -232,14 +232,14 @@ class AbortFileServer(object):
             if heartbeat_thread is not None:
                 try:
                     heartbeat_thread.stop()
-                except:
+                except: # pylint: disable=bare-except
                     pass
             abort_url = f"{server_url}/abort?kernelid={kernel_id}"
             requests = Dependencies.get_module("requests", dont_throw=True)
             if requests:
                 requests.get(abort_url)
                 result = True
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         logger().debug(f"FilesServerManagement::_abortServer: url: {abort_url}, result: {result}")
@@ -247,5 +247,5 @@ class AbortFileServer(object):
         if heartbeat_thread is not None:
             try:
                 heartbeat_thread.join()
-            except:
+            except: # pylint: disable=bare-except
                 pass

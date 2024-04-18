@@ -143,7 +143,7 @@ def is_python_code(lines:List[str])->bool:
         tr_py_code = IPythonAPI.transform_cell(py_code)
         ast.parse(tr_py_code)
         is_py_code = True
-    except:
+    except: # pylint: disable=bare-except
         pass
     return is_py_code
 

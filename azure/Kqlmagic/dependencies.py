@@ -211,11 +211,11 @@ class Dependencies(object):
                                 version_module = importlib.import_module(version_location)
                                 cls.installed_modules[version_location] = version_module
                         version = version_module.__version__
-                    except:
+                    except: # pylint: disable=bare-except
                         try:
                             import pkg_resources  # part of setuptools
                             version = pkg_resources.require(package_name)[0].version
-                        except:
+                        except: # pylint: disable=bare-except
                             pass
                 cls.installed_versions[package_name] = version or "?.?.?"
             return module

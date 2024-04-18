@@ -314,7 +314,8 @@ class Kqlmagic_core(object):
         #
         # first we do auto detection
         #
-        app = "auto"
+        
+        app = self.default_options.notebook_app
         if app == "auto":  # ELECTRON_RUN_AS_NODE
             notebook_service_address = self.default_options.notebook_service_address or ""
             python_branch = platform.python_branch()
@@ -495,7 +496,11 @@ class Kqlmagic_core(object):
                                     return {"app": "visualstudiocode", "kernel_location": "local"}
                                 elif item.endswith("vscode_datascience_helpers.jupyter_daemon"):
                                     return {"app": "visualstudiocode", "kernel_location": "local"}
-        except:
+                                
+            for path in os.get_exec_path():
+                if path.find("nteract") > 0:
+                    return {"app": "nteract", "kernel_location": "local"}
+        except: # pylint: disable=bare-except
             pass
 
         return {}
@@ -517,9 +522,9 @@ class Kqlmagic_core(object):
                                     return item
                                 elif item.startswith("http://") or found_item is None:
                                     found_item = item
-                    except:
+                    except: # pylint: disable=bare-except
                         pass
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         return found_item
@@ -625,7 +630,7 @@ class Kqlmagic_core(object):
                     Display.showWarningMessage(
                         f"""You are using a {label} {Constants.MAGIC_PACKAGE_NAME} version {__version__}, You should condider to use stable version {pypi_stable_version}."""
                     )
-            except:
+            except: # pylint: disable=bare-except
                 logger().debug("Kqlmagic_core::_show_magic_latest_version - failed to fetch PyPi Kqlmagic latest version")
                 pass
 
@@ -661,7 +666,7 @@ class Kqlmagic_core(object):
                         palette=Display.info_style, 
                         **options
                     )
-            except:
+            except: # pylint: disable=bare-except
                 logger().debug("Kqlmagic_core::_show_what_new - failed to fetch HISTORY.md")
                 pass
 
@@ -1003,7 +1008,7 @@ class Kqlmagic_core(object):
                                 body_obj = result._repr_json_() if _repr_json_ is not None and callable(_repr_json_) else result
                                 try:
                                     body = json.dumps(body_obj, indent=4, sort_keys=True)
-                                except:
+                                except: # pylint: disable=bare-except
                                     body = result
                                 html_str =  f"""<!DOCTYPE html>
                                     <html>
@@ -1399,7 +1404,7 @@ Each option can be set as follow:<br>
                 try:
                     parsed_error = json.loads(err.message)
                     message = f"query execution error:\n{json_dumps(parsed_error, indent=4, sort_keys=True)}" 
-                except:
+                except: # pylint: disable=bare-except
                     message = err.message
                 Display.showDangerMessage(message)
                 return None

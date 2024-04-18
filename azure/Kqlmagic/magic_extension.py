@@ -67,7 +67,7 @@ def _set_command_magics(ip):
             flag:str = COMMANDS_TABLE.get(cmd_name).get("flag")
             is_cell:bool = COMMANDS_TABLE.get(cmd_name).get("cell")
             _register_command_magics(ip, flag, is_cell)
-    except:
+    except: # pylint: disable=bare-except
         pass
 
 
@@ -103,7 +103,7 @@ def _register_command_magic(ip, alias:str, params, kind):
             _register_command_kind_magics(ip, alias, kind, params)
         else:
             logger().debug(f"_register_command_magic - failed to register alias '{alias}' {kind} alias for {Constants.MAGIC_NAME} {params}")
-    except:
+    except: # pylint: disable=bare-except
         logger().debug(f"_register_command_magic - failed to register alias '{alias}' {kind} alias for {Constants.MAGIC_NAME} {params}")
 
 

@@ -344,7 +344,7 @@ class _MyAadHelper(AadHelper):
                             pyperclip = Dependencies.get_module("pyperclip", dont_throw=True)
                             if pyperclip is not None:
                                 pyperclip.copy(device_code)
-                        except:
+                        except: # pylint: disable=bare-except
                             pass
 
                     # if  self._options.get("notebook_app")=="papermill" and self._options.get("login_code_destination") =="browser":
@@ -605,7 +605,7 @@ class _MyAadHelper(AadHelper):
                     if tenant_id.endswith("/"):
                         tenant_id = tenant_id[:-1]
                     authority_uri = f"{self._aad_login_url}/{tenant_id}"
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         return authority_uri
@@ -618,7 +618,7 @@ class _MyAadHelper(AadHelper):
         try:
             self._current_adal_context = self._adal_context
             token = self._current_adal_context.acquire_token(self._resource, self._username, self._client_id)
-        except:
+        except: # pylint: disable=bare-except
             pass
         logger().debug(f"_MyAadHelper::_get_adal_token {'failed' if token is None else 'succeeded'} to get token")
         return token
@@ -631,7 +631,7 @@ class _MyAadHelper(AadHelper):
         try:
             self._current_adal_context = self._adal_context_sso
             token = self._current_adal_context.acquire_token(self._resource, self._username, self._client_id)
-        except:
+        except: # pylint: disable=bare-except
             pass
         logger().debug(f"_MyAadHelper::_get_adal_sso_token {'failed' if token is None else 'succeeded'} to get token")
         return token
@@ -642,7 +642,7 @@ class _MyAadHelper(AadHelper):
         self._current_authentication_method = AuthenticationMethod.aux_token
         try:
             token = token
-        except:
+        except: # pylint: disable=bare-except
             pass
         logger().debug(f"_MyAadHelper::_get_aux_token {'failed' if token is None else 'succeeded'} to get token")
         return token
@@ -660,7 +660,7 @@ class _MyAadHelper(AadHelper):
             profile = get_cli_profile()
             credential, _subscription, _tenant = profile.get_raw_token(resource=self._resource, subscription=subscription, tenant=tenant)
             token_type, access_token, token = credential  # pylint: disable=unused-variable
-        except:
+        except: # pylint: disable=bare-except
             pass
         logger().debug(f"_MyAadHelper::_get_azcli_token {'failed' if token is None else 'succeeded'} to get token - subscription: '{subscription}', tenant: '{tenant}'")
         return token
@@ -676,7 +676,7 @@ class _MyAadHelper(AadHelper):
             # allow msi_params to overrite the connection string resource
             credentials = MSIAuthentication(**{"resource":self._resource, **msi_params})
             token = credentials.token
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         logger().debug(f"_MyAadHelper::_get_msi_token {'failed' if token is None else 'succeeded'} to get token - msi_params: '{msi_params}'")

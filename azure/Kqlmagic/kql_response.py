@@ -239,7 +239,7 @@ class KqlQueryResponse(object):
         try:
             tables_num = json_response["Tables"].__len__()  # pylint: disable=W0612
             return "v1"
-        except:
+        except: # pylint: disable=bare-except
             return "v2"
 
 

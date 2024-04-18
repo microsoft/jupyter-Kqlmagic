@@ -34,17 +34,17 @@ class OsDependentAPI(object):
             try:
                 OsDependentAPI.startfile(url)
                 return
-            except:
+            except: # pylint: disable=bare-except
                 pass
         try:
             import webbrowser
             webbrowser.open(url)
-        except:
+        except: # pylint: disable=bare-except
             OsDependentAPI.startfile(url)
 
 
     @classmethod
-    def startfile(filename:str)->None:
+    def startfile(cls, filename:str)->None:
         platform = sys.platform
         if platform[:3] == "win":
             os.startfile(filename)

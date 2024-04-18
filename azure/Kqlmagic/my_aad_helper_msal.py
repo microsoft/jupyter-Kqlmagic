@@ -495,7 +495,7 @@ class _MyAadHelper(AadHelper):
                             pyperclip = Dependencies.get_module("pyperclip", dont_throw=True)
                             if pyperclip is not None:
                                 pyperclip.copy(device_code)
-                        except:
+                        except: # pylint: disable=bare-except
                             pass
 
                     # if  self._options.get("notebook_app")=="papermill" and self._options.get("login_code_destination") =="browser":
@@ -703,7 +703,7 @@ class _MyAadHelper(AadHelper):
             try:
                 # The date is represented as the number of seconds from "1970-01-01T0:0:0Z UTC" (corresponds to the token's exp claim).
                 expires_on = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(token.get(OAuth2TokenFields.EXPIRES_ON)))
-            except:
+            except: # pylint: disable=bare-except
                 # this happens if the expires_on field is empty or is not a float (i.e datetime)
                 expires_on = None
         return expires_on
@@ -845,7 +845,7 @@ class _MyAadHelper(AadHelper):
                     if tenant_id.endswith("/"):
                         tenant_id = tenant_id[:-1]
                     authority_uri = f"{self._aad_login_url}/{tenant_id}"
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         return authority_uri
@@ -857,7 +857,7 @@ class _MyAadHelper(AadHelper):
         try:
             token = token
             self._migrate_to_msal_app(token)
-        except:
+        except: # pylint: disable=bare-except
             pass
         logger().debug(f"_MyAadHelper::_get_aux_token {'failed' if token is None else 'succeeded'} to get token")
         return token
@@ -881,7 +881,7 @@ class _MyAadHelper(AadHelper):
                 token = {"access_token": t.token, "token_type": "bearer"}
                 sys.stderr = old_stderr or sys.stderr
                 return token
-        except:
+        except: # pylint: disable=bare-except
             pass
         sys.stderr = old_stderr or sys.stderr
 
@@ -906,14 +906,14 @@ class _MyAadHelper(AadHelper):
                 t = azure_cli.get_token(f"{self._resource}/.default")
                 if t is not None and t.token is not None:
                     token = {"access_token": t.token, "token_type": "bearer"}
-        except:
+        except: # pylint: disable=bare-except
             pass
 
         try:
             if token is None:
                 token = self._get_azcli_token_by_profile(subscription)
                 self._current_authentication_method = AuthenticationMethod.azcli_login_subscription if subscription is not None else AuthenticationMethod.azcli_login
-        except:
+        except: # pylint: disable=bare-except
             pass
         
         sys.stderr = old_stderr or sys.stderr
@@ -938,7 +938,7 @@ class _MyAadHelper(AadHelper):
             token_type, access_token, token = credential  # pylint: disable=unused-variable
             self._migrate_to_msal_app(token)
             self._current_msal_client_app = None
-        except:
+        except: # pylint: disable=bare-except
             pass
         sys.stderr = old_stderr or sys.stderr
 
@@ -960,7 +960,7 @@ class _MyAadHelper(AadHelper):
             credentials = MSIAuthentication(**{"resource":self._resource, **msi_params})
             token = credentials.token
             self._migrate_to_msal_app(token)
-        except:
+        except: # pylint: disable=bare-except
             pass
         sys.stderr = old_stderr or sys.stderr
 

@@ -24,7 +24,7 @@ try:
     from pygments import highlight
     from pygments.lexers.data import JsonLexer
     from pygments.formatters.terminal import TerminalFormatter
-except:
+except: # pylint: disable=bare-except
     highlight = None
     JsonLexer = None
     TerminalFormatter = None
@@ -49,7 +49,7 @@ class FormattedJsonDict(dict):
         if highlight and JsonLexer and TerminalFormatter:
             try:
                 self.colorful_json = highlight(formatted_json.encode("UTF-8"), JsonLexer(), TerminalFormatter())
-            except:
+            except: # pylint: disable=bare-except
                 pass
 
     def get(self, key, default=None):

@@ -155,7 +155,7 @@ try:
         else:
             return VERSION_LOWER
 
-except:
+except: # pylint: disable=bare-except
     def is_stable_version(version:str)->bool:
         match = re.match(_IS_STABLE_VESRION_PATTERN, version, re.IGNORECASE)
         return match is not None
@@ -207,7 +207,7 @@ except:
                         else:
                             return VERSION_LOWER
                                   
-        except:
+        except: # pylint: disable=bare-except
             pass
         return VERSION_EQUAL
 
@@ -421,5 +421,5 @@ def validate_required_python_version_running(minimal_required_version:str)->None
         running_py_version = 1000000 * sys.version_info.major + 1000 * sys.version_info.minor + sys.version_info.micro
         if running_py_version < min_py_version:
             raise RuntimeError("")
-    except:
+    except: # pylint: disable=bare-except
         raise RuntimeError(f"Kqlmagic requires python >= {Constants.MINIMAL_PYTHON_VERSION_REQUIRED}, you use python {sys.version}")

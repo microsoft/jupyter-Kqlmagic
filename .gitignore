@@ -117,6 +117,8 @@ venv.bak/
 **/share/**
 **/etc/**
 
+**/man/**
+
 # private notebooks
 /my notebooks
 

@@ -4,21 +4,35 @@
 # license information.
 # --------------------------------------------------------------------------
 
-import six
 import json
-from Kqlmagic.display import Display
+from datetime import datetime
+import collections
+
+try:
+    collectionsAbc = collections.abc
+except AttributeError:
+    collectionsAbc = collections
 
 
-class KqlRow(six.Iterator):
-    def __init__(self, row, col_num, **kwargs):
-        self.kwargs = kwargs
+import dateutil.parser
+
+
+from .dependencies import Dependencies
+
+
+class KqlRow(collectionsAbc.Iterator):
+
+    def __init__(self, row, col_num, **options):
+        self.options = options
         self.row = row
         self.column_index = 0
         self.columns_count = col_num
 
+
     def __iter__(self):
         self.column_index = 0
         return self
+
 
     def __next__(self):
         if self.column_index >= self.columns_count:
@@ -27,15 +41,18 @@ class KqlRow(six.Iterator):
         self.column_index = self.column_index + 1
         return val
 
+
     def __getitem__(self, key):
         if isinstance(key, slice):
             s = self.row[key]
-            return KqlRow(s, len(s), **self.kwargs)
+            return KqlRow(s, len(s), **self.options)
         else:
-            return Display.to_styled_class(self.row[key], **self.kwargs)
+            return self.row[key]
+
 
     def __len__(self):
         return self.columns_count
+
 
     def __eq__(self, other):
         if len(other) != self.columns_count:
@@ -47,88 +64,111 @@ class KqlRow(six.Iterator):
                 return False
         return True
 
+
     def __str__(self):
         return ", ".join(str(self.__getitem__(i)) for i in range(self.columns_count))
+
 
     def __repr__(self):
         return self.row.__repr__()
 
 
-class KqlRowsIter(six.Iterator):
+class KqlRowsIter(collectionsAbc.Iterator):
     """ Iterator over returned rows, limited by size """
 
-    def __init__(self, table, row_num, col_num, **kwargs):
-        self.kwargs = kwargs
+    def __init__(self, table, row_num, col_num, **options):
+        self.options = options
         self.table = table
         self.row_index = 0
         self.rows_count = row_num
         self.col_num = col_num
+
 
     def __iter__(self):
         self.row_index = 0
         self.iter_all_iter = self.table.iter_all()
         return self
 
+
     def __next__(self):
         if self.row_index >= self.rows_count:
             raise StopIteration
         self.row_index = self.row_index + 1
-        return KqlRow(self.iter_all_iter.__next__(), self.col_num, **self.kwargs)
+        return KqlRow(self.iter_all_iter.__next__(), self.col_num, **self.options)
+
 
     def __len__(self):
         return self.rows_count
 
 
 class KqlResponse(object):
+
     # Object constructor
-    def __init__(self, response, **kwargs):
+    def __init__(self, response, **options):
         self.json_response = response.json_response
-        self.kwargs = kwargs
+        self.options = options
         self.completion_query_info = response.completion_query_info_results
         self.completion_query_resource_consumption = response.completion_query_resource_consumption_results
         self.dataSetCompletion = response.dataSetCompletion_results
-        self.tables = [KqlTableResponse(t, response.visualization_results.get(t.id, {})) for t in response.primary_results]
+        self.tables = [
+            KqlTableResponse(
+                t, 
+                response.extended_properties.get(t.id, {}),
+                **options) 
+            for t in response.primary_results]
 
 
 class KqlTableResponse(object):
-    def __init__(self, data_table, visualization_results: dict, **kwargs):
-        self.kwargs = kwargs
-        self.visualization_results = visualization_results
+
+    def __init__(self, data_table, extended_properties:dict, **options):
+        self.options = options
+        self._extended_properties = extended_properties
         self.data_table = data_table
         self.columns_count = self.data_table.columns_count
 
+
     def fetchall(self):
-        return KqlRowsIter(self.data_table, self.data_table.rows_count, self.data_table.columns_count, **self.kwargs)
+        return KqlRowsIter(self.data_table, self.data_table.rows_count, self.data_table.columns_count, **self.options)
+
 
     def fetchmany(self, size):
-        return KqlRowsIter(self.data_table, min(size, self.data_table.rows_count), self.data_table.columns_count, **self.kwargs)
+        return KqlRowsIter(self.data_table, min(size, self.data_table.rows_count), self.data_table.columns_count, **self.options)
+
 
     def rowcount(self):
         return self.data_table.rows_count
 
+
     def colcount(self):
         return self.data_table.columns_count
+
 
     def recordscount(self):
         return self.data_table.rows_count
 
+
     def ispartial(self):
         return self.data_table.is_partial
+
 
     def keys(self):
         return self.data_table.columns_name
 
+
     def types(self):
         return self.data_table.columns_type
     
+
     @property
-    def visualization_properties(self):
-        " returns all Visualization in result set, such as, Title, Accumulate, IsQuerySorted, Kind, Annotation, By"
-        return self.visualization_results   
+    def extended_properties(self):
+        " returns properties as specified in ExtendedProperties table"
+        return self._extended_properties
+
 
     @property
     def datafarme_types(self):
         return [self.KQL_TO_DATAFRAME_DATA_TYPES.get(t) for t in self.data_table.columns_type]
+
 
     def _map_columns_to_index(self, columns: list):
         map = {}
@@ -136,12 +176,16 @@ class KqlTableResponse(object):
             map[col["ColumnName"]] = idx
         return map
 
+
     def returns_rows(self):
         return self.data_table.rows_count > 0
 
-    def to_dataframe(self, raise_errors=True):
+
+    def to_dataframe(self, raise_errors=True, options=None):
         """Returns Pandas data frame."""
-        import pandas
+        
+        options = options or {}
+        pandas = Dependencies.get_module("pandas")
 
         if self.data_table.columns_count == 0 or self.data_table.rows_count == 0:
             # return pandas.DataFrame()
@@ -151,12 +195,27 @@ class KqlTableResponse(object):
 
         for (idx, col_name) in enumerate(self.data_table.columns_name):
             col_type = self.data_table.columns_type[idx].lower()
+
             if col_type == "timespan":
                 frame[col_name] = pandas.to_timedelta(
-                    frame[col_name].apply(lambda t: t.replace(".", " days ") if t and "." in t.split(":")[0] else t)
+                    frame[col_name].apply(lambda t: t.replace(".", " days ") if type(t) is str and "." in t.split(":")[0] else t)
                 )
+
+            elif col_type == "datetime":
+                frame[col_name] = pandas.to_datetime(
+                    frame[col_name].apply(lambda d: d if self._is_valid_datetime(d) else None)
+                )
+
+            elif col_type == "string":
+                # frame[col_name] = frame[col_name].apply(lambda x: json_dumps(x) if type(x) == str else x)
+                pass
+
             elif col_type == "dynamic":
-                frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_object(x))
+                if options.get("dynamic_to_dataframe") == "str":
+                    frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_str(x))
+                else:
+                    frame[col_name] = frame[col_name].apply(lambda x: self._dynamic_to_object(x))
+
             elif col_type in self.KQL_TO_DATAFRAME_DATA_TYPES:
                 pandas_type = self.KQL_TO_DATAFRAME_DATA_TYPES[col_type]
                 # NA type promotion
@@ -173,12 +232,34 @@ class KqlTableResponse(object):
                 frame[col_name] = frame[col_name].astype(pandas_type, errors="raise" if raise_errors else "ignore")
         return frame
 
+
+    def _is_valid_datetime(self, d:str)->bool:
+        # max diff in seconds from 9223372036 from 1970-01-01T00:00:00Z
+        MAX_DIFF_FROM_EPOCH_IN_SECS = 9223372036  # 2**63/1000000000
+        START_EPOCH_DATETIME = dateutil.parser.isoparse('1970-01-01T00:00:00Z')
+        try:
+            d = dateutil.parser.isoparse(d) if type(d) == str else d
+            return isinstance(d, datetime) and abs((d - START_EPOCH_DATETIME).total_seconds()) < MAX_DIFF_FROM_EPOCH_IN_SECS
+
+        except: # pylint: disable=bare-except
+            return False
+
+
     @staticmethod
     def _dynamic_to_object(value):
         try:
-            return json.loads(value) if value and isinstance(value, str) else value if value else None
+            return json.loads(value) if value and isinstance(value, str) else value
         except Exception:
             return value
+
+
+    @staticmethod
+    def _dynamic_to_str(value):
+        try:
+            return value if isinstance(value, str) else f"{value}" if value is not None else None
+        except Exception:
+            return value
+
 
     # index MUST be lowercase 
     KQL_TO_DATAFRAME_DATA_TYPES = {

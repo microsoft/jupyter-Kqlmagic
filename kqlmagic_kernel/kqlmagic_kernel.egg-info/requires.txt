@@ -1,0 +1,9 @@
+kqlmagic>=0.1.114
+jupyter_client>=4.3.0
+ipykernel
+
+[test]
+pytest
+nbconvert
+jupyter_kernel_test
+nbconvert

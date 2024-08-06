@@ -33,6 +33,13 @@ from .email_notification import EmailNotification
 from .aad_helper import AadHelper
 from .os_dependent_api import OsDependentAPI
 
+# Changes for Fabric begin here.
+# Add an optional import for fabric
+try:
+    from notebookutils import mssparkutils
+except: # pylint: disable=bare-except
+    mssparkutils = None
+
 
 class OAuth2DeviceCodeResponseParameters(object):
     USER_CODE         = 'user_code'
@@ -200,7 +207,7 @@ class AuthenticationMethod(object):
     aad_application_key         = "aad_application_key"
     aad_application_certificate = "aad_application_certificate"
     aad_code_login              = "aad_code_login"
-
+    fabric                       = "fabric"
     # external tokens
     azcli_login                 = "azcli_login"
     azcli_login_subscription    = "azcli_login_subscription"
@@ -413,6 +420,16 @@ class _MyAadHelper(AadHelper):
                 if self._options.get("try_vscode_login"):
                     token = self._get_vscode_token()
                     self._current_token = self._validate_and_refresh_token(token)
+
+            # The attempt is to get a 1P token. First check if the mssparkutils is available.
+            if mssparkutils:
+                if self._current_token is None:
+                    logger().debug("Attempting to get 1P token for authentication")
+                    token = self._get_1p_token()
+                    if token is not None:
+                        self._current_token = self._validate_and_refresh_token(token)
+                    logger().debug("1P token is not available(this is available on Fabric and Synapse environments only)"
+                                ", attempting other auth methods")
 
             if self._current_token is None:
                 self._current_authentication_method = self._authentication_method
@@ -678,6 +695,26 @@ class _MyAadHelper(AadHelper):
             token = msal_client_app.acquire_token_silent(scopes, account) 
         return token 
 
+    # Add a 1P auth for Synapse and Fabric
+    def _get_1p_token(self) -> dict:
+        logger().debug("_MyAadHelper::_get_1P_token enter")
+        token = None
+        self._current_authentication_method = AuthenticationMethod.fabric
+        old_stderr = sys.stderr
+        sys.stderr = StringIO()
+        try:
+            logger().debug(f"_MyAadHelper::_get_fabric_token enter getting token for resource {self._resource}")
+            # An access token JWT is returned from the API call
+            # In non-fabric environments there is no token returned. This does not throw an error, but just returns None
+            t = mssparkutils.credentials.getToken(self._resource)
+            if t:
+                token = {"access_token": t, "token_type": "bearer"}
+        except Exception as error:
+            logger().debug(f"_MyAadHelper::_get_fabric_token error getting token with error {error}")
+            token = None
+        sys.stderr = old_stderr
+        logger().info(f"_MyAadHelper::_get_fabric_token {'failed' if token is None else 'succeeded'} to get token")
+        return token
 
     #
     # Assume OAuth2 format (e.g. MSI Token) too

@@ -84,6 +84,7 @@ class Dependencies(object):
         ('pyperclip', 'pyperclip', OPTIONAL_TAG, "copy/paste feature will be disabled in device code authentication", VERSION_IN_MODULE),
         ('azure.common.credentials', 'azure-common', OPTIONAL_TAG, "-try_azcli_login, -try_azcli_login_subscription and -try_azcli_login_by_profile authentication options will be dsiabled", 'azure.common'),
         ('msrestazure.azure_active_directory', 'msrestazure', OPTIONAL_TAG, "-try_msi authentication options will be dsiabled", 'msrestazure'),
+        ('dummy-notebookutils', 'notebookutils', OPTIONAL_TAG, "1P auth on Fabric will be disabled","mssparkutils"),
         ('psutil', 'psutil', OPTIONAL_TAG, "some jupyter variants may not be detected correctly", VERSION_IN_MODULE),
 
         ('matplotlib.pyplot', 'matplotlib', DISABLED_TAG, 'plotting with matplotlib will be dsiabled', 'matplotlib'),
@@ -264,6 +265,8 @@ class Dependencies(object):
             cls.warn_unknown_extras_require_name(cls.extras_names)
 
         for item in cls.dependencies:
+            listToStr = ','.join([str(elem) for elem in cls.install_package_names])
+            logger().info(f"dependency -- '{item}' -- {listToStr}")
             cls._import_warn(cls.install_package_names, *item)
 
 

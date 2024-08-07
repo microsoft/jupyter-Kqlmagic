@@ -421,7 +421,11 @@ class _MyAadHelper(AadHelper):
                     token = self._get_vscode_token()
                     self._current_token = self._validate_and_refresh_token(token)
 
-            # The attempt is to get a 1P token. First check if the mssparkutils is available.
+            """
+              The attempt is to get a 1P token. First check if the mssparkutils is available.
+              This is only for registered 1P registered apps. So a filter is not required for
+              ADX hosts (calls to LA-WS , AI etc. will fail and fallback to the next auth method) 
+            """
             if mssparkutils:
                 if self._current_token is None:
                     logger().debug("Attempting to get 1P token for authentication")

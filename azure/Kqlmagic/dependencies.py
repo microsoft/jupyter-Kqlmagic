@@ -265,8 +265,6 @@ class Dependencies(object):
             cls.warn_unknown_extras_require_name(cls.extras_names)
 
         for item in cls.dependencies:
-            listToStr = ','.join([str(elem) for elem in cls.install_package_names])
-            logger().info(f"dependency -- '{item}' -- {listToStr}")
             cls._import_warn(cls.install_package_names, *item)
 
 

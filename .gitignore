@@ -137,3 +137,4 @@ C:\MyProjects\KqlmagicAtMicrosoftGithub\jupyter-Kqlmagic\azure\tests\Kqlmagic_te
 azure/Kqlmagic/kql_magic_old.py
 /notebooks/kqlmagic/temp_files
 pyvenv.cfg
+*.whl

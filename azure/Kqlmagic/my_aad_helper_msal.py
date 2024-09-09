@@ -753,8 +753,12 @@ class _MyAadHelper(AadHelper):
     def _get_token_not_before(self, token:dict, default_not_before:str=None)->str:
         not_before = default_not_before
         if token.get(OAuth2TokenFields.NOT_BEFORE) is not None:
-            # The date is represented as the number of seconds from "1970-01-01T0:0:0Z UTC" (corresponds to the token's nbf claim).
-            not_before = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(token.get(OAuth2TokenFields.NOT_BEFORE)))
+            try:
+                # The date is represented as the number of seconds from "1970-01-01T0:0:0Z UTC" (corresponds to the token's nbf claim).
+                not_before = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(token.get(OAuth2TokenFields.NOT_BEFORE)))
+            except: # pylint: disable=bare-except
+                # this happens if the not_before field is empty or is not a float (i.e datetime)
+                not_before = None
         return not_before
 
 

@@ -1,0 +1,15 @@
+include *.txt
+include *.rst
+include *.py
+include *.md
+include *.ipynb
+include Makefile
+include kqlmagic_kernel/spec/kernel.json
+recursive-include kqlmagic_kernel/spec *.m
+recursive-include kqlmagic_kernel/spec *.png
+prune .git
+prune docs/build
+prune dist
+prune build
+prune binder
+include Dockerfile

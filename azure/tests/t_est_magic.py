@@ -4,16 +4,21 @@
 # license information.
 #--------------------------------------------------------------------------
 
-from nose import with_setup
-from nose.tools import raises
-from Kqlmagic.constants import Constants
-from Kqlmagic.kql_magic import Kqlmagic as Magic
-from textwrap import dedent
 import os.path
 import re
 import tempfile
+from textwrap import dedent
 
-ip = get_ipython() # pylint: disable=E0602
+
+from nose import with_setup
+from nose.tools import raises
+
+
+from azure.Kqlmagic.constants import Constants
+from azure.Kqlmagic.kql_magic import Kqlmagic as Magic
+
+
+ip = get_ipython() # pylint: disable=undefined-variable
 
 def setup():
     magic = Magic(shell=ip)

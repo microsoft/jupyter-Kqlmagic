@@ -36,9 +36,9 @@ from .os_dependent_api import OsDependentAPI
 # Changes for Fabric begin here.
 # Add an optional import for fabric
 try:
-    from notebookutils import mssparkutils
+    import notebookutils
 except: # pylint: disable=bare-except
-    mssparkutils = None
+    notebookutils = None
 
 
 class OAuth2DeviceCodeResponseParameters(object):
@@ -422,11 +422,11 @@ class _MyAadHelper(AadHelper):
                     self._current_token = self._validate_and_refresh_token(token)
 
             """
-              The attempt is to get a 1P token. First check if the mssparkutils is available.
+              The attempt is to get a 1P token. First check if the notebookutils is available.
               This is only for registered 1P registered apps. So a filter is not required for
               ADX hosts (calls to LA-WS , AI etc. will fail and fallback to the next auth method) 
             """
-            if mssparkutils:
+            if notebookutils:
                 if self._current_token is None:
                     logger().debug("Attempting to get 1P token for authentication")
                     token = self._get_1p_token()
@@ -710,7 +710,7 @@ class _MyAadHelper(AadHelper):
             logger().debug(f"_MyAadHelper::_get_fabric_token enter getting token for resource {self._resource}")
             # An access token JWT is returned from the API call
             # In non-fabric environments there is no token returned. This does not throw an error, but just returns None
-            t = mssparkutils.credentials.getToken(self._resource)
+            t = notebookutils.credentials.getToken(self._resource)
             if t:
                 token = {"access_token": t, "token_type": "bearer"}
         except Exception as error:

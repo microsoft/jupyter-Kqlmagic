@@ -111,7 +111,7 @@ _KQLMAGIC_MSAL_SSO_REQUIRES = [
 ]
 
 _FABRIC_SSO_REQUIRES = [
-    'dummy-notebookutils>=1.5.1'
+    'dummy-notebookutils>=1.5.3'
 ]
 
 _KQLMAGIC_SSO_REQUIRES = list_union(_AUTH_REQUIRES, _KQLMAGIC_MSAL_SSO_REQUIRES, _KQLMAGIC_FERNET_SSO_REQUIRES)

@@ -54,15 +54,15 @@ class Dependencies(object):
     platform_dependencies = {
         "Windows": (
             ('msal_extensions.windows', 'msal_extensions', OPTIONAL_TAG, "won't be able to authenticate using msal Single-Sign-On authentication modes", 'msal_extensions'),
-            # ('winwin', 'winwin', OPTIONAL_TAG, "will be dsiabled", VERSION_IN_MODULE),
+            # ('winwin', 'winwin', OPTIONAL_TAG, "will be disabled", VERSION_IN_MODULE),
         ),
         "Linux": (
             ('msal_extensions.libsecret', 'msal_extensions', OPTIONAL_TAG, "won't be able to authenticate using msal Single-Sign-On authentication modes", 'msal_extensions'),
-            # ('winwin', 'winwin', OPTIONAL_TAG, "will be dsiabled", VERSION_IN_MODULE),
+            # ('winwin', 'winwin', OPTIONAL_TAG, "will be disabled", VERSION_IN_MODULE),
         ),
         "Darwin": (
             ('msal_extensions.osx', 'msal_extensions', OPTIONAL_TAG, "won't be able to authenticate using msal Single-Sign-On authentication modes", 'msal_extensions'),
-            # ('winwin', 'winwin', OPTIONAL_TAG, "will be dsiabled", VERSION_IN_MODULE),
+            # ('winwin', 'winwin', OPTIONAL_TAG, "will be disabled", VERSION_IN_MODULE),
         )
     }
 
@@ -82,12 +82,12 @@ class Dependencies(object):
         ('pygments.lexers.data', 'pygments', OPTIONAL_TAG, "json objects won't be decorated with colors", 'pygments'),
         ('pygments.formatters.terminal', 'pygments', OPTIONAL_TAG, "json objects won't be decorated with colors", 'pygments'),
         ('pyperclip', 'pyperclip', OPTIONAL_TAG, "copy/paste feature will be disabled in device code authentication", VERSION_IN_MODULE),
-        ('azure.common.credentials', 'azure-common', OPTIONAL_TAG, "-try_azcli_login, -try_azcli_login_subscription and -try_azcli_login_by_profile authentication options will be dsiabled", 'azure.common'),
-        ('msrestazure.azure_active_directory', 'msrestazure', OPTIONAL_TAG, "-try_msi authentication options will be dsiabled", 'msrestazure'),
+        ('azure.common.credentials', 'azure-common', OPTIONAL_TAG, "-try_azcli_login, -try_azcli_login_subscription and -try_azcli_login_by_profile authentication options will be disabled", 'azure.common'),
+        ('msrestazure.azure_active_directory', 'msrestazure', OPTIONAL_TAG, "-try_msi authentication options will be disabled", 'msrestazure'),
         ('dummy-notebookutils', 'notebookutils', OPTIONAL_TAG, "1P auth on Fabric will be disabled","mssparkutils"),
         ('psutil', 'psutil', OPTIONAL_TAG, "some jupyter variants may not be detected correctly", VERSION_IN_MODULE),
 
-        ('matplotlib.pyplot', 'matplotlib', DISABLED_TAG, 'plotting with matplotlib will be dsiabled', 'matplotlib'),
+        ('matplotlib.pyplot', 'matplotlib', DISABLED_TAG, 'plotting with matplotlib will be disabled', 'matplotlib'),
 
         ('matplotlib.cm', 'matplotlib', OPTIONAL_TAG, "matplotlib color maps (palettes) won't be available in plots", 'matplotlib'),
         ('matplotlib.colors', 'matplotlib', OPTIONAL_TAG, "matplotlib color maps (palettes) won't be available in plots", 'matplotlib'),

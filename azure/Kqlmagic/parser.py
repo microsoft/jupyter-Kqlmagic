@@ -17,7 +17,7 @@ from traitlets.config.configurable import Configurable
 from ._debug_utils import debug_print 
 from .dependencies import Dependencies
 from .constants import Constants, Schema
-from .my_utils import split_lex, adjust_path, is_env_var, get_env_var, is_collection, strip_if_quoted
+from .my_utils import split_lex, adjust_path, is_env_var, get_env_var, is_collection, strip_if_quoted, get_lines
 from .engine import Engine
 
 from .commands_table import COMMANDS_TABLE
@@ -72,8 +72,7 @@ class Parser(object):
             magic_section_name = Constants.MAGIC_NAME
             section_lines:List[str] = []
             previous_line = " "  # should be init to space for the below to work
-            # note: splitlines don't remove the \n suffix, each line endswith \n
-            for line in code.splitlines(True):
+            for line in get_lines(code):
                 lstripped_line = line.lstrip()
 
                 if (lstripped_line.startswith(Constants.IPYKERNEL_CELL_MAGIC_PREFIX)

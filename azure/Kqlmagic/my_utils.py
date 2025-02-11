@@ -350,7 +350,40 @@ def tokenized_split(string:str, sep:Union[str,List[str]]=None, strip:bool=None, 
 
 def get_lines(text:str)->List[str]:
 
-    if get_env_var("LINE_SEPARATOR") is not None and get_env_var("LINE_SEPARATOR").strip():
-        return text.split(get_env_var("LINE_SEPARATOR"))
-    # note: splitlines don't remove the \n suffix, each line endswith \n
-    return text.splitlines(True)
+    queries = []
+    buffer = []
+    inside_triple_quotes = False
+    
+    lines = text.splitlines(keepends=True)  # Keep line endings
+
+    for line in lines:
+        index = line.find('```')
+        alt_index = line.find('"""')
+        marker = None
+        
+        if index != -1 and (alt_index == -1 or index < alt_index):
+            marker = '```'
+        elif alt_index != -1:
+            marker = '"""'
+
+        if marker:
+            if not inside_triple_quotes:
+                inside_triple_quotes = True
+                buffer.append(line)
+            else:
+                buffer.append(line)
+                queries.append(''.join(buffer))
+                buffer.clear()
+                inside_triple_quotes = False
+        elif inside_triple_quotes:
+            buffer.append(line)
+        else:
+            queries.append(line)
+
+    # Handle unclosed triple-quoted section but not adding the tripple quotes by self
+    if inside_triple_quotes:
+        queries.append(''.join(buffer))
+    buffer.clear()
+
+    
+    return queries

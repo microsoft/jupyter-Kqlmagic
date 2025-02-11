@@ -380,7 +380,7 @@ def get_lines(text:str)->List[str]:
         else:
             queries.append(line)
 
-    # Handle unclosed triple-quoted section but not adding the tripple quotes by self
+    # Handle unclosed triple-quoted section but not adding the triple quotes by self
     if inside_triple_quotes:
         queries.append(''.join(buffer))
     buffer.clear()

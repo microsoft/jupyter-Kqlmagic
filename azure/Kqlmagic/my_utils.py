@@ -358,14 +358,11 @@ def get_lines(text:str)->List[str]:
 
     for line in lines:
         index = line.find('```')
-        alt_index = line.find('"""')
         marker = None
         
-        if index != -1 and (alt_index == -1 or index < alt_index):
+        if index != -1:
             marker = '```'
-        elif alt_index != -1:
-            marker = '"""'
-
+        
         if marker:
             if not inside_triple_quotes:
                 inside_triple_quotes = True

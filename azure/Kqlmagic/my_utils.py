@@ -347,3 +347,43 @@ def tokenized_split(string:str, sep:Union[str,List[str]]=None, strip:bool=None, 
             collection_depth -= 1
 
     return items
+
+def get_lines(text:str)->List[str]:
+
+    queries = []
+    buffer = []
+    inside_triple_quotes = False
+    
+    lines = text.splitlines(keepends=True)  # Keep line endings
+
+    for line in lines:
+        index = line.find('```')
+        marker = None
+        
+        if index != -1:
+            count = line.count('```')
+            # even number of triple quotes cancel each other as a start or end triple quote
+            if count % 2 == 1:
+                marker = '```'
+        
+        if marker:
+            if not inside_triple_quotes:
+                inside_triple_quotes = True
+                buffer.append(line)
+            else:
+                buffer.append(line)
+                queries.append(''.join(buffer))
+                buffer.clear()
+                inside_triple_quotes = False
+        elif inside_triple_quotes:
+            buffer.append(line)
+        else:
+            queries.append(line)
+
+    # Handle unclosed triple-quoted section but not adding the triple quotes by self
+    if inside_triple_quotes:
+        queries.append(''.join(buffer))
+    buffer.clear()
+
+    
+    return queries

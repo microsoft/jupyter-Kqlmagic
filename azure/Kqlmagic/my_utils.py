@@ -361,7 +361,10 @@ def get_lines(text:str)->List[str]:
         marker = None
         
         if index != -1:
-            marker = '```'
+            count = line.count('```')
+            # even number of triple quotes cancel each other as a start or end triple quote
+            if count % 2 == 1:
+                marker = '```'
         
         if marker:
             if not inside_triple_quotes:

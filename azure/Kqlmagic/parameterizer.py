@@ -318,7 +318,7 @@ class Parameterizer(object):
         r = d["data"]
         pairs_t = {col: [str(t[col]), cls._DATAFRAME_TO_KQL_TYPES.get(str(t[col]))] for col in c}
         pairs_t = cls._guess_object_types(pairs_t, r)
-        schema = ", ".join([f"{col}:{pairs_t[col][1]}" for col in c])
+        schema = ", ".join([f'["{str.strip(col)}"]:{pairs_t[col][1]}' for col in c])
         data = ", ".join([", ".join([cls._dataframe_to_kql_value(val, pairs_t[c[idx]]) for idx, val in enumerate(row)]) for row in r])
         return f" view () {{datatable ({schema}) [{data}]}}"      
  

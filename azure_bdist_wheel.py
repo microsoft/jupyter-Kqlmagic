@@ -4,7 +4,6 @@
 # license information.
 # --------------------------------------------------------------------------
 
-from distutils import log as logger
 import os.path
 
 from wheel.bdist_wheel import bdist_wheel
@@ -39,14 +38,13 @@ class azure_bdist_wheel(bdist_wheel):
         if self.azure_namespace_package:
             # Split and remove last part, assuming it's "nspkg"
             subparts = self.azure_namespace_package.split("-")[0:-1]
-        folder_with_init = [os.path.join(*subparts[0 : i + 1]) for i in range(len(subparts))]
-        for azure_sub_package in folder_with_init:
-            init_file = os.path.join(bdist_dir, azure_sub_package, "__init__.py")
-            if os.path.isfile(init_file):
-                logger.info("manually remove {} while building the wheel".format(init_file))
-                os.remove(init_file)
-            else:
-                raise ValueError("Unable to find {}. Are you sure of your namespace package?".format(init_file))
+            folder_with_init = [os.path.join(*subparts[0 : i + 1]) for i in range(len(subparts))]
+            for azure_sub_package in folder_with_init:
+                init_file = os.path.join(bdist_dir, azure_sub_package, "__init__.py")
+                if os.path.isfile(init_file):
+                    os.remove(init_file)
+                else:
+                    raise ValueError("Unable to find {}. Are you sure of your namespace package?".format(init_file))
         bdist_wheel.write_record(self, bdist_dir, distinfo_dir)
 
 

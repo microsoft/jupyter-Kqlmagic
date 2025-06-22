@@ -112,9 +112,29 @@ venv.bak/
 # private files
 /private_local
 
+# dependencies
+**/Scripts/**
+**/share/**
+**/etc/**
+
+**/man/**
+
+# private notebooks
+/my notebooks
+
+# other temp files
+**/temp_files/**
+
 
 # Kqlmagic tests
+/azure/tests/Kqlmagic_temp_files
 /azure/tests/tests_results.xml
+
 .vscode/launch.json
 .vscode/settings.json
 UpgradeLog.htm
+C:\MyProjects\KqlmagicAtMicrosoftGithub\jupyter-Kqlmagic\azure\tests\Kqlmagic_temp_files
+azure/Kqlmagic/kql_magic_old.py
+/notebooks/kqlmagic/temp_files
+pyvenv.cfg
+*.whl

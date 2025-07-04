@@ -347,10 +347,3 @@ def tokenized_split(string:str, sep:Union[str,List[str]]=None, strip:bool=None, 
             collection_depth -= 1
 
     return items
-
-def get_lines(text:str)->List[str]:
-
-    if get_env_var("LINE_SEPARATOR") is not None and get_env_var("LINE_SEPARATOR").strip():
-        return text.split(get_env_var("LINE_SEPARATOR"))
-    # note: splitlines don't remove the \n suffix, each line endswith \n
-    return text.splitlines(True)

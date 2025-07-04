@@ -110,9 +110,6 @@ _KQLMAGIC_MSAL_SSO_REQUIRES = [
     'msal-extensions>=0.3.0', # required for SSO
 ]
 
-_FABRIC_SSO_REQUIRES = [
-    'dummy-notebookutils>=1.5.1'
-]
 
 _KQLMAGIC_SSO_REQUIRES = list_union(_AUTH_REQUIRES, _KQLMAGIC_MSAL_SSO_REQUIRES, _KQLMAGIC_FERNET_SSO_REQUIRES)
 
@@ -134,7 +131,7 @@ _MSI_SSO_REQUIRES = [
 ]
 
 _SSO_REQUIRES = list_union(_KQLMAGIC_SSO_REQUIRES, _AZCLI_SSO_REQUIRES, _VSCODE_SSO_REQUIRES, _MSAL_SSO_REQUIRES,
-                          _MSI_SSO_REQUIRES, _FABRIC_SSO_REQUIRES)
+                          _MSI_SSO_REQUIRES)
 
 _EXTRA_REQUIRES = list_union(_PLOT_REQUIRES, _DATAFRAME_REQUIRES, _SSO_REQUIRES, _IPYWIDGETS_REQUIRES)
 # ---------------------------------------------------
